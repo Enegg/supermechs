@@ -1,0 +1,17 @@
+# python compiled files
+__pycache__
+*.py[cod]
+
+# machine specific files
+# .vscode
+*.env
+venv
+.venv
+!example.env
+*.log
+
+TODO.md
+dev/
+
+# local data files
+tests/data/
