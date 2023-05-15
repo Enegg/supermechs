@@ -5,4 +5,6 @@ from .graphics import *
 from .packs import *
 
 Name: t.TypeAlias = str
+"""String representing item name."""
 ID: t.TypeAlias = int
+"""Integer representing an item ID."""
