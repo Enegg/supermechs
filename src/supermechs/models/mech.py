@@ -84,7 +84,7 @@ def _is_valid_type(
     attr: Attribute[InvItem | None | t.Any],
     value: InvItem | None | t.Any,
 ) -> None:
-    """Performs a check if item assigned to a slot has valid type."""
+    """Check if item type matches the slot it is assigned to."""
     if value is None:
         return
 
@@ -190,6 +190,7 @@ class Mech:
             if item is not None
             if item.type not in excluded
         ).most_common(2)
+        # the 2 ensures there are at most 2 elements to compare together
 
         # return None when there are no elements
         # or the difference between the two most common is small
