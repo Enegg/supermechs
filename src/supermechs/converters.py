@@ -1,4 +1,4 @@
-from .enums import IconData, Type
+from .enums import Type
 from .typeshed import XOrTupleXY
 
 __all__ = (
@@ -7,7 +7,6 @@ __all__ = (
     "SPECIAL_SLOTS",
     "WEAPON_SLOTS",
     "get_slot_name",
-    "slot_to_icon_data",
     "slot_to_type",
 )
 
@@ -43,14 +42,6 @@ def slot_to_type(slot: str) -> Type:
         return Type.MODULE
 
     return Type[slot.upper()]
-
-
-def slot_to_icon_data(slot: str) -> IconData:
-    """Same as slot_to_type but returns alternate icon for items mounted on the right side."""
-    if slot.startswith(("top", "side")) and int(slot[-1]) % 2 == 1:
-        return slot_to_type(slot).left
-
-    return slot_to_type(slot).right
 
 
 def get_slot_name(slot_: XOrTupleXY[str | Type, int], /):

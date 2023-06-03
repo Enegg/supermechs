@@ -47,7 +47,7 @@ class TieredSprite:
         if tier not in self.transform_range:
             raise ValueError("Invalid tier")
 
-        return self.sprites[tier.level - self.transform_range.min.level]
+        return self.sprites[tier.value - self.transform_range.min.value]
 
     @property
     def max_tier(self) -> ItemSprite:

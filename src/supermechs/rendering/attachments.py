@@ -36,9 +36,14 @@ TorsoAttachments = dict[str, Point2D]
 AnyAttachment = Point2D | TorsoAttachments | None
 
 
+def is_displayable(type: Type) -> bool:
+    """Whether item of given type can appear in a composite mech's image."""
+    return type.name not in ("TELEPORTER", "CHARGE", "HOOK", "MODULE")
+
+
 def is_attachable(type: Type) -> bool:
     """Whether item of given type should have an image attachment."""
-    return type.displayable and type is not Type.DRONE
+    return is_displayable(type) and type is not Type.DRONE
 
 
 def attachments_from_raw(mapping: RawTorsoAttachments) -> TorsoAttachments:

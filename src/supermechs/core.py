@@ -113,7 +113,7 @@ class TransformRange:
     range: range
 
     def __str__(self) -> str:
-        return "".join(rarity.emoji for rarity in self)
+        return f"{self.min.name[0]}-{self.max.name[0]}"
 
     def __iter__(self) -> t.Iterator[Tier]:
         return map(Tier.__call__, self.range)
@@ -123,7 +123,7 @@ class TransformRange:
 
     def __contains__(self, item: Tier | TransformRange) -> bool:
         if isinstance(item, Tier):
-            return item.level in self.range
+            return item.value in self.range
 
         if isinstance(item, type(self)):
             return item.range in self.range
@@ -139,21 +139,6 @@ class TransformRange:
     def max(self) -> Tier:
         """Upper range bound."""
         return Tier.__call__(self.range.stop - 1)
-
-    def is_single_tier(self) -> bool:
-        """Whether range has only one tier."""
-        return len(self.range) == 1
-
-    def as_tier_str(self, level: int = -1, chars: str | tuple[str, str] = "()") -> str:
-        s = ""
-        if level == -1:
-            level = len(self) - 1
-        for i, rarity in enumerate(self):
-            if i == level:
-                s += f"{chars[0]}{rarity.emoji}{chars[-1]}"
-                continue
-            s += rarity.emoji
-        return s
 
     @classmethod
     def from_tiers(cls, lower: Tier | int, upper: Tier | int | None = None) -> Self:
@@ -172,7 +157,7 @@ class TransformRange:
         if lower > upper:
             raise ValueError("Upper tier below lower tier")
 
-        return cls(range(lower.level, upper.level + 1))
+        return cls(range(lower.value, upper.value + 1))
 
     @classmethod
     def from_string(cls, string: str, /) -> Self:
@@ -525,4 +510,4 @@ def abbreviate_names(names: t.Iterable[Name], /) -> dict[str, set[Name]]:
 
 def next_tier(current: Tier, /) -> Tier:
     """Returns the next tier in line."""
-    return Tier.__call__(current.level + 1)
+    return Tier.__call__(current.value + 1)
