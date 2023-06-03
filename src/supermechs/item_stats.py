@@ -16,22 +16,22 @@ __all__ = ("ItemStats",)
 LOGGER = logging.getLogger(__name__)
 
 
-def as_gradient(lower: int, upper: int, fraction: float) -> int:
-    """Returns a value between the lower and upper numbers,
-    with fraction denoting how close to the upper the value gets.
-    In other words, at fraction = 0 returns lower, and at fraction = 1 returns upper.
+def linear_interpolation(lower: int, upper: int, weight: float) -> int:
+    """Returns a value between the `lower` and `upper` numbers,
+    with `weight` denoting how close to the `upper` the value gets.
+    In other words, at `weight` = 0 returns `lower`, and at `weight` = 1 returns `upper`.
     """
-    return lower + round((upper - lower) * fraction)
+    return lower + round((upper - lower) * weight)
 
 
-def as_ranges_gradient(minor: ValueRange, major: ValueRange, fraction: float) -> ValueRange:
-    """Returns a range between the minor and major ranges,
-    with fraction denoting how close to the major the value gets.
-    In other words, at fraction = 0 returns minor, and at fraction = 1 returns major.
+def range_linear_interpolation(minor: ValueRange, major: ValueRange, weight: float) -> ValueRange:
+    """Returns a new range between the `minor` and `major` ranges,
+    with `weight` denoting how close to the `major` the value gets.
+    In other words, at `weight` = 0 returns `minor`, and at `weight` = 1 returns `major`.
     """
-    return minor + (
-        round((major.lower - minor.lower) * fraction),
-        round((major.upper - minor.upper) * fraction),
+    return ValueRange(
+        linear_interpolation(minor.lower, major.lower, weight),
+        linear_interpolation(minor.upper, major.upper, weight)
     )
 
 
@@ -58,7 +58,7 @@ def iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
 
 def transform_raw_stats(data: RawStats, *, strict: bool = False) -> AnyStats:
     """Ensures the data is valid by grabbing factual keys and type checking values.
-    Transforms None values to NaNs."""
+    Transforms None values into NaNs."""
     final_stats: AnyStats = {}
 
     # TODO: implement extrapolation of missing data
@@ -122,11 +122,11 @@ class TierStats:
 
             if isinstance(value, ValueRange):
                 assert isinstance(base_value, ValueRange)
-                stats[key] = as_ranges_gradient(base_value, value, fraction)
+                stats[key] = range_linear_interpolation(base_value, value, fraction)
 
             else:
                 assert not isinstance(base_value, ValueRange)
-                stats[key] = as_gradient(base_value, value, fraction)
+                stats[key] = linear_interpolation(base_value, value, fraction)
 
         return stats
 
