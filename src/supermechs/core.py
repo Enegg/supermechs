@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing as t
 from pathlib import Path
+from types import MappingProxyType
 
 from attrs import Factory, define, frozen
 from typing_extensions import Self
@@ -77,33 +78,29 @@ class Names(t.NamedTuple):
 # TODO: make this locale aware
 class Stat(t.NamedTuple):
     key: str
-    name: Names
-    emoji: str = "❔"
     beneficial: bool = True
     buff: t.Literal["+", "+%", "-%", "+2%"] | None = None
 
     def __str__(self) -> str:
-        return self.name.default
+        return self.key
 
     @classmethod
     def from_dict(cls, json: StatDict, key: str) -> Self:
         return cls(
             key=key,
-            name=Names(**json["names"]),
-            emoji=json.get("emoji", "❔"),
             beneficial=json.get("beneficial", True),
             buff=json.get("buff", None),
         )
 
 
 def _load_stats():
-    with open(Path(__file__).parent / "static/StatData.json") as file:
+    with (Path(__file__).parent / "static/StatData.json").open() as file:
         json: dict[AnyStatKey, StatDict] = json_decoder(file.read())
 
     return {stat_key: Stat.from_dict(value, stat_key) for stat_key, value in json.items()}
 
 
-STATS = _load_stats()
+STATS: t.Mapping[str, Stat] = MappingProxyType(_load_stats())
 
 
 @frozen
@@ -116,29 +113,26 @@ class TransformRange:
         return f"{self.min.name[0]}-{self.max.name[0]}"
 
     def __iter__(self) -> t.Iterator[Tier]:
-        return map(Tier.__call__, self.range)
+        return map(Tier.get_by_value, self.range)
 
     def __len__(self) -> int:
         return len(self.range)
 
-    def __contains__(self, item: Tier | TransformRange) -> bool:
+    def __contains__(self, item: Tier) -> bool:
         if isinstance(item, Tier):
             return item.value in self.range
-
-        if isinstance(item, type(self)):
-            return item.range in self.range
 
         return NotImplemented
 
     @property
     def min(self) -> Tier:
         """Lower range bound."""
-        return Tier.__call__(self.range.start)
+        return Tier.get_by_value(self.range.start)
 
     @property
     def max(self) -> Tier:
         """Upper range bound."""
-        return Tier.__call__(self.range.stop - 1)
+        return Tier.get_by_value(self.range.stop - 1)
 
     @classmethod
     def from_tiers(cls, lower: Tier | int, upper: Tier | int | None = None) -> Self:
@@ -146,13 +140,13 @@ class TransformRange:
         Unlike `range` object, upper bound is inclusive."""
 
         if isinstance(lower, int):
-            lower = Tier.__call__(lower)
+            lower = Tier.get_by_value(lower)
 
         if upper is None:
             upper = lower
 
         elif isinstance(upper, int):
-            upper = Tier.__call__(upper)
+            upper = Tier.get_by_value(upper)
 
         if lower > upper:
             raise ValueError("Upper tier below lower tier")
@@ -173,16 +167,12 @@ class TransformRange:
 class GameVars(t.NamedTuple):
     MAX_WEIGHT: int = 1000
     OVERWEIGHT: int = 10
-    PENALTIES: AnyMechStats = {"health": 15}
-    EXCLUSIVE_STATS: frozenset[str] = frozenset(("phyRes", "expRes", "eleRes"))
+    OVERWEIGHT_PENALTIES: AnyMechStats = {"health": 15}
+    EXCLUSIVE_STATS: t.AbstractSet[AnyMechStatKey] = frozenset(("phyRes", "expRes", "eleRes"))
 
     @property
     def MAX_OVERWEIGHT(self) -> int:
         return self.MAX_WEIGHT + self.OVERWEIGHT
-
-    @classmethod
-    def default(cls) -> Self:
-        return DEFAULT_VARS
 
 
 DEFAULT_VARS = GameVars()
@@ -235,7 +225,7 @@ class BuffModifier(t.Protocol):
     def value(self) -> int:
         ...
 
-    def apply(self, __value: int, /) -> int:
+    def apply(self, value: int, /) -> int:
         ...
 
 
@@ -510,4 +500,4 @@ def abbreviate_names(names: t.Iterable[Name], /) -> dict[str, set[Name]]:
 
 def next_tier(current: Tier, /) -> Tier:
     """Returns the next tier in line."""
-    return Tier.__call__(current.value + 1)
+    return Tier.get_by_value(current.value + 1)

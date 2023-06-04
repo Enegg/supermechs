@@ -1,13 +1,26 @@
 from __future__ import annotations
 
 import typing as t
-from enum import Enum, auto, IntEnum
+from enum import Enum, auto
 
+from typing_extensions import Self
 
 __all__ = ("Tier", "Element", "Type")
 
 
-class Tier(IntEnum):
+class PartialEnum(Enum):
+    @classmethod
+    def get_by_name(cls, name: str, /) -> Self:
+        """Get enum member by name."""
+        return cls[name]
+
+    @classmethod
+    def get_by_value(cls, value: t.Any, /) -> Self:
+        """Get enum member by value."""
+        return cls.__call__(value)
+
+
+class Tier(int, PartialEnum):
     """Enumeration of item tiers."""
 
     _short_names2members: t.ClassVar[dict[str, Tier]]
@@ -31,7 +44,7 @@ class Tier(IntEnum):
 Tier._short_names2members = {tier.name[0]: tier for tier in Tier}
 
 
-class Element(Enum):
+class Element(PartialEnum):
     """Enumeration of item elements."""
 
     # fmt: off
@@ -43,7 +56,7 @@ class Element(Enum):
     # fmt: on
 
 
-class Type(Enum):
+class Type(PartialEnum):
     """Enumeration of item types."""
 
     # fmt: off

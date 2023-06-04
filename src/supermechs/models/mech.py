@@ -6,12 +6,12 @@ from functools import partial
 from types import MappingProxyType
 from uuid import UUID
 
-from attrs import Attribute, define, field
+from attrs import Attribute, define, field, fields
 from attrs.validators import max_len
 from typing_extensions import Self
 
 from ..converters import get_slot_name, slot_to_type
-from ..core import STATS, WORKSHOP_STATS, ArenaBuffs, GameVars, StringLimits
+from ..core import DEFAULT_VARS, STATS, WORKSHOP_STATS, ArenaBuffs, GameVars, StringLimits
 from ..enums import Element, Type
 from ..typeshed import XOrTupleXY, dict_items_as
 from ..utils import cached_slot_property, format_count
@@ -125,32 +125,33 @@ class Mech:
 
     name: str = field(validator=max_len(StringLimits.name))
     custom: bool = False
-    game_vars: GameVars = field(factory=GameVars.default)
+    game_vars: GameVars = field(default=DEFAULT_VARS)
     constraints: dict[UUID, t.Callable[[Self], bool]] = field(factory=dict, init=False)
+
     _stats: dict[str, int] = field(init=False, repr=False, eq=False)
     _dominant_element: Element | None = field(init=False, repr=False, eq=False)
 
     # fmt: off
-    torso:  SlotType = field(default=None, validator=_is_valid_type)
-    legs:   SlotType = field(default=None, validator=_is_valid_type)
-    drone:  SlotType = field(default=None, validator=_is_valid_type)
-    side1:  SlotType = field(default=None, validator=_is_valid_type)
-    side2:  SlotType = field(default=None, validator=_is_valid_type)
-    side3:  SlotType = field(default=None, validator=_is_valid_type)
-    side4:  SlotType = field(default=None, validator=_is_valid_type)
-    top1:   SlotType = field(default=None, validator=_is_valid_type)
-    top2:   SlotType = field(default=None, validator=_is_valid_type)
-    tele:   SlotType = field(default=None, validator=_is_valid_type)
-    charge: SlotType = field(default=None, validator=_is_valid_type)
-    hook:   SlotType = field(default=None, validator=_is_valid_type)
-    mod1:   SlotType = field(default=None, validator=_is_valid_type)
-    mod2:   SlotType = field(default=None, validator=_is_valid_type)
-    mod3:   SlotType = field(default=None, validator=_is_valid_type)
-    mod4:   SlotType = field(default=None, validator=_is_valid_type)
-    mod5:   SlotType = field(default=None, validator=_is_valid_type)
-    mod6:   SlotType = field(default=None, validator=_is_valid_type)
-    mod7:   SlotType = field(default=None, validator=_is_valid_type)
-    mod8:   SlotType = field(default=None, validator=_is_valid_type)
+    torso:  SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "body"})
+    legs:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "body"})
+    drone:  SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "body"})
+    side1:  SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "weapon"})
+    side2:  SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "weapon"})
+    side3:  SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "weapon"})
+    side4:  SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "weapon"})
+    top1:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "weapon"})
+    top2:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "weapon"})
+    tele:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "special"})
+    charge: SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "special"})
+    hook:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "special"})
+    mod1:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod2:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod3:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod4:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod5:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod6:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod7:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
+    mod8:   SlotType = field(default=None, validator=_is_valid_type, metadata={"group": "module"})
     # fmt: on
 
     @property
@@ -171,7 +172,7 @@ class Mech:
                     stats[stat] += value
 
         if (overweight := stats["weight"] - self.game_vars.MAX_WEIGHT) > 0:
-            for stat, penalty_mult in dict_items_as(int, self.game_vars.PENALTIES):
+            for stat, penalty_mult in dict_items_as(int, self.game_vars.OVERWEIGHT_PENALTIES):
                 stats[stat] -= overweight * penalty_mult
 
         for stat, value in tuple(stats.items())[2:]:  # keep weight and health
@@ -221,7 +222,7 @@ class Mech:
 
         del self.stats
 
-        self.try_invalidate_cache(item, self[slot])
+        self._evict_expired_cache(item, self[slot])
         setattr(self, slot, item)
 
     def __getitem__(self, slot: XOrTupleXY[str | Type, int]) -> SlotType:
@@ -302,7 +303,7 @@ class Mech:
             and all(constr(self) for constr in self.constraints.values())
         )
 
-    def try_invalidate_cache(self, new: SlotType, old: SlotType) -> None:
+    def _evict_expired_cache(self, new: SlotType, old: SlotType) -> None:
         """Deletes cached attributes if they expire."""
         # # Setting a displayable item will not change the image
         # # only if the old item was the same item
@@ -350,7 +351,7 @@ class Mech:
         specials: bool = False,
         modules: bool = False,
         slots: bool = False,
-    ) -> t.Iterator[SlotType | tuple[SlotType, str]]:
+    ) -> t.Iterator[XOrTupleXY[SlotType, str]]:
         """Iterator over mech's selected items.
 
         Parameters
@@ -378,7 +379,7 @@ class Mech:
         if not (body or weapons or specials or modules):
             body = weapons = specials = modules = True
 
-        from itertools import compress
+        from itertools import compress, groupby
 
         factory: t.Callable[[str], XOrTupleXY[SlotType, str]]
 
@@ -388,9 +389,14 @@ class Mech:
         else:
             factory = partial(getattr, self)
 
-        for slot_group in compress(
-            (BODY_SLOTS, WEAPON_SLOTS, SPECIAL_SLOTS, MODULE_SLOTS),
+        it: groupby[str, Attribute[t.Any]] = groupby(
+            fields(type(self)), key=lambda attr: attr.metadata.get("group", "")
+        )
+        next(it)  # discard no group fields
+
+        for _, slot_group in compress(
+            it,
             (body, weapons, specials, modules),
         ):
             for slot in slot_group:
-                yield factory(slot)
+                yield factory(slot.name)

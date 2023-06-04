@@ -45,7 +45,7 @@ def slot_to_type(slot: str) -> Type:
 
 
 def get_slot_name(slot_: XOrTupleXY[str | Type, int], /):
-    """Parse a slot to appropriate name. Raises TypeError if invalid."""
+    """Parse a slot to appropriate name. Raises ValueError if invalid."""
     match slot_:
         case (str() as slot, int() as pos):
             slot = slot.lower() + str(pos)
@@ -60,6 +60,6 @@ def get_slot_name(slot_: XOrTupleXY[str | Type, int], /):
             slot = slot_.lower()
 
     if slot not in _SLOTS_SET:
-        raise LookupError(f"{slot_!r} is not a valid slot")
+        raise ValueError(f"{slot_!r} is not a valid slot")
 
     return slot

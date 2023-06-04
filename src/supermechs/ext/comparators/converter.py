@@ -1,16 +1,15 @@
 import statistics
 import typing as t
 
-from supermechs.api import STATS, AnyStats, Element, Stat, ValueRange
-from supermechs.core import Names
+from supermechs.api import STATS, AnyStats, Stat, ValueRange
 
 Entry = tuple[t.Any, ...]
 
 
 custom_stats: dict[str, Stat] = {
-    "spread": Stat("spread", Names("Damage spread"), "🎲", False),
-    "anyDmg": Stat("anyDmg", Names("Damage"), Element.COMBINED.emoji),
-    "totalDmg": Stat("totalDmg", Names("Damage potential"), "🎯"),
+    "spread": Stat("spread", beneficial=False),
+    "anyDmg": Stat("anyDmg"),
+    "totalDmg": Stat("totalDmg"),
 }
 STAT_KEY_ORDER = tuple(STATS)
 
