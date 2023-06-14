@@ -1,7 +1,7 @@
 import logging
 import typing as t
 
-from .item_pack import ItemPack, extract_info
+from .item_pack import ItemPack, extract_pack_key
 from .models.player import Player
 from .rendering import PackRenderer, RendererStore
 from .typedefs import AnyItemPack
@@ -59,7 +59,7 @@ class SMState:
         return pack
 
     def store_item_pack(self, data: AnyItemPack, custom: bool = False) -> ItemPack:
-        key = extract_info(data).key
+        key = extract_pack_key(data)
         try:
             return self._packs[key]
 
@@ -75,13 +75,13 @@ class SMState:
         return key in self._packs
 
     def create_pack_renderer(self, data: AnyItemPack) -> PackRenderer:
-        key = extract_info(data).key
+        key = extract_pack_key(data)
         renderer = PackRenderer(key)
         # renderer.load(data)
         return renderer
 
     def store_pack_renderer(self, data: AnyItemPack) -> PackRenderer:
-        key = extract_info(data).key
+        key = extract_pack_key(data)
         try:
             return self._renderer_store[key]
 

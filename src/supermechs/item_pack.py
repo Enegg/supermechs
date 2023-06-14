@@ -11,7 +11,7 @@ from .core import StringLimits, abbreviate_names, sanitize_name
 from .models.item import Item
 from .typedefs import ID, AnyItemDict, AnyItemPack, Name
 
-__all__ = ("ItemPack", "extract_info")
+__all__ = ("ItemPack", "extract_pack_info", "extract_pack_key")
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +25,16 @@ class PackConfig(t.NamedTuple):
     description: str
 
 
-def extract_info(pack: AnyItemPack) -> PackConfig:
+def extract_pack_key(pack: AnyItemPack, /) -> str:
+    """Extract just the key of an item pack."""
+
+    if "version" not in pack or pack["version"] == "1":
+        return pack["config"]["key"]
+
+    return pack["key"]
+
+
+def extract_pack_info(pack: AnyItemPack, /) -> PackConfig:
     """Extract version, key, name and description of the pack.
 
     Raises
@@ -124,7 +133,7 @@ class ItemPack:
 
     @classmethod
     def from_json(cls, data: AnyItemPack, /, custom: bool = False) -> Self:
-        pack_info = extract_info(data)
+        pack_info = extract_pack_info(data)
         self = cls(
             key=pack_info.key,
             name=pack_info.name,

@@ -8,7 +8,7 @@ from functools import partial
 from attrs import Factory, define, field
 
 from ..enums import Tier, Type
-from ..item_pack import extract_info
+from ..item_pack import extract_pack_key
 from ..models.inv_item import InvItemProto
 from ..models.item import ItemProto
 from ..typedefs import (
@@ -170,7 +170,7 @@ def thread_worker(funcs: t.Iterable[t.Callable[[], None]]) -> None:
 
 
 async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite]) -> None:
-    pack_key = extract_info(data).key
+    pack_key = extract_pack_key(data)
     BASE_URL = data["config"]["base_url"]
 
     task_to_data: dict[asyncio.Task[Image], AnyItemDict] = {}
