@@ -10,7 +10,7 @@ from ..enums import Element, Tier, Type
 from ..item_stats import ItemStats
 from ..typedefs import ID, AnyItemDict, ItemDictVer1, ItemDictVer2, Name
 
-__all__ = ("Item", "ItemProto", "Tags")
+__all__ = ("ItemBase", "ItemProto", "Tags")
 
 
 class ItemProto(t.Protocol):
@@ -88,7 +88,7 @@ class Tags:
 
 
 @frozen(kw_only=True, order=False)
-class Item:
+class ItemBase:
     """Base item class with stats at every tier.
 
     Parameters

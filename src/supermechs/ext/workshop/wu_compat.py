@@ -6,7 +6,7 @@ from supermechs.api import (
     MAX_BUFFS,
     AnyStats,
     InvItem,
-    Item,
+    ItemBase,
     ItemPack,
     Mech,
     SlotType,
@@ -221,7 +221,7 @@ def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
     return json_indented_encoder(export_mechs(mechs, pack_key))
 
 
-def get_battle_item(item: Item, slot_name: str) -> WUBattleItem:
+def get_battle_item(item: ItemBase, slot_name: str) -> WUBattleItem:
     # the keys here are ordered in same fashion as in WU, to maximize
     # chances that the hashes will be same
     return {

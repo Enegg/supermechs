@@ -14,7 +14,7 @@ from ..errors import MaxPowerError, MaxTierError
 from ..item_stats import ItemStats
 from ..typedefs import ID, Name
 from ..utils import cached_slot_property
-from .item import Item, ItemProto, Tags
+from .item_base import ItemBase, ItemProto, Tags
 
 __all__ = ("InvItem", "InvItemProto")
 
@@ -95,7 +95,7 @@ class InvItemProto(ItemProto, t.Protocol):
 class InvItem:
     """Represents an item inside inventory."""
 
-    base: Item
+    base: ItemBase
 
     @property
     def id(self) -> ID:
@@ -190,5 +190,5 @@ class InvItem:
         self.power = 0
 
     @classmethod
-    def from_item(cls, item: Item, /, *, maxed: bool = False) -> Self:
+    def from_item(cls, item: ItemBase, /, *, maxed: bool = False) -> Self:
         return cls(base=item, tier=item.transform_range.max if maxed else item.transform_range.min)

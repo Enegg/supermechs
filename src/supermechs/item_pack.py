@@ -8,7 +8,7 @@ from attrs.validators import max_len
 from typing_extensions import Self
 
 from .core import StringLimits, abbreviate_names, sanitize_name
-from .models.item import Item
+from .models.item_base import ItemBase
 from .typedefs import ID, AnyItemDict, AnyItemPack, Name
 
 __all__ = ("ItemPack", "extract_info")
@@ -72,7 +72,7 @@ class ItemPack:
     custom: bool = False
 
     # Item ID to Item
-    items: dict[ID, Item] = field(
+    items: dict[ID, ItemBase] = field(
         factory=dict, init=False, repr=lambda items: f"{{<{len(items)} items>}}"
     )
     # Item name to item ID
@@ -80,14 +80,14 @@ class ItemPack:
     # Abbrev to a set of names the abbrev matches
     name_abbrevs: dict[str, set[Name]] = field(factory=dict, init=False, repr=False)
 
-    def __contains__(self, value: Name | ID | Item) -> bool:
+    def __contains__(self, value: Name | ID | ItemBase) -> bool:
         if isinstance(value, str):
             return value in self.names_to_ids
 
         if isinstance(value, int):
             return value in self.items
 
-        if isinstance(value, Item):
+        if isinstance(value, ItemBase):
             return value.pack_key == self.key and value.id in self.items
 
         return NotImplemented
@@ -96,13 +96,13 @@ class ItemPack:
         """Load pack items from data."""
 
         for item_dict in items:
-            item = Item.from_json(item_dict, self.key, self.custom)
+            item = ItemBase.from_json(item_dict, self.key, self.custom)
             self.items[item.id] = item
             self.names_to_ids[item.name] = item.id
 
         self.name_abbrevs |= abbreviate_names(self.names_to_ids)
 
-    def get_item_by_name(self, name: Name) -> Item:
+    def get_item_by_name(self, name: Name) -> ItemBase:
         try:
             id = self.names_to_ids[name]
             return self.items[id]
@@ -111,7 +111,7 @@ class ItemPack:
             err.args = (f"No item named {name!r} in the pack",)
             raise
 
-    def get_item_by_id(self, item_id: ID) -> Item:
+    def get_item_by_id(self, item_id: ID) -> ItemBase:
         try:
             return self.items[item_id]
 

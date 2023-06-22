@@ -2,7 +2,7 @@ from .client import *
 from .core import *
 from .enums import *
 from .models.inv_item import *
-from .models.item import *
+from .models.item_base import *
 from .models.mech import *
 from .item_pack import *
 from .models.player import *

@@ -10,7 +10,7 @@ from attrs import Factory, define, field
 from ..enums import Tier, Type
 from ..item_pack import extract_info
 from ..models.inv_item import InvItemProto
-from ..models.item import ItemProto
+from ..models.item_base import ItemProto
 from ..typedefs import (
     ID,
     AnyItemDict,
