@@ -84,6 +84,9 @@ class Stat(t.NamedTuple):
     def __str__(self) -> str:
         return self.key
 
+    def __hash__(self) -> int:
+        return hash((self.key, type(self)))
+
     @classmethod
     def from_dict(cls, json: StatDict, key: str) -> Self:
         return cls(
