@@ -5,15 +5,62 @@ from itertools import chain
 from attrs import define
 from typing_extensions import Self
 
-from .core import MAX_LVL_FOR_TIER, AnyStatsMapping, TransformRange, ValueRange
+from .core import MAX_LVL_FOR_TIER, TransformRange, ValueRange
 from .enums import Tier
 from .typedefs import ItemDictVer1, ItemDictVer2, ItemDictVer3, RawMechStatsMapping, RawStatsMapping
 from .typeshed import dict_items_as
 from .utils import NaN
 
-__all__ = ("ItemStats",)
+__all__ = ("AnyMechStatsMapping", "AnyStatsMapping", "TierStats", "ItemStats")
 
 LOGGER = logging.getLogger(__name__)
+
+
+class AnyMechStatsMapping(t.TypedDict, total=False):
+    """Mapping of keys representing overall mech stats."""
+    weight: int
+    health: int
+    eneCap: int
+    eneReg: int
+    heaCap: int
+    heaCol: int
+    phyRes: int
+    expRes: int
+    eleRes: int
+    bulletsCap: int
+    rocketsCap: int
+    walk: int
+    jump: int
+
+
+class AnyStatsMapping(AnyMechStatsMapping, total=False):
+    """Mapping of all possible stat keys findable on an item."""
+    # stats sorted in order they appear in-game
+    phyDmg: ValueRange
+    phyResDmg: int
+    eleDmg: ValueRange
+    eneDmg: int
+    eneCapDmg: int
+    eneRegDmg: int
+    eleResDmg: int
+    expDmg: ValueRange
+    heaDmg: int
+    heaCapDmg: int
+    heaColDmg: int
+    expResDmg: int
+    # walk, jump
+    range: ValueRange
+    push: int
+    pull: int
+    recoil: int
+    advance: int
+    retreat: int
+    uses: int
+    backfire: int
+    heaCost: int
+    eneCost: int
+    bulletsCost: int
+    rocketsCost: int
 
 
 def linear_interpolation(lower: int, upper: int, weight: float) -> int:
@@ -203,7 +250,7 @@ class ItemStats:
         hit = False
 
         for rarity in Tier:
-            key = rarity.name.lower()
+            key = t.cast(str, rarity.name.lower())
 
             if key not in data:
                 # if we already populated the dict with stats,

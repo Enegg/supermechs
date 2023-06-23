@@ -8,10 +8,10 @@ from pathlib import Path
 from attrs import Factory, define, field
 from typing_extensions import Self
 
-from ..core import AnyStats, TransformRange, next_tier
+from ..core import TransformRange, next_tier
 from ..enums import Element, Tier, Type
 from ..errors import MaxPowerError, MaxTierError
-from ..item_stats import ItemStats
+from ..item_stats import AnyStatsMapping, ItemStats
 from ..typedefs import ID, Name
 from ..utils import cached_slot_property
 from .item_base import ItemBase, ItemProto, Tags
@@ -87,7 +87,7 @@ class InvItemProto(ItemProto, t.Protocol):
         ...
 
     @cached_slot_property
-    def current_stats(self) -> AnyStats:
+    def current_stats(self) -> AnyStatsMapping:
         ...
 
 
@@ -133,7 +133,7 @@ class InvItem:
     power: int = 0
     UUID: uuid.UUID = Factory(uuid.uuid4)
     _level: int = field(init=False, repr=False, eq=False)
-    _current_stats: AnyStats = field(init=False, repr=False, eq=False)
+    _current_stats: AnyStatsMapping = field(init=False, repr=False, eq=False)
 
     @property
     def maxed(self) -> bool:
@@ -146,7 +146,7 @@ class InvItem:
         return get_power_levels_of_item(self)[-1]
 
     @cached_slot_property
-    def current_stats(self) -> AnyStats:
+    def current_stats(self) -> AnyStatsMapping:
         """The stats of this item at its particular tier and level."""
         return self.base.stats[self.tier].at(self.level)
 

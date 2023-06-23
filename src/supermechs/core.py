@@ -12,6 +12,10 @@ from .platform import json_decoder
 from .typedefs import AnyMechStatKey, AnyStatKey, Name, StatData
 from .utils import MISSING, is_pascal
 
+if t.TYPE_CHECKING:
+    # TODO: I can probably move stuff around to avoid this circular import
+    from .item_stats import AnyMechStatsMapping, AnyStatsMapping
+
 __all__ = (
     "WORKSHOP_STATS",
     "STATS",
@@ -21,8 +25,6 @@ __all__ = (
     "TransformRange",
     "GameVars",
     "ValueRange",
-    "AnyMechStatsMapping",
-    "AnyStatsMapping",
     "ArenaBuffs",
     "Stat",
     "sanitize_name",
@@ -256,51 +258,6 @@ class AbsoluteBuffModifier(t.NamedTuple):
 
     def apply(self, value: int, /) -> int:
         return value + self.value
-
-
-class AnyMechStatsMapping(t.TypedDict, total=False):
-    weight: int
-    health: int
-    eneCap: int
-    eneReg: int
-    heaCap: int
-    heaCol: int
-    phyRes: int
-    expRes: int
-    eleRes: int
-    bulletsCap: int
-    rocketsCap: int
-    walk: int
-    jump: int
-
-
-class AnyStatsMapping(AnyMechStatsMapping, total=False):
-    # stats sorted in order they appear in-game
-    phyDmg: ValueRange
-    phyResDmg: int
-    eleDmg: ValueRange
-    eneDmg: int
-    eneCapDmg: int
-    eneRegDmg: int
-    eleResDmg: int
-    expDmg: ValueRange
-    heaDmg: int
-    heaCapDmg: int
-    heaColDmg: int
-    expResDmg: int
-    # walk, jump
-    range: ValueRange
-    push: int
-    pull: int
-    recoil: int
-    advance: int
-    retreat: int
-    uses: int
-    backfire: int
-    heaCost: int
-    eneCost: int
-    bulletsCost: int
-    rocketsCost: int
 
 
 @define

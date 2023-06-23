@@ -5,9 +5,9 @@ import typing as t
 from attrs import field, frozen, validators
 from typing_extensions import Self
 
-from ..core import AnyStats, TransformRange
+from ..core import TransformRange
 from ..enums import Element, Tier, Type
-from ..item_stats import ItemStats
+from ..item_stats import ItemStats, AnyStatsMapping
 from ..typedefs import ID, AnyItemDict, ItemDictVer1, ItemDictVer2, Name
 
 __all__ = ("ItemBase", "ItemProto", "Tags")
@@ -121,7 +121,7 @@ class ItemBase:
     tags: Tags
 
     @property
-    def max_stats(self) -> AnyStats:
+    def max_stats(self) -> AnyStatsMapping:
         """The max stats this item can have, excluding buffs."""
         return self.stats[self.transform_range.max].max
 
