@@ -40,12 +40,12 @@ class ItemSprite:
 class TieredSprite:
     """Container class for the sprites of an item at its transformation tiers."""
 
-    sprites: list[ItemSprite]
+    sprites: t.Sequence[ItemSprite]
     transform_range: TransformRange
 
     def __getitem__(self, tier: Tier) -> ItemSprite:
         if tier not in self.transform_range:
-            raise ValueError("Invalid tier")
+            raise ValueError(f"Tier {tier} outside transform range")
 
         return self.sprites[tier.value - self.transform_range.min.value]
 
