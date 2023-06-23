@@ -19,11 +19,9 @@ if t.TYPE_CHECKING:
 __all__ = (
     "WORKSHOP_STATS",
     "STATS",
-    "DEFAULT_VARS",
     "MAX_BUFFS",
     "StringLimits",
     "TransformRange",
-    "GameVars",
     "ValueRange",
     "ArenaBuffs",
     "Stat",
@@ -167,20 +165,6 @@ class TransformRange:
             return cls.from_tiers(Tier.from_letter(up), Tier.from_letter(down))
 
         return cls.from_tiers(Tier.from_letter(up))
-
-
-class GameVars(t.NamedTuple):
-    MAX_WEIGHT: int = 1000
-    OVERWEIGHT: int = 10
-    OVERWEIGHT_PENALTIES: AnyMechStatsMapping = {"health": 15}
-    EXCLUSIVE_STATS: t.AbstractSet[AnyMechStatKey] = frozenset(("phyRes", "expRes", "eleRes"))
-
-    @property
-    def MAX_OVERWEIGHT(self) -> int:
-        return self.MAX_WEIGHT + self.OVERWEIGHT
-
-
-DEFAULT_VARS = GameVars()
 
 
 class ValueRange(t.NamedTuple):

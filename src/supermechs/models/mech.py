@@ -10,10 +10,11 @@ from attrs import Attribute, define, field, fields
 from attrs.validators import max_len
 from typing_extensions import Self
 
+from .. import constants
 from ..converters import get_slot_name, slot_to_type
-from ..core import DEFAULT_VARS, STATS, WORKSHOP_STATS, ArenaBuffs, GameVars, StringLimits
+from ..core import STATS, WORKSHOP_STATS, ArenaBuffs, StringLimits
 from ..enums import Element, Type
-from ..typeshed import XOrTupleXY, dict_items_as
+from ..typeshed import XOrTupleXY
 from ..utils import cached_slot_property, format_count
 from .inv_item import InvItem
 
@@ -27,22 +28,23 @@ MODULE_SLOTS = ("mod1", "mod2", "mod3", "mod4", "mod5", "mod6", "mod7", "mod8")
 SlotType = InvItem | None
 
 
-def get_weight_emoji(vars: GameVars, weight: int) -> str:
+# TODO: those two functions don't belong to library; move over to bot
+def get_weight_emoji(weight: int) -> str:
     if weight < 0:
         return "🗿"
-    if weight < vars.MAX_WEIGHT * 0.99:
+    if weight < constants.MAX_WEIGHT * 0.99:
         return "⚙️"
-    if weight < vars.MAX_WEIGHT:
+    if weight < constants.MAX_WEIGHT:
         return "🆗"
-    if weight == vars.MAX_WEIGHT:
+    if weight == constants.MAX_WEIGHT:
         return "👌"
-    if weight <= vars.MAX_OVERWEIGHT:
+    if weight <= constants.MAX_OVERWEIGHT:
         return "❕"
     return "⛔"
 
 
 def get_weight_usage(mech: Mech, weight: int) -> str:
-    return " " + get_weight_emoji(mech.game_vars, weight)
+    return " " + get_weight_emoji(weight)
 
 
 # ------------------------------------------ Constraints -------------------------------------------
@@ -54,7 +56,7 @@ def jumping_required(mech: Mech) -> bool:
 
 
 def no_duplicate_stats(mech: Mech, module: InvItem) -> bool:
-    exclusive_stats = module.current_stats.keys() & mech.game_vars.EXCLUSIVE_STATS
+    exclusive_stats = module.current_stats.keys() & constants.EXCLUSIVE_STATS
 
     for equipped_module in mech.iter_items(modules=True):
         if equipped_module is None or equipped_module is module:
@@ -66,8 +68,8 @@ def no_duplicate_stats(mech: Mech, module: InvItem) -> bool:
     return True
 
 
-def get_constraints_of_item(item: InvItem, vars: GameVars) -> t.Callable[[Mech], bool] | None:
-    if item.type is Type.MODULE and item.stats.has_any_of_stats(*vars.EXCLUSIVE_STATS):
+def get_constraints_of_item(item: InvItem) -> t.Callable[[Mech], bool] | None:
+    if item.type is Type.MODULE and item.stats.has_any_of_stats(*constants.EXCLUSIVE_STATS):
         return partial(no_duplicate_stats, module=item)
 
     if item.tags.require_jump:
@@ -125,7 +127,6 @@ class Mech:
 
     name: str = field(validator=max_len(StringLimits.name))
     custom: bool = False
-    game_vars: GameVars = field(default=DEFAULT_VARS)
     constraints: dict[UUID, t.Callable[[Self], bool]] = field(factory=dict, init=False)
 
     _stats: dict[str, int] = field(init=False, repr=False, eq=False)
@@ -171,9 +172,8 @@ class Mech:
                 if (value := item.current_stats.get(stat)) is not None:
                     stats[stat] += value
 
-        if (overweight := stats["weight"] - self.game_vars.MAX_WEIGHT) > 0:
-            for stat, penalty_mult in dict_items_as(int, self.game_vars.OVERWEIGHT_PENALTIES):
-                stats[stat] -= overweight * penalty_mult
+        if (overweight := stats["weight"] - constants.MAX_WEIGHT) > 0:
+            stats["health"] -= overweight * constants.HEALTH_PENALTY_PER_KG
 
         for stat, value in tuple(stats.items())[2:]:  # keep weight and health
             if value == 0:
@@ -217,7 +217,7 @@ class Mech:
             if (prev := self[slot]) is not None and prev.UUID in self.constraints:
                 del self.constraints[prev.UUID]
 
-            if (constraint := get_constraints_of_item(item, self.game_vars)) is not None:
+            if (constraint := get_constraints_of_item(item)) is not None:
                 self.constraints[item.UUID] = constraint
 
         del self.stats
@@ -249,6 +249,7 @@ class Mech:
 
         return "\n".join(string_parts)
 
+    # TODO: move this over to bot side
     def print_stats(
         self,
         included_buffs: ArenaBuffs | None = None,
@@ -298,7 +299,7 @@ class Mech:
             # at least one weapon
             and any(wep is not None for wep in self.iter_items(weapons=True))
             # not over max overload
-            and self.weight <= self.game_vars.MAX_OVERWEIGHT
+            and self.weight <= constants.MAX_OVERWEIGHT
             # no constraints are broken
             and all(constr(self) for constr in self.constraints.values())
         )
