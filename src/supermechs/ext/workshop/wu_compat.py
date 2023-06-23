@@ -4,7 +4,7 @@ from attrs import asdict
 
 from supermechs.api import (
     MAX_BUFFS,
-    AnyStats,
+    AnyStatsMapping,
     InvItem,
     ItemBase,
     ItemPack,
@@ -23,7 +23,7 @@ class WUBattleItem(t.TypedDict):
     id: ID
     name: Name
     type: str
-    stats: AnyStats
+    stats: AnyStatsMapping
     tags: dict[str, bool]
     element: str
     timesUsed: t.Literal[0]

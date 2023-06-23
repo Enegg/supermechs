@@ -1,7 +1,7 @@
 import statistics
 import typing as t
 
-from supermechs.api import STATS, AnyStats, Stat, ValueRange
+from supermechs.api import STATS, AnyStatsMapping, Stat, ValueRange
 from supermechs.typeshed import KT, VT, twotuple
 
 custom_stats: dict[str, Stat] = {
@@ -58,7 +58,7 @@ def compare_value_ranges(stat: Stat, range1: ValueRange, range2: ValueRange):
 
 
 def comparator(
-    stats_a: AnyStats, stats_b: AnyStats
+    stats_a: AnyStatsMapping, stats_b: AnyStatsMapping
 ) -> t.Iterator[tuple[Stat,]]:
     for stat_name, stat in STATS.items():
         match stats_a.get(stat_name), stats_b.get(stat_name):

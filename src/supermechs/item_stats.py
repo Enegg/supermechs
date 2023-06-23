@@ -5,9 +5,9 @@ from itertools import chain
 from attrs import define
 from typing_extensions import Self
 
-from .core import MAX_LVL_FOR_TIER, AnyStats, TransformRange, ValueRange
+from .core import MAX_LVL_FOR_TIER, AnyStatsMapping, TransformRange, ValueRange
 from .enums import Tier
-from .typedefs import ItemDictVer1, ItemDictVer2, ItemDictVer3, RawMechStats, RawStats
+from .typedefs import ItemDictVer1, ItemDictVer2, ItemDictVer3, RawMechStatsMapping, RawStatsMapping
 from .typeshed import dict_items_as
 from .utils import NaN
 
@@ -39,7 +39,7 @@ def iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
     import types
 
     for key, data_type in chain(
-        t.get_type_hints(RawMechStats).items(), t.get_type_hints(RawStats).items()
+        t.get_type_hints(RawMechStatsMapping).items(), t.get_type_hints(RawStatsMapping).items()
     ):
         origin, args = t.get_origin(data_type), t.get_args(data_type)
 
@@ -56,10 +56,10 @@ def iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
             raise ValueError(f"Unexpected type for key {key!r} found: {data_type!r} ({origin})")
 
 
-def transform_raw_stats(data: RawStats, *, strict: bool = False) -> AnyStats:
+def transform_raw_stats(data: RawStatsMapping, *, strict: bool = False) -> AnyStatsMapping:
     """Ensures the data is valid by grabbing factual keys and type checking values.
     Transforms None values into NaNs."""
-    final_stats: AnyStats = {}
+    final_stats: AnyStatsMapping = {}
 
     # TODO: implement extrapolation of missing data
 
@@ -92,10 +92,10 @@ class TierStats:
     """Object representing stats of an item at particular tier."""
 
     tier: Tier
-    base_stats: AnyStats
-    max_level_stats: AnyStats
+    base_stats: AnyStatsMapping
+    max_level_stats: AnyStatsMapping
 
-    def at(self, level: int) -> AnyStats:
+    def at(self, level: int) -> AnyStatsMapping:
         """Returns the stats at given level.
 
         For convenience, levels follow the game logic; the lowest level is 1
@@ -115,7 +115,7 @@ class TierStats:
 
         fraction = level / max_level
 
-        stats: AnyStats = self.base_stats.copy()
+        stats: AnyStatsMapping = self.base_stats.copy()
 
         for key, value in dict_items_as(int | ValueRange, self.max_level_stats):
             base_value: int | ValueRange = stats[key]
@@ -131,18 +131,18 @@ class TierStats:
         return stats
 
     @property
-    def max(self) -> AnyStats:
+    def max(self) -> AnyStatsMapping:
         """Return the max stats of the item."""
         return self.base_stats | self.max_level_stats
 
 
 @define
 class ItemStats:
-    tier_bases: t.Mapping[Tier, AnyStats]
-    max_stats: t.Mapping[Tier, AnyStats]
+    tier_bases: t.Mapping[Tier, AnyStatsMapping]
+    max_stats: t.Mapping[Tier, AnyStatsMapping]
 
     def __getitem__(self, key: Tier) -> TierStats:
-        base = AnyStats()
+        base = AnyStatsMapping()
 
         for tier, tier_base in self.tier_bases.items():
             base |= tier_base
@@ -198,8 +198,8 @@ class ItemStats:
 
     @classmethod
     def from_json_v3(cls, data: ItemDictVer3, *, strict: bool = False) -> Self:
-        tier_bases = dict[Tier, AnyStats]()
-        max_stats = dict[Tier, AnyStats]()
+        tier_bases = dict[Tier, AnyStatsMapping]()
+        max_stats = dict[Tier, AnyStatsMapping]()
         hit = False
 
         for rarity in Tier:

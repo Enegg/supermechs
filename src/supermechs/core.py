@@ -9,7 +9,7 @@ from typing_extensions import Self
 
 from .enums import Tier
 from .platform import json_decoder
-from .typedefs import AnyMechStatKey, AnyStatKey, Name, StatDict
+from .typedefs import AnyMechStatKey, AnyStatKey, Name, StatData
 from .utils import MISSING, is_pascal
 
 __all__ = (
@@ -21,8 +21,8 @@ __all__ = (
     "TransformRange",
     "GameVars",
     "ValueRange",
-    "AnyMechStats",
-    "AnyStats",
+    "AnyMechStatsMapping",
+    "AnyStatsMapping",
     "ArenaBuffs",
     "Stat",
     "sanitize_name",
@@ -88,7 +88,7 @@ class Stat(t.NamedTuple):
         return hash((self.key, type(self)))
 
     @classmethod
-    def from_dict(cls, json: StatDict, key: str) -> Self:
+    def from_dict(cls, json: StatData, key: str) -> Self:
         return cls(
             key=key,
             beneficial=json.get("beneficial", True),
@@ -98,7 +98,7 @@ class Stat(t.NamedTuple):
 
 def _load_stats():
     with (Path(__file__).parent / "static/StatData.json").open() as file:
-        json: dict[AnyStatKey, StatDict] = json_decoder(file.read())
+        json: dict[AnyStatKey, StatData] = json_decoder(file.read())
 
     return {stat_key: Stat.from_dict(value, stat_key) for stat_key, value in json.items()}
 
@@ -170,7 +170,7 @@ class TransformRange:
 class GameVars(t.NamedTuple):
     MAX_WEIGHT: int = 1000
     OVERWEIGHT: int = 10
-    OVERWEIGHT_PENALTIES: AnyMechStats = {"health": 15}
+    OVERWEIGHT_PENALTIES: AnyMechStatsMapping = {"health": 15}
     EXCLUSIVE_STATS: t.AbstractSet[AnyMechStatKey] = frozenset(("phyRes", "expRes", "eleRes"))
 
     @property
@@ -258,7 +258,7 @@ class AbsoluteBuffModifier(t.NamedTuple):
         return value + self.value
 
 
-class AnyMechStats(t.TypedDict, total=False):
+class AnyMechStatsMapping(t.TypedDict, total=False):
     weight: int
     health: int
     eneCap: int
@@ -274,7 +274,7 @@ class AnyMechStats(t.TypedDict, total=False):
     jump: int
 
 
-class AnyStats(AnyMechStats, total=False):
+class AnyStatsMapping(AnyMechStatsMapping, total=False):
     # stats sorted in order they appear in-game
     phyDmg: ValueRange
     phyResDmg: int
@@ -354,7 +354,7 @@ class ArenaBuffs:
     # the overloads are redundant, but TypedDict fallbacks to object as their value type
     # and that doesn't play well with typing
     @t.overload
-    def buff_stats(self, stats: AnyStats, /, *, buff_health: bool = ...) -> AnyStats:
+    def buff_stats(self, stats: AnyStatsMapping, /, *, buff_health: bool = ...) -> AnyStatsMapping:
         ...
 
     @t.overload
@@ -364,8 +364,8 @@ class ArenaBuffs:
         ...
 
     def buff_stats(
-        self, stats: t.Mapping[str, ValueT] | AnyStats, /, *, buff_health: bool = False
-    ) -> dict[str, ValueT] | AnyStats:
+        self, stats: t.Mapping[str, ValueT] | AnyStatsMapping, /, *, buff_health: bool = False
+    ) -> dict[str, ValueT] | AnyStatsMapping:
         """Returns the buffed stats."""
         buffed: dict[str, ValueT] = {}
 

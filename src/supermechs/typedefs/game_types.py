@@ -8,7 +8,7 @@ from typing_extensions import NotRequired
 __all__ = (
     "LiteralType", "LiteralElement",
     "AnyMechStatKey", "AnyStatKey",
-    "RawMechStats", "RawStats", "StatDict",
+    "RawMechStatsMapping", "RawStatsMapping", "StatData",
 )
 # fmt: on
 
@@ -51,14 +51,13 @@ class StatName(t.TypedDict):
     short: NotRequired[str]
 
 
-class StatDict(t.TypedDict):
+class StatData(t.TypedDict):
     names: StatName
-    emoji: NotRequired[str]
     beneficial: NotRequired[t.Literal[False]]
     buff: NotRequired[t.Literal["+", "+%", "-%", "+2%"]]
 
 
-class RawMechStats(t.TypedDict, total=False):
+class RawMechStatsMapping(t.TypedDict, total=False):
     """Data as received from source."""
 
     weight: int | None
@@ -76,7 +75,7 @@ class RawMechStats(t.TypedDict, total=False):
     jump: int | None
 
 
-class RawStats(RawMechStats, total=False):
+class RawStatsMapping(RawMechStatsMapping, total=False):
     """Data as received from source."""
 
     phyDmg: list[int | None]

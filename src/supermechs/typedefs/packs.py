@@ -3,7 +3,7 @@ import typing as t
 from typing_extensions import NotRequired
 
 from ..typeshed import LiteralURL
-from .game_types import LiteralElement, LiteralType, RawStats
+from .game_types import LiteralElement, LiteralType, RawStatsMapping
 from .graphics import RawPoint2D, RawTorsoAttachments, Rectangle
 
 # fmt: off
@@ -20,17 +20,17 @@ LiteralTag = t.Literal["sword", "melee", "roller"]
 
 
 class TiersMixin(t.TypedDict, total=False):
-    common: RawStats
-    max_common: RawStats
-    rare: RawStats
-    max_rare: RawStats
-    epic: RawStats
-    max_epic: RawStats
-    legendary: RawStats
-    max_legendary: RawStats
-    mythical: RawStats
-    max_mythical: RawStats
-    divine: RawStats
+    common: RawStatsMapping
+    max_common: RawStatsMapping
+    rare: RawStatsMapping
+    max_rare: RawStatsMapping
+    epic: RawStatsMapping
+    max_epic: RawStatsMapping
+    legendary: RawStatsMapping
+    max_legendary: RawStatsMapping
+    mythical: RawStatsMapping
+    max_mythical: RawStatsMapping
+    divine: RawStatsMapping
 
 
 class SpritesSheetMixin(t.TypedDict):
@@ -58,7 +58,7 @@ class ItemDictBase(t.TypedDict):
 
 
 class ItemDictVer1(ItemDictBase):
-    stats: RawStats
+    stats: RawStatsMapping
     image: str
 
 
@@ -83,7 +83,7 @@ class ItemPackVer1(t.TypedDict):
 
 
 class ItemDictVer2(ItemDictBase):
-    stats: RawStats
+    stats: RawStatsMapping
 
 
 class ItemPackVer2(SpritesSheetMixin):

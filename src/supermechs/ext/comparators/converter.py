@@ -1,7 +1,7 @@
 import statistics
 import typing as t
 
-from supermechs.api import STATS, AnyStats, Stat, ValueRange
+from supermechs.api import STATS, AnyStatsMapping, Stat, ValueRange
 
 Entry = tuple[t.Any, ...]
 
@@ -58,13 +58,13 @@ class EntryConverter:
     entries: dict[str, Entry]
     """Current set of entries."""
 
-    def __init__(self, *stat_mappings: AnyStats, key_order: t.Sequence[str]) -> None:
+    def __init__(self, *stat_mappings: AnyStatsMapping, key_order: t.Sequence[str]) -> None:
         if len(stat_mappings) < 2:
             raise ValueError("Need at least two mappings to compare")
 
         self.size = len(stat_mappings)
         self.key_order = sorted(
-            set[str]().union(*map(AnyStats.keys, stat_mappings)), key=key_order.index
+            set[str]().union(*map(AnyStatsMapping.keys, stat_mappings)), key=key_order.index
         )
         self.entries = {
             key: tuple(mapping.get(key) for mapping in stat_mappings) for key in self.key_order
