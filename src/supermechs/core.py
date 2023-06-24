@@ -14,7 +14,7 @@ from .utils import MISSING, is_pascal
 
 if t.TYPE_CHECKING:
     # TODO: I can probably move stuff around to avoid this circular import
-    from .item_stats import AnyMechStatsMapping, AnyStatsMapping
+    from .item_stats import AnyStatsMapping
 
 __all__ = (
     "WORKSHOP_STATS",
