@@ -9,20 +9,7 @@ from attrs import Factory, define, field
 
 from ..enums import Tier, Type
 from ..item_pack import extract_info
-from ..models.inv_item import InvItemProto
-from ..models.item_base import ItemProto
-from ..typedefs import (
-    ID,
-    AnyItemDict,
-    AnyItemPack,
-    ItemDictVer2,
-    ItemDictVer3,
-    ItemPackVer1,
-    ItemPackVer2,
-    ItemPackVer3,
-    Rectangle,
-)
-from ..typeshed import T, twotuple
+from ..typeshed import Coro, T, twotuple
 from ..utils import js_format
 from .attachments import cast_attachment, is_attachable, parse_raw_attachment
 from .sprites import ItemSprite
@@ -30,7 +17,20 @@ from .sprites import ItemSprite
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
+    from ..models.inv_item import InvItemProto
+    from ..models.item_base import ItemProto
     from ..models.mech import Mech
+    from ..typedefs import (
+        ID,
+        AnyItemDict,
+        AnyItemPack,
+        ItemDictVer2,
+        ItemDictVer3,
+        ItemPackVer1,
+        ItemPackVer2,
+        ItemPackVer3,
+        Rectangle,
+    )
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +58,9 @@ class Rectangular(t.Protocol):
     @property
     def height(self) -> int:
         ...
+
+
+ImageFetcher = t.Callable[[str], Coro["Image"]]
 
 
 @define
@@ -138,12 +141,6 @@ class Canvas(t.Generic[T]):
         return canvas
 
 
-async def fetch_image(url: str) -> Image:
-    from PIL.Image import open
-
-    return open(await URL(url).open())
-
-
 def oneshot(item_dict: AnyItemDict, image: Image, sprites: dict[ID, ItemSprite]) -> None:
     width = item_dict.get("width", image.width)
     height = item_dict.get("height", image.height)
@@ -169,7 +166,7 @@ def thread_worker(funcs: t.Iterable[t.Callable[[], None]]) -> None:
         func()
 
 
-async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite]) -> None:
+async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite], fetch: ImageFetcher) -> None:
     pack_key = extract_info(data).key
     BASE_URL = data["config"]["base_url"]
 
@@ -177,7 +174,7 @@ async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite]) -> None:
 
     for item_dict in data["items"]:
         task = asyncio.create_task(
-            fetch_image(js_format(item_dict["image"], url=BASE_URL)),
+            fetch(js_format(item_dict["image"], url=BASE_URL)),
             name=f"<acquire item task {pack_key} #{item_dict['id']}>",
         )
         task_to_data[task] = item_dict
@@ -194,11 +191,13 @@ async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite]) -> None:
     await asyncio.to_thread(thread_worker, sync_futures)
 
 
-async def loader_v2_v3(data: ItemPackVer2 | ItemPackVer3, sprites: dict[ID, ItemSprite]) -> None:
+async def loader_v2_v3(
+    data: ItemPackVer2 | ItemPackVer3, sprites: dict[ID, ItemSprite], fetch: ImageFetcher
+) -> None:
     spritessheet_url = data["spritesSheet"]
     spritessheet_map = data["spritesMap"]
 
-    spritessheet = await fetch_image(spritessheet_url)
+    spritessheet = await fetch(spritessheet_url)
     sync_futures: list[t.Callable[[], None]] = []
 
     def sprite_creator(item_dict: ItemDictVer2 | ItemDictVer3) -> None:
@@ -217,15 +216,15 @@ class PackRenderer:
     key: str
     item_sprites: dict[ID, ItemSprite] = Factory(dict)
 
-    async def load(self, pack: AnyItemPack) -> None:
+    async def load(self, pack: AnyItemPack, fetch: ImageFetcher) -> None:
         if "version" not in pack or pack["version"] == "1":
-            await loader_v1(pack, self.item_sprites)
+            await loader_v1(pack, self.item_sprites, fetch)
 
         elif pack["version"] == "2":
-            await loader_v2_v3(pack, self.item_sprites)
+            await loader_v2_v3(pack, self.item_sprites, fetch)
 
         elif pack["version"] == "3":
-            await loader_v2_v3(pack, self.item_sprites)
+            await loader_v2_v3(pack, self.item_sprites, fetch)
 
         else:
             raise ValueError(f"Unknown pack version: {pack['version']}")
@@ -279,8 +278,8 @@ class PackRenderer:
                 drone_sprite.image,
                 "drone",
                 (
-                    renderer.offsets.left + drone_sprite.width // 2,
-                    renderer.offsets.above + drone_sprite.height + 25,
+                    drone_sprite.width // 2 + renderer.offsets.left,
+                    drone_sprite.height + 25 + renderer.offsets.above,
                 ),
             )
 
@@ -297,27 +296,3 @@ def resize(image: Image, width: int = 0, height: int = 0) -> Image:
     Value of 0 preserves original value for the dimension.
     """
     return image.resize((width or image.width, height or image.height))
-
-
-@define
-class RendererStore:
-    _renderers: dict[str, PackRenderer] = Factory(dict)
-    _asset_cache: dict[str, Image] = Factory(dict)
-    """Cache for sprites and alike."""
-
-    def __getitem__(self, key: str) -> PackRenderer:
-        return self._renderers[key]
-
-    def __setitem__(self, key: str, value: PackRenderer) -> None:
-        self._renderers[key] = value
-
-
-class ResourceCache:
-    def __init__(self) -> None:
-        self.cache = dict[t.Any, Image]()
-
-    async def get(self, resource: Resource) -> Image:
-        return Image()
-
-    def evict(self) -> None:
-        self.cache.clear()
