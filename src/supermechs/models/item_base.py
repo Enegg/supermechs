@@ -119,6 +119,7 @@ class ItemBase:
     transform_range: TransformRange
     stats: ItemStats
     tags: Tags
+    transforms_into: Self | None
 
     @property
     def max_stats(self) -> AnyStatsMapping:
@@ -167,6 +168,7 @@ class ItemBase:
             transform_range=transform_range,
             stats=stats,
             tags=tags,
+            transforms_into=None,
         )
 
         return self

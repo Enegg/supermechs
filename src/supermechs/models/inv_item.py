@@ -11,10 +11,12 @@ from typing_extensions import Self
 from ..core import TransformRange, next_tier
 from ..enums import Element, Tier, Type
 from ..errors import MaxPowerError, MaxTierError
-from ..item_stats import AnyStatsMapping, ItemStats
-from ..typedefs import ID, Name
 from ..utils import cached_slot_property
 from .item_base import ItemBase, ItemProto, Tags
+
+if t.TYPE_CHECKING:
+    from ..item_stats import AnyStatsMapping, ItemStats
+    from ..typedefs import ID, Name
 
 __all__ = ("InvItem", "InvItemProto")
 
