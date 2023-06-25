@@ -4,7 +4,6 @@ import typing as t
 from collections import Counter
 from functools import partial
 from types import MappingProxyType
-from uuid import UUID
 
 from attrs import Attribute, define, field, fields
 from attrs.validators import max_len
@@ -12,11 +11,16 @@ from typing_extensions import Self
 
 from .. import constants
 from ..converters import get_slot_name, slot_to_type
-from ..core import STATS, WORKSHOP_STATS, ArenaBuffs, StringLimits
+from ..core import STATS, WORKSHOP_STATS, StringLimits
 from ..enums import Element, Type
-from ..typeshed import XOrTupleXY
 from ..utils import cached_slot_property, format_count
 from .inv_item import InvItem
+
+if t.TYPE_CHECKING:
+    from uuid import UUID
+
+    from ..arena_buffs import ArenaBuffs
+    from ..typeshed import XOrTupleXY
 
 __all__ = ("Mech", "SlotType")
 

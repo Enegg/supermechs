@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from attrs import define, field
 
-from ..core import ArenaBuffs, sanitize_name
+from ..arena_buffs import ArenaBuffs
+from ..core import sanitize_name
 from .mech import Mech
 
 __all__ = ("Player",)

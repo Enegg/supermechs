@@ -5,15 +5,57 @@ from itertools import chain
 from attrs import define
 from typing_extensions import Self
 
-from .core import MAX_LVL_FOR_TIER, TransformRange, ValueRange
+from .core import MAX_LVL_FOR_TIER, TransformRange
 from .enums import Tier
 from .typedefs import ItemDictVer1, ItemDictVer2, ItemDictVer3, RawMechStatsMapping, RawStatsMapping
 from .typeshed import dict_items_as
 from .utils import NaN
 
-__all__ = ("AnyMechStatsMapping", "AnyStatsMapping", "TierStats", "ItemStats")
+__all__ = ("ValueRange", "AnyMechStatsMapping", "AnyStatsMapping", "TierStats", "ItemStats")
 
 LOGGER = logging.getLogger(__name__)
+
+
+class ValueRange(t.NamedTuple):
+    """Lightweight tuple to represent a range of values."""
+
+    lower: int
+    upper: int
+
+    def __str__(self) -> str:
+        if self.is_single:  # this is false if either is NaN
+            return str(self.lower)
+        return f"{self.lower}-{self.upper}"
+
+    def __format__(self, format_spec: str, /) -> str:
+        # the general format to expect is "number_spec:separator"
+        val_fmt, colon, sep = format_spec.partition(":")
+
+        if not colon:
+            sep = "-"
+
+        if self.is_single:
+            return format(self.lower, val_fmt)
+
+        return f"{self.lower:{val_fmt}}{sep}{self.upper:{val_fmt}}"
+
+    @property
+    def is_single(self) -> bool:
+        """Whether the range bounds are equal value."""
+        return self.lower == self.upper
+
+    @property
+    def average(self) -> float:
+        """Average of the value range."""
+        if self.is_single:
+            return self.lower
+        return (self.lower + self.upper) / 2
+
+    def __add__(self, value: tuple[int, int]) -> Self:
+        return type(self)(self.lower + value[0], self.upper + value[1])
+
+    def __mul__(self, value: int) -> Self:
+        return type(self)(self.lower * value, self.upper * value)
 
 
 class AnyMechStatsMapping(t.TypedDict, total=False):
