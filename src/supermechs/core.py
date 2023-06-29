@@ -12,14 +12,7 @@ from .platform import json_decoder
 from .typedefs import AnyMechStatKey, AnyStatKey, Name, StatData
 from .utils import MISSING, is_pascal
 
-__all__ = (
-    "WORKSHOP_STATS",
-    "STATS",
-    "StringLimits",
-    "TransformRange",
-    "Stat",
-    "sanitize_name",
-)
+__all__ = ("WORKSHOP_STATS", "STATS", "TransformRange", "Stat")
 
 
 WORKSHOP_STATS: tuple[str, ...] = t.get_args(AnyMechStatKey)
@@ -29,19 +22,6 @@ MAX_LVL_FOR_TIER = {tier: level for tier, level in zip(Tier, range(9, 50, 10))} 
 """A mapping of a tier to the maximum level an item can have at this tier.
     Note that in game levels start at 1.
 """
-
-
-class StringLimits:
-    """Namespace for length limits of various kinds of strings."""
-
-    name: t.Final[int] = 32
-    description: t.Final[int] = 100
-
-
-def sanitize_name(string: str, /, max_length: int = StringLimits.name) -> str:
-    chars = (char if char.isascii() else "_" for char in string)
-
-    return "".join(chars)[:max_length]
 
 
 class Names(t.NamedTuple):

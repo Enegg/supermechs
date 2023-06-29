@@ -3,7 +3,7 @@ from __future__ import annotations
 from attrs import define, field
 
 from ..arena_buffs import ArenaBuffs
-from ..core import sanitize_name
+from ..user_input import sanitize_string
 from .mech import Mech
 
 __all__ = ("Player",)
@@ -76,7 +76,7 @@ class Player:
                 n += 1
 
         else:
-            name = sanitize_name(name)
+            name = sanitize_string(name)
 
         build = Mech(name=name)
         self.builds[name] = self._active_build = build
@@ -94,7 +94,7 @@ class Player:
         if old_name not in self.builds:
             raise ValueError(f"No build named {old_name!r}")
 
-        new_name = sanitize_name(new_name)
+        new_name = sanitize_string(new_name)
 
         if new_name in self.builds and not overwrite:
             raise ValueError("Provided name is already in use")

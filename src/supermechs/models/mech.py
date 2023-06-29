@@ -11,8 +11,9 @@ from typing_extensions import Self
 
 from .. import constants
 from ..converters import get_slot_name, slot_to_type
-from ..core import STATS, WORKSHOP_STATS, StringLimits
+from ..core import STATS, WORKSHOP_STATS
 from ..enums import Element, Type
+from ..user_input import StringLimits
 from ..utils import cached_slot_property, format_count
 from .inv_item import InvItem
 

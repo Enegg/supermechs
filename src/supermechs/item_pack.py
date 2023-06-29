@@ -7,9 +7,10 @@ from attrs import define, field
 from attrs.validators import max_len
 from typing_extensions import Self
 
-from .core import StringLimits, abbreviate_names, sanitize_name
+from .core import abbreviate_names
 from .models.item_base import ItemBase
 from .typedefs import ID, AnyItemDict, AnyItemPack, Name
+from .user_input import StringLimits, sanitize_string
 
 __all__ = ("ItemPack", "extract_info")
 
@@ -47,13 +48,13 @@ def extract_info(pack: AnyItemPack) -> PackConfig:
         name = "<no name>"
 
     else:
-        name = sanitize_name(name)
+        name = sanitize_string(name)
 
     if (description := pack.get("description")) is None:
         description = "<no description>"
 
     else:
-        description = sanitize_name(description, StringLimits.description)
+        description = sanitize_string(description, StringLimits.description)
 
     return PackConfig(version, config["key"], name, description)
 
