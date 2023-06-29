@@ -10,7 +10,7 @@ class SMException(Exception):
     """Base class for game exceptions."""
 
 
-class MalformedDataError(SMException):
+class MalformedData(SMException):
     """Data of invalid type or missing values."""
 
     data: t.Any
@@ -18,6 +18,25 @@ class MalformedDataError(SMException):
     def __init__(self, msg: str | None = None, data: t.Any = None) -> None:
         super().__init__(msg or self.__doc__)
         self.data = data
+
+
+class UnknownDataVersion(SMException):
+    """Data of version not parseable by the library."""
+
+    msg: t.ClassVar[str] = "Unknown {obj} version: {ver!r}"
+
+    def __init__(
+        self, related_object: str | type, version: str | int, expected: str | int | None = None
+    ) -> None:
+        if isinstance(related_object, type):
+            related_object = related_object.__name__
+
+        msg = self.msg.format(obj=related_object, ver=version)
+
+        if expected is not None:
+            msg += f"\nExpected at most: {expected}"
+
+        super().__init__(msg)
 
 
 class MaxPowerError(SMException):
