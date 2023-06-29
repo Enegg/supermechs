@@ -12,11 +12,9 @@ from .models.item_base import ItemBase
 from .typedefs import ID, AnyItemDict, AnyItemPack, Name
 from .user_input import StringLimits, sanitize_string
 
-__all__ = ("ItemPack", "extract_info")
+__all__ = ("ItemPack", "extract_info", "extract_key")
 
 LOGGER = logging.getLogger(__name__)
-
-KNOWN_DEFAULT_PACK_KEYS: t.Final = frozenset(("@Darkstare", "@Eneg"))
 
 
 class PackConfig(t.NamedTuple):
@@ -26,7 +24,30 @@ class PackConfig(t.NamedTuple):
     description: str
 
 
-def extract_info(pack: AnyItemPack) -> PackConfig:
+# TODO: use match case and/or custom exception for input validation
+def extract_key(pack: AnyItemPack, /) -> str:
+    """Extract the key of an item pack.
+
+    Raises
+    ------
+    TypeError on unknown version.
+    """
+    if "version" not in pack or pack["version"] == "1":
+        key = pack["config"]["key"]
+
+    elif pack["version"] in ("2", "3"):
+        key = pack["key"]
+
+    else:
+        raise TypeError(f"Unknown pack version: {pack['version']!r:.20}")
+
+    if not isinstance(key, str):
+        raise TypeError(f"{key!r} is not a string")
+
+    return key
+
+
+def extract_info(pack: AnyItemPack, /) -> PackConfig:
     """Extract version, key, name and description of the pack.
 
     Raises
@@ -34,29 +55,29 @@ def extract_info(pack: AnyItemPack) -> PackConfig:
     TypeError on unknown version.
     """
     if "version" not in pack or pack["version"] == "1":
-        config = pack["config"]
+        metadata = pack["config"]
         version = "1"
 
     elif pack["version"] in ("2", "3"):
-        config = pack
+        metadata = pack
         version = pack["version"]
 
     else:
-        raise TypeError(f"Unknown pack version: {pack['version']!r}")
+        raise TypeError(f"Unknown pack version: {pack['version']!r:.20}")
 
-    if (name := pack.get("name")) is None:
+    try:
+        name = sanitize_string(metadata["name"])
+
+    except KeyError:
         name = "<no name>"
 
-    else:
-        name = sanitize_string(name)
+    try:
+        description = sanitize_string(metadata["description"], StringLimits.description)
 
-    if (description := pack.get("description")) is None:
+    except KeyError:
         description = "<no description>"
 
-    else:
-        description = sanitize_string(description, StringLimits.description)
-
-    return PackConfig(version, config["key"], name, description)
+    return PackConfig(version, metadata["key"], name, description)
 
 
 @define
