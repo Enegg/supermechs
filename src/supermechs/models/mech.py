@@ -11,7 +11,7 @@ from typing_extensions import Self
 
 from .. import constants
 from ..converters import get_slot_name, slot_to_type
-from ..core import STATS, WORKSHOP_STATS
+from ..core import WORKSHOP_STATS
 from ..enums import Element, Type
 from ..user_input import StringLimits
 from ..utils import cached_slot_property, format_count
@@ -20,7 +20,6 @@ from .inv_item import InvItem
 if t.TYPE_CHECKING:
     from uuid import UUID
 
-    from ..arena_buffs import ArenaBuffs
     from ..typeshed import XOrTupleXY
 
 __all__ = ("Mech", "SlotType")
@@ -31,25 +30,6 @@ SPECIAL_SLOTS = ("tele", "charge", "hook")
 MODULE_SLOTS = ("mod1", "mod2", "mod3", "mod4", "mod5", "mod6", "mod7", "mod8")
 
 SlotType = InvItem | None
-
-
-# TODO: those two functions don't belong to library; move over to bot
-def get_weight_emoji(weight: int) -> str:
-    if weight < 0:
-        return "🗿"
-    if weight < constants.MAX_WEIGHT * 0.99:
-        return "⚙️"
-    if weight < constants.MAX_WEIGHT:
-        return "🆗"
-    if weight == constants.MAX_WEIGHT:
-        return "👌"
-    if weight <= constants.MAX_OVERWEIGHT:
-        return "❕"
-    return "⛔"
-
-
-def get_weight_usage(mech: Mech, weight: int) -> str:
-    return " " + get_weight_emoji(weight)
 
 
 # ------------------------------------------ Constraints -------------------------------------------
@@ -87,16 +67,16 @@ def get_constraints_of_item(item: InvItem) -> t.Callable[[Mech], bool] | None:
 
 
 def _is_valid_type(
-    inst: t.Any,
-    attr: Attribute[InvItem | None | t.Any],
-    value: InvItem | None | t.Any,
+    inst: t.Any, attr: Attribute[SlotType | t.Any], value: SlotType | t.Any,
 ) -> None:
     """Check if item type matches the slot it is assigned to."""
+    del inst
+
     if value is None:
         return
 
     if not isinstance(value, InvItem):
-        raise TypeError(f"Invalid object set as item: {type(value)}")
+        raise TypeError(f"Invalid object set as item: {value!r}")
 
     valid_type = slot_to_type(attr.name)
 
@@ -112,18 +92,20 @@ def assert_not_custom(mech: Mech) -> bool:
     return True
 
 
-def check_integrity(mech: Mech) -> list[str] | None:
-    """Go through items and validate that they are of correct type."""
-    invalid_slots: list[str] = []
-
-    for item, slot in mech.iter_items(slots=True):
-        if item is None:
-            continue
-
-        if slot_to_type(slot) is not item.type:
-            invalid_slots.append(slot)
-
-    return invalid_slots or None
+def validate(mech: Mech, /) -> bool:
+    """Check if the mech is battle ready."""
+    return (
+        # torso present
+        mech.torso is not None
+        # legs present
+        and mech.legs is not None
+        # at least one weapon
+        and any(wep is not None for wep in mech.iter_items(weapons=True))
+        # not over max overload
+        and mech.weight <= constants.MAX_OVERWEIGHT
+        # no constraints are broken
+        and all(constr(mech) for constr in mech.constraints.values())
+    )
 
 
 @define(kw_only=True)
@@ -254,61 +236,6 @@ class Mech:
 
         return "\n".join(string_parts)
 
-    # TODO: move this over to bot side
-    def print_stats(
-        self,
-        included_buffs: ArenaBuffs | None = None,
-        /,
-        *,
-        line_format: str = "{stat.emoji} **{value}** {stat.name}{extra}",
-        extra: t.Mapping[str, t.Callable[[Mech, int], t.Any]] = {"weight": get_weight_usage},
-    ) -> str:
-        """Returns a string of lines formatted with mech stats.
-
-        Parameters
-        ----------
-        included_buffs:
-        `ArenaBuffs` object to apply the buffs from,
-        or None if plain stats are desired.
-        line_format: a string which will be used with `.format` to denote the format of each line.
-        The keywords available are:
-            - `stat` - a `Stat` object.
-            - `value` - the integer value of the stat.
-            - `extra` - any extra data coming from a callable from the `extra` param.
-        """
-        if included_buffs is None:
-            bank = self.stats
-
-        else:
-            bank = included_buffs.buff_stats(self.stats, buff_health=True)
-
-        def default_extra(mech: Mech, value: int) -> t.Any:
-            return ""
-
-        return "\n".join(
-            line_format.format(
-                value=value,
-                stat=STATS[stat_name],
-                extra=extra.get(stat_name, default_extra)(self, value),
-            )
-            for stat_name, value in bank.items()
-        )
-
-    def validate(self) -> bool:
-        """Check if the mech is battle ready."""
-        return (
-            # torso present
-            self.torso is not None
-            # legs present
-            and self.legs is not None
-            # at least one weapon
-            and any(wep is not None for wep in self.iter_items(weapons=True))
-            # not over max overload
-            and self.weight <= constants.MAX_OVERWEIGHT
-            # no constraints are broken
-            and all(constr(self) for constr in self.constraints.values())
-        )
-
     def _evict_expired_cache(self, new: SlotType, old: SlotType) -> None:
         """Deletes cached attributes if they expire."""
         # # Setting a displayable item will not change the image
@@ -381,9 +308,7 @@ class Mech:
         `tuple[InvItem, str]`
             If `slots` is set to `True`.
         """
-
-        if not (body or weapons or specials or modules):
-            body = weapons = specials = modules = True
+        selectors = (body, weapons, specials, modules)
 
         from itertools import compress, groupby
 
@@ -395,14 +320,16 @@ class Mech:
         else:
             factory = partial(getattr, self)
 
-        it: groupby[str, Attribute[t.Any]] = groupby(
-            fields(type(self)), key=lambda attr: attr.metadata.get("group", "")
+        all_fields: tuple[Attribute[t.Any], ...] = fields(type(self))
+        iterator = groupby(
+            all_fields, key=lambda attr: attr.metadata.get("group", "")
         )
-        next(it)  # discard no group fields
+        next(iterator)  # discard no group fields
 
-        for _, slot_group in compress(
-            it,
-            (body, weapons, specials, modules),
-        ):
+        if any(selectors):
+            # in the negative case we treat all selectors as True
+            iterator = compress(iterator, selectors)
+
+        for _, slot_group in iterator:
             for slot in slot_group:
                 yield factory(slot.name)
