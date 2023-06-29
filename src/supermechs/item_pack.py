@@ -82,10 +82,10 @@ class ItemPack:
     name_abbrevs: dict[str, set[Name]] = field(factory=dict, init=False, repr=False)
 
     def __contains__(self, value: Name | ID | ItemBase) -> bool:
-        if isinstance(value, str):
+        if isinstance(value, Name):
             return value in self.names_to_ids
 
-        if isinstance(value, int):
+        if isinstance(value, ID):
             return value in self.items
 
         if isinstance(value, ItemBase):
