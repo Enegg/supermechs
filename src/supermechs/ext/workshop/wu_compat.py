@@ -10,10 +10,10 @@ from supermechs.api import (
     ItemPack,
     Mech,
     SlotType,
-    sanitize_name,
 )
 from supermechs.platform import json_decoder, json_encoder, json_indented_encoder
 from supermechs.typedefs import ID, Name
+from supermechs.user_input import sanitize_string
 
 # ------------------------------------------ typed dicts -------------------------------------------
 
@@ -133,7 +133,7 @@ def mech_to_id_str(mech: Mech, sep: str = "_") -> str:
 
 def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     """Imports a mech from WU mech."""
-    mech = Mech(name=sanitize_name(data["name"]))
+    mech = Mech(name=sanitize_string(data["name"]))
 
     for item_id, wu_slot in zip(data["setup"], WU_SLOT_NAMES + WU_MODULE_SLOT_NAMES):
         slot = wu_to_mech_slot(wu_slot)

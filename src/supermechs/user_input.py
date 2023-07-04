@@ -19,7 +19,7 @@ def sanitize_string(
     if strict:
         if len(string) > max_length:
             raise ValueError("String too long")
-        
+
         if any(not char.isascii() for char in string):
             raise ValueError("Non-ascii characters found")
 
