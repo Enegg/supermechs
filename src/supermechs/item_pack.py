@@ -8,6 +8,7 @@ from attrs.validators import max_len
 from typing_extensions import Self
 
 from .core import abbreviate_names
+from .errors import MalformedData, UnknownDataVersion
 from .models.item_base import ItemBase
 from .typedefs import ID, AnyItemDict, AnyItemPack, Name
 from .user_input import StringLimits, sanitize_string
@@ -17,7 +18,7 @@ __all__ = ("ItemPack", "extract_info", "extract_key")
 LOGGER = logging.getLogger(__name__)
 
 
-class PackConfig(t.NamedTuple):
+class PackMetadata(t.NamedTuple):
     version: str
     key: str
     name: str
@@ -39,7 +40,7 @@ def extract_key(pack: AnyItemPack, /) -> str:
         key = pack["key"]
 
     else:
-        raise TypeError(f"Unknown pack version: {pack['version']!r:.20}")
+        raise UnknownDataVersion("pack", pack["version"], 3)
 
     if not isinstance(key, str):
         raise TypeError(f"{key!r} is not a string")
@@ -47,7 +48,7 @@ def extract_key(pack: AnyItemPack, /) -> str:
     return key
 
 
-def extract_info(pack: AnyItemPack, /) -> PackConfig:
+def extract_info(pack: AnyItemPack, /) -> PackMetadata:
     """Extract version, key, name and description of the pack.
 
     Raises
@@ -63,7 +64,7 @@ def extract_info(pack: AnyItemPack, /) -> PackConfig:
         version = pack["version"]
 
     else:
-        raise TypeError(f"Unknown pack version: {pack['version']!r:.20}")
+        raise UnknownDataVersion("pack", pack["version"], 3)
 
     try:
         name = sanitize_string(metadata["name"])
@@ -77,7 +78,7 @@ def extract_info(pack: AnyItemPack, /) -> PackConfig:
     except KeyError:
         description = "<no description>"
 
-    return PackConfig(version, metadata["key"], name, description)
+    return PackMetadata(version, metadata["key"], name, description)
 
 
 @define
@@ -124,22 +125,47 @@ class ItemPack:
 
         self.name_abbrevs |= abbreviate_names(self.names_to_ids)
 
-    def get_item_by_name(self, name: Name) -> ItemBase:
+    def get_item_by_name(self, name: Name, /) -> ItemBase:
+        """Lookup an item by its name.
+
+        Raises
+        ------
+        LookupError: name not found.
+        """
         try:
             id = self.names_to_ids[name]
-            return self.items[id]
 
         except KeyError as err:
-            err.args = (f"No item named {name!r} in the pack",)
-            raise
+            raise LookupError(f"No item named {name!r} in the pack") from err
 
-    def get_item_by_id(self, item_id: ID) -> ItemBase:
+        return self.items[id]
+
+    def get_item_by_id(self, item_id: ID, /) -> ItemBase:
         try:
             return self.items[item_id]
 
         except KeyError as err:
-            err.args = (f"No item with id {item_id} in the pack",)
-            raise
+            raise LookupError(f"No item with ID {item_id} in the pack") from err
+
+    @t.overload
+    def get_item(self, name: Name, /) -> ItemBase:
+        ...
+
+    @t.overload
+    def get_item(self, item_id: ID, /) -> ItemBase:
+        ...
+
+    def get_item(self, item: Name | ID, /) -> ItemBase:
+        """Lookup an item by its name or ID.
+
+        Raises
+        ------
+        LookupError: name or ID not found.
+        """
+        if isinstance(item, ID):
+            return self.get_item_by_id(item)
+
+        return self.get_item_by_name(item)
 
     def iter_item_names(self) -> t.Iterator[Name]:
         return iter(self.names_to_ids)

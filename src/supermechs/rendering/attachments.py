@@ -5,7 +5,10 @@ import typing as t
 from typing_extensions import Self
 
 from ..enums import Type
-from ..typedefs import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
+from ..errors import MalformedData
+
+if t.TYPE_CHECKING:
+    from ..typedefs import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
 
 __all__ = (
     "Point2D",
@@ -38,7 +41,7 @@ AnyAttachment = Point2D | TorsoAttachments | None
 
 def is_displayable(type: Type) -> bool:
     """Whether item of given type can appear in a composite mech's image."""
-    return type.name not in ("TELEPORTER", "CHARGE", "HOOK", "MODULE")
+    return type not in (Type.TELEPORTER, Type.CHARGE, Type.HOOK, Type.MODULE)
 
 
 def is_attachable(type: Type) -> bool:
@@ -52,8 +55,8 @@ def attachments_from_raw(mapping: RawTorsoAttachments) -> TorsoAttachments:
 
 def parse_raw_attachment(raw_attachment: AnyRawAttachment) -> AnyAttachment:
     match raw_attachment:
-        case {"x": int(), "y": int()}:
-            return Point2D.from_dict(raw_attachment)
+        case {"x": int() as x, "y": int() as y}:
+            return Point2D(x, y)
 
         case {
             "leg1": {},
@@ -64,14 +67,14 @@ def parse_raw_attachment(raw_attachment: AnyRawAttachment) -> AnyAttachment:
             "side4": {},
             "top1": {},
             "top2": {},
-        }:  # noqa: E999
+        }:
             return attachments_from_raw(raw_attachment)
 
         case None:
             return None
 
         case unknown:
-            ValueError("Invalid attachment", unknown)
+            raise MalformedData("Invalid attachment", unknown)
 
 
 position_coeffs = {Type.LEGS: (0.5, 0.1), Type.SIDE_WEAPON: (0.3, 0.5), Type.TOP_WEAPON: (0.3, 0.8)}

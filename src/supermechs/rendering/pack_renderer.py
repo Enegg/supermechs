@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import typing as t
 from functools import partial
 
+import anyio
 from attrs import Factory, define, field
 
 from ..enums import Tier, Type
-from ..item_pack import extract_info
+from ..item_pack import extract_key
 from ..typeshed import Coro, T, twotuple
 from ..utils import js_format
 from .attachments import cast_attachment, is_attachable, parse_raw_attachment
@@ -24,6 +24,7 @@ if t.TYPE_CHECKING:
         ID,
         AnyItemDict,
         AnyItemPack,
+        ItemDictVer1,
         ItemDictVer2,
         ItemDictVer3,
         ItemPackVer1,
@@ -31,6 +32,8 @@ if t.TYPE_CHECKING:
         ItemPackVer3,
         Rectangle,
     )
+
+__all__ = ("Rectangular", "PackRenderer")
 
 LOGGER = logging.getLogger(__name__)
 
@@ -167,28 +170,29 @@ def thread_worker(funcs: t.Iterable[t.Callable[[], None]]) -> None:
 
 
 async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite], fetch: ImageFetcher) -> None:
-    pack_key = extract_info(data).key
+    pack_key = extract_key(data)
     BASE_URL = data["config"]["base_url"]
 
-    task_to_data: dict[asyncio.Task[Image], AnyItemDict] = {}
+    results: list[tuple[ItemDictVer1, Image]] = []
 
-    for item_dict in data["items"]:
-        task = asyncio.create_task(
-            fetch(js_format(item_dict["image"], url=BASE_URL)),
-            name=f"<acquire item task {pack_key} #{item_dict['id']}>",
-        )
-        task_to_data[task] = item_dict
+    async def async_worker(item_dict: ItemDictVer1) -> None:
+        image = await fetch(js_format(item_dict["image"], url=BASE_URL))
+        results.append((item_dict, image))
 
-    finished, _ = await asyncio.wait(task_to_data)
+    async with anyio.create_task_group() as tg:
+        for item_dict in data["items"]:
+            tg.start_soon(
+                async_worker,
+                item_dict,
+                name=f"<fetch image task {pack_key} #{item_dict['id']}>",
+            )
+
     sync_futures: list[t.Callable[[], None]] = []
 
-    for task in finished:
-        image = task.result()
-        item_dict = task_to_data.pop(task)
-
+    for item_dict, image in results:
         sync_futures.append(partial(oneshot, item_dict, image, sprites))
 
-    await asyncio.to_thread(thread_worker, sync_futures)
+    await anyio.to_thread.run_sync(thread_worker, sync_futures)
 
 
 async def loader_v2_v3(
@@ -208,7 +212,7 @@ async def loader_v2_v3(
     for item_dict in data["items"]:
         sync_futures.append(partial(sprite_creator, item_dict))
 
-    await asyncio.to_thread(thread_worker, sync_futures)
+    await anyio.to_thread.run_sync(thread_worker, sync_futures)
 
 
 @define
@@ -249,7 +253,7 @@ class PackRenderer:
 
         return self.item_sprites[item.id]
 
-    def get_mech_image(self, mech: Mech) -> Image:
+    def create_mech_image(self, mech: Mech, /) -> Image:
         if mech.torso is None:
             raise RuntimeError("Cannot create mech image without torso set")
 
