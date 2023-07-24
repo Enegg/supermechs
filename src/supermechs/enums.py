@@ -23,7 +23,7 @@ class PartialEnum(Enum):
 class Tier(int, PartialEnum):
     """Enumeration of item tiers."""
 
-    _short_names2members: t.ClassVar[dict[str, Tier]]
+    _initials2members: t.ClassVar[t.Mapping[str, Tier]]
 
     # fmt: off
     COMMON    = auto()
@@ -38,10 +38,10 @@ class Tier(int, PartialEnum):
     @classmethod
     def from_letter(cls, letter: str) -> Tier:
         """Get enum member by the first letter of its name."""
-        return cls._short_names2members[letter.upper()]
+        return cls._initials2members[letter.upper()]
 
 
-Tier._short_names2members = {tier.name[0]: tier for tier in Tier}
+Tier._initials2members = {tier.name[0]: tier for tier in Tier}
 
 
 class Element(PartialEnum):
