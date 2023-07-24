@@ -280,7 +280,7 @@ class ItemStats:
 
     @classmethod
     def from_json_v1_v2(cls, data: ItemDictVer1 | ItemDictVer2, *, strict: bool = False) -> Self:
-        tier = Tier.from_letter(data["transform_range"][-1])
+        tier = Tier.by_initial(data["transform_range"][-1])
         bases = {tier: transform_raw_stats(data["stats"], strict=strict)}
         max_stats = {}
         return cls(bases, max_stats)

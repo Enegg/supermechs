@@ -134,9 +134,9 @@ class TransformRange:
         up, _, down = string.strip().partition("-")
 
         if down:
-            return cls.from_tiers(Tier.from_letter(up), Tier.from_letter(down))
+            return cls.from_tiers(Tier.by_initial(up), Tier.by_initial(down))
 
-        return cls.from_tiers(Tier.from_letter(up))
+        return cls.from_tiers(Tier.by_initial(up))
 
 
 def abbreviate_name(name: Name, /) -> str | None:

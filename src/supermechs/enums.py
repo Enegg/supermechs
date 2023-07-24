@@ -36,7 +36,7 @@ class Tier(int, PartialEnum):
     # fmt: on
 
     @classmethod
-    def from_letter(cls, letter: str) -> Tier:
+    def by_initial(cls, letter: str, /) -> Tier:
         """Get enum member by the first letter of its name."""
         return cls._initials2members[letter.upper()]
 
