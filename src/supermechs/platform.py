@@ -10,7 +10,7 @@ json_encoder: JSONEncoder
 json_indented_encoder: JSONEncoder
 
 try:
-    import orjson
+    import orjson  # pyright: ignore[reportMissingImports]
 
 except ImportError:
     import json
