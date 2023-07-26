@@ -62,16 +62,9 @@ class ItemDictVer1(ItemDictBase):
     image: str
 
 
-class PackConfig(t.TypedDict):
-    key: str
-    name: str
-    description: str
-    base_url: LiteralURL
-
-
 class ItemPackVer1(t.TypedDict):
     version: NotRequired[t.Literal["1"]]
-    config: PackConfig
+    config: dict[{"key": str, "name": str, "description": str, "base_url": LiteralURL}]
     items: list[ItemDictVer1]
 
 
