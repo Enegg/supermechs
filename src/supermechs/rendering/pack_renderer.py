@@ -144,7 +144,9 @@ class Canvas(t.Generic[T]):
         return canvas
 
 
-def oneshot(item_dict: AnyItemDict, image: Image, sprites: dict[ID, ItemSprite]) -> None:
+def oneshot(
+    item_dict: AnyItemDict, image: Image, sprites: t.MutableMapping[ID, ItemSprite]
+) -> None:
     width = item_dict.get("width", image.width)
     height = item_dict.get("height", image.height)
 
@@ -169,7 +171,9 @@ def thread_worker(funcs: t.Iterable[t.Callable[[], None]]) -> None:
         func()
 
 
-async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite], fetch: ImageFetcher) -> None:
+async def loader_v1(
+    data: ItemPackVer1, sprites: t.MutableMapping[ID, ItemSprite], fetch: ImageFetcher
+) -> None:
     pack_key = extract_key(data)
     BASE_URL = data["config"]["base_url"]
 
@@ -196,7 +200,9 @@ async def loader_v1(data: ItemPackVer1, sprites: dict[ID, ItemSprite], fetch: Im
 
 
 async def loader_v2_v3(
-    data: ItemPackVer2 | ItemPackVer3, sprites: dict[ID, ItemSprite], fetch: ImageFetcher
+    data: ItemPackVer2 | ItemPackVer3,
+    sprites: t.MutableMapping[ID, ItemSprite],
+    fetch: ImageFetcher,
 ) -> None:
     spritessheet_url = data["spritesSheet"]
     spritessheet_map = data["spritesMap"]
