@@ -140,6 +140,7 @@ def transform_raw_stats(data: RawStatsMapping, *, strict: bool = False) -> AnySt
     """Ensures the data is valid by grabbing factual keys and type checking values.
     Transforms None values into NaNs."""
     final_stats: AnyStatsMapping = {}
+    issues: list[Exception] = []
 
     # TODO: implement extrapolation of missing data
 
@@ -158,11 +159,15 @@ def transform_raw_stats(data: RawStatsMapping, *, strict: bool = False) -> AnySt
                 )
 
             case unknown:
-                msg = f"Expected {data_type.__name__} on key '{key}', got {type(unknown)}"
+                msg = f"Expected {data_type.__name__} on key {key!r}, got {unknown!r:.20}"
                 if strict:
-                    raise TypeError(msg)
+                    issues.append(TypeError(msg))
 
-                LOGGER.warning(msg)
+                else:
+                    LOGGER.warning(msg)
+
+    if issues:
+        raise issues[0]  # exception groups when
 
     return final_stats
 
