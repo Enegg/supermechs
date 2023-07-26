@@ -35,7 +35,7 @@ class Point2D(t.NamedTuple):
         return cls(x, y)
 
 
-TorsoAttachments = dict[str, Point2D]
+TorsoAttachments = t.Mapping[str, Point2D]
 AnyAttachment = Point2D | TorsoAttachments | None
 
 
@@ -85,7 +85,7 @@ def create_synthetic_attachment(width: int, height: int, type: Type) -> AnyAttac
     Note: taken directly from WU, credits to Raul."""
 
     if type is Type.TORSO:
-        return TorsoAttachments(
+        return dict(
             leg1=Point2D(round(width * 0.40), round(height * 0.9)),
             leg2=Point2D(round(width * 0.80), round(height * 0.9)),
             side1=Point2D(round(width * 0.25), round(height * 0.6)),

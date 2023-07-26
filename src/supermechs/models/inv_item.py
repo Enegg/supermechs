@@ -44,9 +44,9 @@ def _load_power_data() -> None:
 
 
 class _Powers(t.NamedTuple):
-    default: dict[Tier, tuple[int, ...]]
-    premium: dict[Tier, tuple[int, ...]]
-    reduced: dict[Tier, tuple[int, ...]]
+    default: t.Mapping[Tier, t.Sequence[int]]
+    premium: t.Mapping[Tier, t.Sequence[int]]
+    reduced: t.Mapping[Tier, t.Sequence[int]]
 
 
 _powers: _Powers

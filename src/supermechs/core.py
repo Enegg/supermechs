@@ -17,7 +17,9 @@ if t.TYPE_CHECKING:
 __all__ = ("STATS", "TransformRange", "Stat")
 
 
-MAX_LVL_FOR_TIER = {tier: level for tier, level in zip(Tier, range(9, 50, 10))} | {Tier.DIVINE: 0}
+MAX_LVL_FOR_TIER: t.Mapping[Tier, int] = {
+    tier: level for tier, level in zip(Tier, range(9, 50, 10))
+} | {Tier.DIVINE: 0}
 """A mapping of a tier to the maximum level an item can have at this tier.
     Note that in game levels start at 1.
 """

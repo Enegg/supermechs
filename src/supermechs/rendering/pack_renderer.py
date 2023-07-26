@@ -224,7 +224,7 @@ async def loader_v2_v3(
 @define
 class PackRenderer:
     key: str
-    item_sprites: dict[ID, ItemSprite] = Factory(dict)
+    item_sprites: t.MutableMapping[ID, ItemSprite] = Factory(dict)
 
     async def load(self, pack: AnyItemPack, fetch: ImageFetcher) -> None:
         if "version" not in pack or pack["version"] == "1":
