@@ -105,23 +105,14 @@ class AnyStatsMapping(AnyMechStatsMapping, total=False):
     rocketsCost: int
 
 
-def linear_interpolation(lower: int, upper: int, weight: float) -> int:
-    """Returns a value between the `lower` and `upper` numbers,
-    with `weight` denoting how close to the `upper` the value gets.
-    In other words, at `weight` = 0 returns `lower`, and at `weight` = 1 returns `upper`.
-    """
+def lerp(lower: int, upper: int, weight: float) -> int:
+    """Linear interpolation."""
     return lower + round((upper - lower) * weight)
 
 
-def range_linear_interpolation(minor: ValueRange, major: ValueRange, weight: float) -> ValueRange:
-    """Returns a new range between the `minor` and `major` ranges,
-    with `weight` denoting how close to the `major` the value gets.
-    In other words, at `weight` = 0 returns `minor`, and at `weight` = 1 returns `major`.
-    """
-    return ValueRange(
-        linear_interpolation(minor.lower, major.lower, weight),
-        linear_interpolation(minor.upper, major.upper, weight)
-    )
+def lerp_range(minor: ValueRange, major: ValueRange, weight: float) -> ValueRange:
+    """Linear interpolation of two vector-like objects."""
+    return ValueRange(*map(lerp, minor, major, (weight, weight)))
 
 
 def iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
@@ -211,11 +202,11 @@ class TierStats:
 
             if isinstance(value, ValueRange):
                 assert isinstance(base_value, ValueRange)
-                stats[key] = range_linear_interpolation(base_value, value, fraction)
+                stats[key] = lerp_range(base_value, value, fraction)
 
             else:
                 assert not isinstance(base_value, ValueRange)
-                stats[key] = linear_interpolation(base_value, value, fraction)
+                stats[key] = lerp(base_value, value, fraction)
 
         return stats
 
