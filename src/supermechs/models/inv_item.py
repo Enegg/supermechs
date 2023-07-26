@@ -21,7 +21,7 @@ if t.TYPE_CHECKING:
 __all__ = ("InvItem", "InvItemProto")
 
 
-def _load_power_data_files() -> t.Iterator[dict[Tier, tuple[int, ...]]]:
+def _read_power_data_files() -> t.Iterator[dict[Tier, tuple[int, ...]]]:
     path = Path(__file__).parent / "static"
     file_names = ("default_powers.csv", "premium_powers.csv", "reduced_powers.csv")
     iterables = (Tier, (Tier.LEGENDARY, Tier.MYTHICAL), (Tier.LEGENDARY, Tier.MYTHICAL))
@@ -35,6 +35,12 @@ def _load_power_data_files() -> t.Iterator[dict[Tier, tuple[int, ...]]]:
             rows = csv.reader(file, skipinitialspace=True)
 
             yield {rarity: tuple(map(int, row)) for rarity, row in zip(rarities, rows)}
+
+
+def _load_power_data() -> None:
+    global _powers, _loaded
+    _powers = _Powers(*_read_power_data_files())
+    _loaded = True
 
 
 class _Powers(t.NamedTuple):
@@ -51,13 +57,12 @@ _loaded: bool = False
 _REDUCED_COST_ITEMS = frozenset(("Archimonde", "Armor Annihilator", "BigDaddy", "Chaos Bringer"))
 
 
-def get_power_bank(item: ItemProto) -> dict[Tier, tuple[int, ...]]:
+def get_power_bank(item: ItemProto, /) -> t.Mapping[Tier, t.Sequence[int]]:
     """Returns the power per level bank for the item."""
     global _powers, _loaded
 
     if not _loaded:
-        _powers = _Powers(*_load_power_data_files())
-        _loaded = True
+        _load_power_data()
 
     if item.tags.legacy:
         pass
@@ -175,7 +180,7 @@ class InvItem:
         del self.level
         self.power = min(self.power + power, self.max_power)
 
-    def is_ready_to_transform(self) -> bool:
+    def transform_ready(self) -> bool:
         """Returns True if item has enough power to transform
         and hasn't reached max transform tier, False otherwise"""
         return self.maxed and self.tier < self.transform_range.max

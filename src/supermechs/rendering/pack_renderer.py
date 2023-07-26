@@ -30,7 +30,7 @@ if t.TYPE_CHECKING:
         ItemPackVer1,
         ItemPackVer2,
         ItemPackVer3,
-        Rectangle,
+        RawPlane2D,
     )
 
 __all__ = ("Rectangular", "PackRenderer")
@@ -90,7 +90,7 @@ class Offsets:
         )
 
 
-def calculate_position(position: twotuple[int], offset: twotuple[int]) -> twotuple[int]:
+def combine_attachments(position: twotuple[int], offset: twotuple[int]) -> twotuple[int]:
     corner_x, corner_y = position
     offset_x, offset_y = offset
     return (offset_x - corner_x, offset_y - corner_y)
@@ -115,9 +115,9 @@ class Canvas(t.Generic[T]):
         position: twotuple[int],
         offset: twotuple[int] = (0, 0),
     ) -> None:
-        """Adds an image as a layer on the canvas."""
-        # if offset is not None:
-        position = calculate_position(position, offset)
+        """Adds an image as a layer to the canvas."""
+
+        position = combine_attachments(position, offset)
 
         self.offsets.adjust(image, *position)
         self._put_image(image, layer, *position)
@@ -126,7 +126,7 @@ class Canvas(t.Generic[T]):
         """Place the image on the canvas."""
         self.images[self.layers.index(layer)] = (x, y, image)
 
-    def merge(self, base_layer: T) -> Image:
+    def merge(self, base_layer: T, /) -> Image:
         """Merges all images into one and returns it."""
         self._put_image(self.base, base_layer, 0, 0)
 
@@ -296,7 +296,7 @@ class PackRenderer:
         return renderer.merge("torso")
 
 
-def crop_from_spritesheet(spritesheet: Image, pos: Rectangle) -> Image:
+def crop_from_spritesheet(spritesheet: Image, pos: RawPlane2D) -> Image:
     x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
     return spritesheet.crop((x, y, x + w, y + h))
 

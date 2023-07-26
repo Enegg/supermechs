@@ -32,8 +32,8 @@ class Names(t.NamedTuple):
     def __str__(self) -> str:
         return self.default
 
-    def __format__(self, __format_spec: str, /) -> str:
-        return self.default.__format__(__format_spec)
+    def __format__(self, format_spec: str, /) -> str:
+        return self.default.__format__(format_spec)
 
     @property
     def game_name(self) -> str:
@@ -72,7 +72,7 @@ def _load_stats():
     with (Path(__file__).parent / "static/StatData.json").open() as file:
         json: dict[AnyStatKey, StatData] = json_decoder(file.read())
 
-    return {stat_key: Stat.from_dict(value, stat_key) for stat_key, value in json.items()}
+    return {stat_key: Stat.from_dict(data, stat_key) for stat_key, data in json.items()}
 
 
 STATS: t.Mapping[str, Stat] = MappingProxyType(_load_stats())

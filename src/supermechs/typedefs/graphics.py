@@ -2,9 +2,9 @@ import typing as t
 
 __all__ = (
     "RawPoint2D",
+    "RawPlane2D",
     "RawTorsoAttachments",
     "AnyRawAttachment",
-    "Rectangle",
     "ItemImageParams",
 )
 
@@ -14,11 +14,11 @@ class RawPoint2D(t.TypedDict):
     y: int
 
 
-RawTorsoAttachments = dict[str, RawPoint2D]
+RawTorsoAttachments = t.Mapping[str, RawPoint2D]
 AnyRawAttachment = RawPoint2D | RawTorsoAttachments | None
 
 
-class Rectangle(RawPoint2D):
+class RawPlane2D(RawPoint2D):
     width: int
     height: int
 

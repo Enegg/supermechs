@@ -4,7 +4,7 @@ from typing_extensions import NotRequired
 
 from ..typeshed import LiteralURL
 from .game_types import LiteralElement, LiteralType, RawStatsMapping
-from .graphics import RawPoint2D, RawTorsoAttachments, Rectangle
+from .graphics import RawPlane2D, RawPoint2D, RawTorsoAttachments
 
 # fmt: off
 __all__ = (
@@ -35,7 +35,7 @@ class TiersMixin(t.TypedDict, total=False):
 
 class SpritesSheetMixin(t.TypedDict):
     spritesSheet: LiteralURL
-    spritesMap: dict[str, Rectangle]
+    spritesMap: dict[str, RawPlane2D]
 
 
 class ItemDictBase(t.TypedDict):
