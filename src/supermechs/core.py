@@ -84,6 +84,16 @@ class TransformRange:
 
     range: range
 
+    @property
+    def min(self) -> Tier:
+        """Lower range bound."""
+        return Tier.get_by_value(self.range.start)
+
+    @property
+    def max(self) -> Tier:
+        """Upper range bound."""
+        return Tier.get_by_value(self.range.stop - 1)
+
     def __str__(self) -> str:
         return f"{self.min.name[0]}-{self.max.name[0]}"
 
@@ -98,16 +108,6 @@ class TransformRange:
             return item.value in self.range
 
         return NotImplemented
-
-    @property
-    def min(self) -> Tier:
-        """Lower range bound."""
-        return Tier.get_by_value(self.range.start)
-
-    @property
-    def max(self) -> Tier:
-        """Upper range bound."""
-        return Tier.get_by_value(self.range.stop - 1)
 
     @classmethod
     def from_tiers(cls, lower: Tier | int, upper: Tier | int | None = None) -> Self:

@@ -180,6 +180,11 @@ class TierStats:
     base_stats: AnyStatsMapping
     max_level_stats: AnyStatsMapping
 
+    @property
+    def max(self) -> AnyStatsMapping:
+        """Return the max stats of the item."""
+        return self.base_stats | self.max_level_stats
+
     def at(self, level: int) -> AnyStatsMapping:
         """Returns the stats at given level.
 
@@ -214,11 +219,6 @@ class TierStats:
                 stats[key] = lerp(base_value, value, fraction)
 
         return stats
-
-    @property
-    def max(self) -> AnyStatsMapping:
-        """Return the max stats of the item."""
-        return self.base_stats | self.max_level_stats
 
 
 @define
