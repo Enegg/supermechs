@@ -10,8 +10,8 @@ from attrs.validators import max_len
 from typing_extensions import Self
 
 from .. import constants
+from ..constants import WORKSHOP_STATS
 from ..converters import get_slot_name, slot_to_type
-from ..core import WORKSHOP_STATS
 from ..enums import Element, Type
 from ..user_input import StringLimits
 from ..utils import cached_slot_property, format_count
