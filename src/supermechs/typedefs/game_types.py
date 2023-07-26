@@ -53,7 +53,7 @@ class StatName(t.TypedDict):
 
 class StatData(t.TypedDict):
     names: StatName
-    beneficial: NotRequired[t.Literal[False]]
+    beneficial: NotRequired[bool]
     buff: NotRequired[t.Literal["+", "+%", "-%", "+2%"]]
 
 
