@@ -108,6 +108,11 @@ class Canvas(t.Generic[T]):
     def __attrs_post_init__(self) -> None:
         self.images = [None] * len(self.layers)
 
+    def __setitem__(self, position: tuple[T, int, int], image: Image, /) -> None:
+        layer, x, y = position
+        self.offsets.adjust(image, x, y)
+        self._put_image(image, layer, x, y)
+
     def add_image(
         self,
         image: Image,
@@ -284,14 +289,9 @@ class PackRenderer:
 
         if mech.drone is not None:
             drone_sprite = self.get_item_sprite(mech.drone)
-            renderer.add_image(
-                drone_sprite.image,
-                "drone",
-                (
-                    drone_sprite.width // 2 + renderer.offsets.left,
-                    drone_sprite.height + 25 + renderer.offsets.above,
-                ),
-            )
+            x = drone_sprite.width // 2 + renderer.offsets.left
+            y = drone_sprite.height + 25 + renderer.offsets.above
+            renderer["drone", x, y] = drone_sprite.image
 
         return renderer.merge("torso")
 
