@@ -190,7 +190,7 @@ def to_transform_stages(data: AnyItemDict, /, *, strict: bool = False) -> Transf
             tier=tier,
             base_stats=base,
             max_level_stats=addon,
-            transforms_into=current_stage
+            next=current_stage
         )
 
     if current_stage is None:

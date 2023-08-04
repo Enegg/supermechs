@@ -121,7 +121,7 @@ class TransformStage:
     """Stats of the item at level 1."""
     max_level_stats: AnyStatsMapping = field()
     """Stats of the item that change as it levels up, at max level."""
-    transforms_into: tex.Self | None = field(default=None)
+    next: tex.Self | None = field(default=None)
     """The next stage the item can transform into."""
 
     _last: tuple[int, AnyStatsMapping] = field(default=(-1, {}), init=False, repr=False)
@@ -173,7 +173,7 @@ class TransformStage:
 
 def get_final_stage(stage: "TransformStage", /) -> "TransformStage":
     """Returns the final stage of transformation."""
-    while stage.transforms_into is not None:
-        stage = stage.transforms_into
+    while stage.next is not None:
+        stage = stage.next
 
     return stage
