@@ -9,6 +9,7 @@ from attrs import Factory, define, field
 
 from ..enums import Tier, Type
 from ..item_pack import extract_key
+from ..models.display_item import DisplayItem
 from ..typeshed import Coro, T, twotuple
 from ..utils import js_format
 from .attachments import cast_attachment, is_attachable, parse_raw_attachment
@@ -17,8 +18,8 @@ from .sprites import ItemSprite
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-    from ..models.inv_item import InvItemProto
-    from ..models.item_base import ItemProto
+    from ..internal import ResourceCache
+    from ..models.item_data import ItemData
     from ..models.mech import Mech
     from ..typedefs import (
         ID,
@@ -228,38 +229,42 @@ async def loader_v2_v3(
 
 @define
 class PackRenderer:
-    key: str
+    pack_key: str
+    url_cache: ResourceCache[Image]
     item_sprites: t.MutableMapping[ID, ItemSprite] = Factory(dict)
 
-    async def load(self, pack: AnyItemPack, fetch: ImageFetcher) -> None:
+    async def load(self, pack: AnyItemPack, /) -> None:
         if "version" not in pack or pack["version"] == "1":
-            await loader_v1(pack, self.item_sprites, fetch)
+            await loader_v1(pack, self.item_sprites, self.url_cache.fetch)
 
         elif pack["version"] == "2":
-            await loader_v2_v3(pack, self.item_sprites, fetch)
+            await loader_v2_v3(pack, self.item_sprites, self.url_cache.fetch)
 
         elif pack["version"] == "3":
-            await loader_v2_v3(pack, self.item_sprites, fetch)
+            await loader_v2_v3(pack, self.item_sprites, self.url_cache.fetch)
 
         else:
             raise ValueError(f"Unknown pack version: {pack['version']}")
 
-        LOGGER.info(f"Pack {self.key!r} loaded {len(self.item_sprites)} sprites")
+        LOGGER.info(f"Pack {self.pack_key!r} loaded {len(self.item_sprites)} sprites")
 
     @t.overload
-    def get_item_sprite(self, item: ItemProto, /, tier: Tier) -> ItemSprite:
+    def get_item_sprite(self, item: ItemData, /, tier: Tier) -> ItemSprite:
         ...
 
     @t.overload
-    def get_item_sprite(self, item: InvItemProto, /) -> ItemSprite:
+    def get_item_sprite(self, item: DisplayItem, /) -> ItemSprite:
         ...
 
     def get_item_sprite(
-        self, item: ItemProto | InvItemProto, /, tier: Tier | None = None
+        self, item: ItemData | DisplayItem, /, tier: Tier | None = None
     ) -> ItemSprite:
+        if isinstance(item, DisplayItem):
+            tier = item.stage.tier
+            item = item.data
         del tier  # TODO: implement when storing TieredSprite
 
-        if item.pack_key != self.key:
+        if item.pack_key != self.pack_key:
             raise ValueError("Item of different pack key passed")
 
         return self.item_sprites[item.id]
@@ -268,27 +273,27 @@ class PackRenderer:
         if mech.torso is None:
             raise RuntimeError("Cannot create mech image without torso set")
 
-        torso_sprite = self.get_item_sprite(mech.torso)
+        torso_sprite = self.get_item_sprite(mech.torso.item)
 
         attachments = cast_attachment(torso_sprite.attachment, Type.TORSO)
         renderer = Canvas[str](torso_sprite.image, LAYER_ORDER)
 
         if mech.legs is not None:
-            legs_sprite = self.get_item_sprite(mech.legs)
+            legs_sprite = self.get_item_sprite(mech.legs.item)
             leg_attachment = cast_attachment(legs_sprite.attachment, Type.LEGS)
             renderer.add_image(legs_sprite.image, "leg1", leg_attachment, attachments["leg1"])
             renderer.add_image(legs_sprite.image, "leg2", leg_attachment, attachments["leg2"])
 
-        for item, layer in mech.iter_items(weapons=True, slots=True):
-            if item is None:
+        for inv_item, layer in mech.iter_items(weapons=True, slots=True):
+            if inv_item is None:
                 continue
 
-            item_sprite = self.get_item_sprite(item)
+            item_sprite = self.get_item_sprite(inv_item.item)
             item_attachment = cast_attachment(item_sprite.attachment, Type.SIDE_WEAPON)
             renderer.add_image(item_sprite.image, layer, item_attachment, attachments[layer])
 
         if mech.drone is not None:
-            drone_sprite = self.get_item_sprite(mech.drone)
+            drone_sprite = self.get_item_sprite(mech.drone.item)
             x = drone_sprite.width // 2 + renderer.offsets.left
             y = drone_sprite.height + 25 + renderer.offsets.above
             renderer["drone", x, y] = drone_sprite.image

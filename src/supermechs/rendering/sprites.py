@@ -5,13 +5,14 @@ import typing as t
 from attrs import define
 from typing_extensions import Self
 
-from ..core import TransformRange
-from ..enums import Tier, Type
 from ..utils import MISSING
 from .attachments import AnyAttachment, create_synthetic_attachment, is_attachable
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
+
+    from ..enums import Tier, Type
+    from ..models.item_data import TransformRange
 
 
 @define
@@ -47,7 +48,7 @@ class TieredSprite:
         if tier not in self.transform_range:
             raise ValueError(f"Tier {tier} outside transform range")
 
-        return self.sprites[tier.value - self.transform_range.min.value]
+        return self.sprites[tier.value - self.transform_range[0].value]
 
     @property
     def max_tier(self) -> ItemSprite:

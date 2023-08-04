@@ -1,17 +1,14 @@
 import logging
 import typing as t
-from itertools import chain
 
-from attrs import define
-from typing_extensions import Self
+import typing_extensions as tex
+from attrs import define, field
 
-from .core import MAX_LVL_FOR_TIER, TransformRange
+from .core import MAX_LVL_FOR_TIER
 from .enums import Tier
-from .typedefs import ItemDictVer1, ItemDictVer2, ItemDictVer3, RawMechStatsMapping, RawStatsMapping
 from .typeshed import dict_items_as
-from .utils import NaN
 
-__all__ = ("ValueRange", "AnyMechStatsMapping", "AnyStatsMapping", "TierStats", "ItemStats")
+__all__ = ("ValueRange", "AnyMechStatsMapping", "AnyStatsMapping", "TransformStage")
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,10 +48,10 @@ class ValueRange(t.NamedTuple):
             return self.lower
         return (self.lower + self.upper) / 2
 
-    def __add__(self, value: tuple[int, int]) -> Self:
+    def __add__(self, value: tuple[int, int]) -> tex.Self:
         return type(self)(self.lower + value[0], self.upper + value[1])
 
-    def __mul__(self, value: int) -> Self:
+    def __mul__(self, value: int) -> tex.Self:
         return type(self)(self.lower * value, self.upper * value)
 
 
@@ -110,89 +107,42 @@ def lerp(lower: int, upper: int, weight: float) -> int:
     return lower + round((upper - lower) * weight)
 
 
-def lerp_range(minor: ValueRange, major: ValueRange, weight: float) -> ValueRange:
+def lerp_vector(minor: ValueRange, major: ValueRange, weight: float) -> ValueRange:
     """Linear interpolation of two vector-like objects."""
     return ValueRange(*map(lerp, minor, major, (weight, weight)))
 
 
-def iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
-    import types
+@define(kw_only=True)
+class TransformStage:
+    """Dataclass collecting transformation tier dependent item data."""
+    tier: Tier = field()
+    """The tier of the transform stage."""
+    base_stats: AnyStatsMapping = field()
+    """Stats of the item at level 1."""
+    max_level_stats: AnyStatsMapping = field()
+    """Stats of the item that change as it levels up, at max level."""
+    transforms_into: tex.Self | None = field(default=None)
+    """The next stage the item can transform into."""
 
-    for key, data_type in chain(
-        t.get_type_hints(RawMechStatsMapping).items(), t.get_type_hints(RawStatsMapping).items()
-    ):
-        origin, args = t.get_origin(data_type), t.get_args(data_type)
-
-        if origin is int:
-            yield key, int
-
-        elif origin in (types.UnionType, t.Union) and set(args).issubset((int, type(None))):
-            yield key, int
-
-        elif origin is list:
-            yield key, list
-
-        else:
-            raise ValueError(f"Unexpected type for key {key!r} found: {data_type!r} ({origin})")
-
-
-def transform_raw_stats(data: RawStatsMapping, *, strict: bool = False) -> AnyStatsMapping:
-    """Ensures the data is valid by grabbing factual keys and type checking values.
-    Transforms None values into NaNs."""
-    final_stats: AnyStatsMapping = {}
-    issues: list[Exception] = []
-
-    # TODO: implement extrapolation of missing data
-
-    for key, data_type in iter_stat_keys_and_types():
-        if key not in data:
-            continue
-
-        match data[key]:
-            case int() | None as value if data_type is int:
-                final_stats[key] = NaN if value is None else value
-
-            case [int() | None as x, int() | None as y] if data_type is list:
-                final_stats[key] = ValueRange(
-                    NaN if x is None else x,
-                    NaN if y is None else y,
-                )
-
-            case unknown:
-                msg = f"Expected {data_type.__name__} on key {key!r}, got {unknown!r:.20}"
-                if strict:
-                    issues.append(TypeError(msg))
-
-                else:
-                    LOGGER.warning(msg)
-
-    if issues:
-        raise issues[0]  # exception groups when
-
-    return final_stats
-
-
-@define
-class TierStats:
-    """Object representing stats of an item at particular tier."""
-
-    tier: Tier
-    base_stats: AnyStatsMapping
-    max_level_stats: AnyStatsMapping
+    _last: tuple[int, AnyStatsMapping] = field(default=(-1, {}), init=False, repr=False)
 
     @property
-    def max(self) -> AnyStatsMapping:
-        """Return the max stats of the item."""
-        return self.base_stats | self.max_level_stats
+    def max_level(self) -> int:
+        """The maximum level this stage can reach, starting from 0."""
+        return MAX_LVL_FOR_TIER[self.tier]
 
-    def at(self, level: int) -> AnyStatsMapping:
+    def at(self, level: int, /) -> AnyStatsMapping:
         """Returns the stats at given level.
 
         For convenience, levels follow the game logic; the lowest level is 1
         and the maximum is a multiple of 10 depending on tier.
         """
         level -= 1
-        max_level = MAX_LVL_FOR_TIER[self.tier]
+
+        if level == self._last[0]:
+            return self._last[1]
+
+        max_level = self.max_level
 
         if not 0 <= level <= max_level:
             raise ValueError(f"Level {level} outside range 1-{max_level+1}")
@@ -201,120 +151,29 @@ class TierStats:
             return self.base_stats.copy()
 
         if level == max_level:
-            return self.max
+            return self.base_stats | self.max_level_stats
 
-        fraction = level / max_level
-
-        stats: AnyStatsMapping = self.base_stats.copy()
+        weight = level / max_level
+        stats = self.base_stats.copy()
 
         for key, value in dict_items_as(int | ValueRange, self.max_level_stats):
             base_value: int | ValueRange = stats[key]
 
             if isinstance(value, ValueRange):
                 assert isinstance(base_value, ValueRange)
-                stats[key] = lerp_range(base_value, value, fraction)
+                stats[key] = lerp_vector(base_value, value, weight)
 
             else:
                 assert not isinstance(base_value, ValueRange)
-                stats[key] = lerp(base_value, value, fraction)
+                stats[key] = lerp(base_value, value, weight)
 
+        self._last = (level, stats.copy())
         return stats
 
 
-@define
-class ItemStats:
-    tier_bases: t.Mapping[Tier, AnyStatsMapping]
-    max_stats: t.Mapping[Tier, AnyStatsMapping]
+def get_final_stage(stage: "TransformStage", /) -> "TransformStage":
+    """Returns the final stage of transformation."""
+    while stage.transforms_into is not None:
+        stage = stage.transforms_into
 
-    def __getitem__(self, key: Tier) -> TierStats:
-        base = AnyStatsMapping()
-
-        for tier, tier_base in self.tier_bases.items():
-            base |= tier_base
-
-            if tier == key:
-                break
-
-            base |= self.max_stats.get(tier, {})
-
-        return TierStats(
-            tier=key,
-            base_stats=base,
-            max_level_stats=self.max_stats.get(key, {})
-        )
-
-    def __contains__(self, value: str | Tier | TransformRange) -> bool:
-        # literal stat key
-        if isinstance(value, str):
-            for mapping in self.tier_bases.values():
-                if value in mapping:
-                    return True
-
-            return False
-
-        if isinstance(value, Tier):
-            return value in self.tier_bases
-
-        if isinstance(value, TransformRange):
-            return value.min in self.tier_bases and value.max in self.tier_bases
-
-        return False
-
-    def has_any_of_stats(self, *stats: str, tier: Tier | None = None) -> bool:
-        """Check if any of the stat keys appear in the item's stats.
-
-        tier: if specified, checks only at that tier. Otherwise, checks all tiers.
-        """
-        if tier is not None:
-            return not self.tier_bases[tier].keys().isdisjoint(stats)
-
-        for mapping in self.tier_bases.values():
-            if not mapping.keys().isdisjoint(stats):
-                return True
-
-        return False
-
-    @classmethod
-    def from_json_v1_v2(cls, data: ItemDictVer1 | ItemDictVer2, *, strict: bool = False) -> Self:
-        tier = Tier.by_initial(data["transform_range"][-1])
-        bases = {tier: transform_raw_stats(data["stats"], strict=strict)}
-        max_stats = {}
-        return cls(bases, max_stats)
-
-    @classmethod
-    def from_json_v3(cls, data: ItemDictVer3, *, strict: bool = False) -> Self:
-        tier_bases = dict[Tier, AnyStatsMapping]()
-        max_stats = dict[Tier, AnyStatsMapping]()
-        hit = False
-
-        for rarity in Tier:
-            key = t.cast(str, rarity.name.lower())
-
-            if key not in data:
-                # if we already populated the dict with stats,
-                # missing key means we should break as there will be no further stats
-                if hit:
-                    break
-
-                # otherwise, we haven't yet got to the starting tier, so continue
-                continue
-
-            hit = True
-            tier_bases[rarity] = transform_raw_stats(data[key], strict=strict)
-
-            try:
-                max_level_data = data["max_" + key]
-
-            except KeyError:
-                if rarity is not Tier.DIVINE:
-                    if strict:
-                        raise
-
-                    LOGGER.warning(f"max_{key} key not found for item {data['name']}")
-
-                max_stats[rarity] = {}
-
-            else:
-                max_stats[rarity] = transform_raw_stats(max_level_data, strict=strict)
-
-        return cls(tier_bases, max_stats)
+    return stage

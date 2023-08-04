@@ -191,3 +191,8 @@ class cached_slot_property(t.Generic[T]):
 
         except AttributeError:
             pass
+
+
+def has_any_of_keys(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
+    """Returns True if a mapping contains any of the specified keys."""
+    return not mapping.keys().isdisjoint(keys)

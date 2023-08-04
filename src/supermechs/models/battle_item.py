@@ -1,15 +1,18 @@
+import typing as t
+
 from attrs import define, field
 from typing_extensions import Self
 
 from ..item_stats import AnyStatsMapping
 from .inv_item import InvItem
 
+__all__ = ("BattleItem",)
 # XXX: should the multipliers be applied on BattleItem creation, or should it hold a reference?
 
 def apply_multipliers(
-    stats: AnyStatsMapping, multipliers: dict[str, float] = {}, /, **mults: float
+    stats: AnyStatsMapping, multipliers: t.Mapping[str, float] = {}, /, **mults: float
 ) -> None:
-    """"""
+    """WIP"""
     for key, value in {**multipliers, **mults}.items():
         old = stats.get(key)
 
@@ -31,8 +34,8 @@ class BattleItem:
     """Represents the state of an item during a battle."""
     item: InvItem
     stats: AnyStatsMapping
-    multipliers: dict[str, float] = field(factory=dict)
-    # XXX already_used: bool? ...prolly better to store elsewhere
+    multipliers: t.Mapping[str, float] = field(factory=dict)
+    # already_used: bool? XXX prolly better to store elsewhere
 
     @classmethod
     def from_item(cls, item: InvItem, /) -> Self:

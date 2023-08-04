@@ -4,7 +4,6 @@ import typing as t
 from pathlib import Path
 from types import MappingProxyType
 
-from attrs import frozen
 from typing_extensions import Self
 
 from .enums import Tier
@@ -14,7 +13,7 @@ from .utils import MISSING, is_pascal
 if t.TYPE_CHECKING:
     from .typedefs import AnyStatKey, Name, StatData
 
-__all__ = ("STATS", "TransformRange", "Stat")
+__all__ = ("STATS", "Stat")
 
 
 MAX_LVL_FOR_TIER: t.Mapping[Tier, int] = {
@@ -79,67 +78,6 @@ def _load_stats():
 STATS: t.Mapping[str, Stat] = MappingProxyType(_load_stats())
 
 
-@frozen
-class TransformRange:
-    """Represents a range of transformation tiers an item can have."""
-
-    range: range
-
-    @property
-    def min(self) -> Tier:
-        """Lower range bound."""
-        return Tier.get_by_value(self.range.start)
-
-    @property
-    def max(self) -> Tier:
-        """Upper range bound."""
-        return Tier.get_by_value(self.range.stop - 1)
-
-    def __str__(self) -> str:
-        return f"{self.min.name[0]}-{self.max.name[0]}"
-
-    def __iter__(self) -> t.Iterator[Tier]:
-        return map(Tier.get_by_value, self.range)
-
-    def __len__(self) -> int:
-        return len(self.range)
-
-    def __contains__(self, item: Tier) -> bool:
-        if isinstance(item, Tier):
-            return item.value in self.range
-
-        return NotImplemented
-
-    @classmethod
-    def from_tiers(cls, lower: Tier | int, upper: Tier | int | None = None) -> Self:
-        """Construct a TransformRange object from upper and lower bounds.
-        Unlike `range` object, upper bound is inclusive."""
-
-        if isinstance(lower, int):
-            lower = Tier.get_by_value(lower)
-
-        if upper is None:
-            upper = lower
-
-        elif isinstance(upper, int):
-            upper = Tier.get_by_value(upper)
-
-        if lower > upper:
-            raise ValueError("Upper tier below lower tier")
-
-        return cls(range(lower.value, upper.value + 1))
-
-    @classmethod
-    def from_string(cls, string: str, /) -> Self:
-        """Construct a TransformRange object from a string like "C-E" or "M"."""
-        up, _, down = string.strip().partition("-")
-
-        if down:
-            return cls.from_tiers(Tier.by_initial(up), Tier.by_initial(down))
-
-        return cls.from_tiers(Tier.by_initial(up))
-
-
 def abbreviate_name(name: Name, /) -> str | None:
     """Returns an acronym of the name, or None if one cannot (shouldn't) be made.
 
@@ -195,8 +133,3 @@ def abbreviate_names(names: t.Iterable[Name], /) -> dict[str, set[Name]]:
                 abbreviations_to_names[abbreviation] = {name}
 
     return abbreviations_to_names
-
-
-def next_tier(current: Tier, /) -> Tier:
-    """Returns the next tier in line."""
-    return Tier.get_by_value(current.value + 1)

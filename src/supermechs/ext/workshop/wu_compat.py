@@ -5,12 +5,14 @@ from attrs import asdict
 from supermechs.api import (
     MAX_BUFFS,
     AnyStatsMapping,
+    DisplayItem,
     InvItem,
-    ItemBase,
+    ItemData,
     ItemPack,
     Mech,
     SlotType,
 )
+from supermechs.item_stats import get_final_stage
 from supermechs.platform import json_decoder, json_encoder, json_indented_encoder
 from supermechs.typedefs import ID, Name
 from supermechs.user_input import sanitize_string
@@ -120,7 +122,7 @@ def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
 
 def _mech_items_ids_in_wu_order(mech: Mech) -> t.Iterator[int]:
     """Yields mech item IDs in WU compatible order."""
-    return (0 if item is None else item.id for item in _mech_items_in_wu_order(mech))
+    return (0 if item is None else item.item.data.id for item in _mech_items_in_wu_order(mech))
 
 
 def mech_to_id_str(mech: Mech, sep: str = "_") -> str:
@@ -138,8 +140,9 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     for item_id, wu_slot in zip(data["setup"], WU_SLOT_NAMES + WU_MODULE_SLOT_NAMES):
         slot = wu_to_mech_slot(wu_slot)
         if item_id != 0:
-            item = pack.get_item_by_id(item_id)
-            mech[slot] = InvItem.from_item(item, maxed=True)
+            item_data = pack.get_item_by_id(item_id)
+            item = DisplayItem.from_data(item_data, item_data.start_stage, maxed=True)
+            mech[slot] = InvItem.from_item(item)
 
         else:
             mech[slot] = None
@@ -196,11 +199,11 @@ def is_exportable(mech: Mech) -> bool:
 
     packs = set[str]()
 
-    for item in mech.iter_items():
-        if item is None:
+    for inv_item in mech.iter_items():
+        if inv_item is None:
             continue
 
-        packs.add(item.pack_key)
+        packs.add(inv_item.item.data.pack_key)
 
     return len(packs) < 2
 
@@ -221,15 +224,16 @@ def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
     return json_indented_encoder(export_mechs(mechs, pack_key))
 
 
-def get_battle_item(item: ItemBase, slot_name: str) -> WUBattleItem:
+def get_battle_item(item: ItemData, slot_name: str) -> WUBattleItem:
     # the keys here are ordered in same fashion as in WU, to maximize
     # chances that the hashes will be same
+    final_stage = get_final_stage(item.start_stage)
     return {
         "slotName": slot_name,
         "element": item.element.name,
         "id": item.id,
         "name": item.name,
-        "stats": MAX_BUFFS.buff_stats(item.max_stats),
+        "stats": MAX_BUFFS.buff_stats(final_stage.at(final_stage.max_level + 1)),
         "tags": asdict(item.tags),
         "timesUsed": 0,
         "type": item.type.name,
@@ -241,7 +245,7 @@ def wu_serialize_mech(mech: Mech, player_name: str) -> WUPlayer:
         raise TypeError("Cannot serialize a custom mech into WU format")
 
     serialized_items_without_modules = [
-        None if inv_item is None else get_battle_item(inv_item.base, slot)
+        None if inv_item is None else get_battle_item(inv_item.item.data, slot)
         for slot, inv_item in zip(WU_SLOT_NAMES, _mech_items_in_wu_order(mech))
     ]
     # lazy import

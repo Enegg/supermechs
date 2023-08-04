@@ -8,17 +8,16 @@ from pathlib import Path
 from attrs import Factory, define, field
 from typing_extensions import Self
 
-from ..core import TransformRange, next_tier
-from ..enums import Element, Tier, Type
+from ..enums import Tier
 from ..errors import MaxPowerError, MaxTierError
 from ..utils import cached_slot_property
-from .item_base import ItemBase, ItemProto, Tags
 
 if t.TYPE_CHECKING:
-    from ..item_stats import AnyStatsMapping, ItemStats
-    from ..typedefs import ID, Name
+    from ..item_stats import AnyStatsMapping
+    from .display_item import DisplayItem
+    from .item_data import ItemData
 
-__all__ = ("InvItem", "InvItemProto")
+__all__ = ("InvItem",)
 
 
 def _read_power_data_files() -> t.Iterator[dict[Tier, tuple[int, ...]]]:
@@ -57,7 +56,12 @@ _loaded: bool = False
 _REDUCED_COST_ITEMS = frozenset(("Archimonde", "Armor Annihilator", "BigDaddy", "Chaos Bringer"))
 
 
-def get_power_bank(item: ItemProto, /) -> t.Mapping[Tier, t.Sequence[int]]:
+def next_tier(current: Tier, /) -> Tier:
+    """Returns the next tier in line."""
+    return Tier.get_by_value(current.value + 1)
+
+
+def get_power_bank(item: ItemData, /) -> t.Mapping[Tier, t.Sequence[int]]:
     """Returns the power per level bank for the item."""
     global _powers, _loaded
 
@@ -70,73 +74,26 @@ def get_power_bank(item: ItemProto, /) -> t.Mapping[Tier, t.Sequence[int]]:
     if item.name in _REDUCED_COST_ITEMS:
         return _powers.reduced
 
-    if item.transform_range.min >= Tier.LEGENDARY:
+    if item.transform_range[0] >= Tier.LEGENDARY:
         return _powers.premium
 
-    if item.transform_range.max <= Tier.EPIC:
+    if item.transform_range[-1] <= Tier.EPIC:
         # TODO: this has special case too, but currently I have no data on that
         pass
 
     return _powers.default
 
 
-def get_power_levels_of_item(item: InvItemProto) -> tuple[int, ...]:
-    return get_power_bank(item).get(item.tier, (0,))
-
-
-class InvItemProto(ItemProto, t.Protocol):
-    @property
-    def tier(self) -> Tier:
-        ...
-
-    @cached_slot_property
-    def level(self) -> int:
-        ...
-
-    @cached_slot_property
-    def current_stats(self) -> AnyStatsMapping:
-        ...
+def get_power_levels_of_item(item: InvItem, /) -> t.Sequence[int]:
+    return get_power_bank(item.item.data).get(item.tier, (0,))
 
 
 @define(kw_only=True)
 class InvItem:
-    """Represents an item inside inventory."""
+    """Represents an inventory bound item."""
 
-    base: ItemBase
+    item: DisplayItem
 
-    @property
-    def id(self) -> ID:
-        return self.base.id
-
-    @property
-    def pack_key(self) -> str:
-        return self.base.pack_key
-
-    @property
-    def name(self) -> Name:
-        return self.base.name
-
-    @property
-    def type(self) -> Type:
-        return self.base.type
-
-    @property
-    def element(self) -> Element:
-        return self.base.element
-
-    @property
-    def transform_range(self) -> TransformRange:
-        return self.base.transform_range
-
-    @property
-    def stats(self) -> ItemStats:
-        return self.base.stats
-
-    @property
-    def tags(self) -> Tags:
-        return self.base.tags
-
-    tier: Tier
     power: int = 0
     UUID: uuid.UUID = Factory(uuid.uuid4)
     _level: int = field(init=False, repr=False, eq=False)
@@ -149,13 +106,13 @@ class InvItem:
 
     @property
     def max_power(self) -> int:
-        """Returns the total power necessary to max the item at current tier."""
+        """The total power necessary to max the item at current tier."""
         return get_power_levels_of_item(self)[-1]
 
     @cached_slot_property
     def current_stats(self) -> AnyStatsMapping:
         """The stats of this item at its particular tier and level."""
-        return self.base.stats[self.tier].at(self.level)
+        return self.item.base.stats.at(self.level)
 
     @cached_slot_property
     def level(self) -> int:
@@ -165,8 +122,7 @@ class InvItem:
         return bisect_left(levels, self.power) + 1
 
     def __str__(self) -> str:
-        level = "max" if self.maxed else self.level
-        return f"[{self.tier.name[0]}] {self.name} lvl {level}"
+        return f"{self.item} {self.UUID}"
 
     def add_power(self, power: int) -> None:
         """Adds power to the item."""
@@ -180,22 +136,22 @@ class InvItem:
         del self.level
         self.power = min(self.power + power, self.max_power)
 
-    def transform_ready(self) -> bool:
+    def is_transform_ready(self) -> bool:
         """Returns True if item has enough power to transform
         and hasn't reached max transform tier, False otherwise"""
-        return self.maxed and self.tier < self.transform_range.max
+        return self.maxed and self.tier < self.item.data.transform_range[-1]
 
     def transform(self) -> None:
         """Transforms the item to higher tier, if it has enough power"""
         if not self.maxed:
             raise ValueError("Cannot transform a non-maxed item")
 
-        if self.tier is self.transform_range.max:
+        if self.tier is self.item.data.transform_range[-1]:
             raise MaxTierError(self)
 
         self.tier = next_tier(self.tier)
         self.power = 0
 
     @classmethod
-    def from_item(cls, item: ItemBase, /, *, maxed: bool = False) -> Self:
-        return cls(base=item, tier=item.transform_range.max if maxed else item.transform_range.min)
+    def from_item(cls, item: DisplayItem, /) -> Self:
+        return cls(item=item)

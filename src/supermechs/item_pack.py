@@ -8,8 +8,8 @@ from attrs.validators import max_len
 from typing_extensions import Self
 
 from .core import abbreviate_names
-from .errors import MalformedData, UnknownDataVersion
-from .models.item_base import ItemBase
+from .errors import UnknownDataVersion
+from .models.item_data import ItemData
 from .typedefs import ID, AnyItemDict, AnyItemPack, Name
 from .user_input import StringLimits, sanitize_string
 
@@ -86,16 +86,16 @@ class ItemPack:
     """Object representing an item pack."""
 
     key: str = field(validator=max_len(StringLimits.name))
-    name: str = field(default="<no name>", validator=max_len(StringLimits.name))
+    name: str = field(default=t.cast(str, "<no name>"), validator=max_len(StringLimits.name))
     description: str = field(
-        default="<no description>", validator=max_len(StringLimits.description)
+        default=t.cast(str, "<no description>"), validator=max_len(StringLimits.description)
     )
     # personal packs
     extends: str | None = field(default=None)
     custom: bool = False
 
     # Item ID to Item
-    items: dict[ID, ItemBase] = field(
+    items: t.MutableMapping[ID, ItemData] = field(
         factory=dict, init=False, repr=lambda items: f"{{<{len(items)} items>}}"
     )
     # Item name to item ID
@@ -103,29 +103,29 @@ class ItemPack:
     # Abbrev to a set of names the abbrev matches
     name_abbrevs: dict[str, set[Name]] = field(factory=dict, init=False, repr=False)
 
-    def __contains__(self, value: Name | ID | ItemBase) -> bool:
+    def __contains__(self, value: Name | ID | ItemData) -> bool:
         if isinstance(value, Name):
             return value in self.names_to_ids
 
         if isinstance(value, ID):
             return value in self.items
 
-        if isinstance(value, ItemBase):
+        if isinstance(value, ItemData):
             return value.pack_key == self.key and value.id in self.items
 
-        return NotImplemented
+        return False
 
     def load(self, items: t.Iterable[AnyItemDict], /) -> None:
         """Load pack items from data."""
-
+        # TODO: move this to serialization
         for item_dict in items:
-            item = ItemBase.from_json(item_dict, self.key, self.custom)
+            item = BaseItem.from_json(item_dict, self.key, self.custom)  # FIXME
             self.items[item.id] = item
             self.names_to_ids[item.name] = item.id
 
         self.name_abbrevs |= abbreviate_names(self.names_to_ids)
 
-    def get_item_by_name(self, name: Name, /) -> ItemBase:
+    def get_item_by_name(self, name: Name, /) -> ItemData:
         """Lookup an item by its name.
 
         Raises
@@ -140,7 +140,7 @@ class ItemPack:
 
         return self.items[id]
 
-    def get_item_by_id(self, item_id: ID, /) -> ItemBase:
+    def get_item_by_id(self, item_id: ID, /) -> ItemData:
         try:
             return self.items[item_id]
 
@@ -148,14 +148,14 @@ class ItemPack:
             raise LookupError(f"No item with ID {item_id} in the pack") from err
 
     @t.overload
-    def get_item(self, name: Name, /) -> ItemBase:
+    def get_item(self, name: Name, /) -> ItemData:
         ...
 
     @t.overload
-    def get_item(self, item_id: ID, /) -> ItemBase:
+    def get_item(self, item_id: ID, /) -> ItemData:
         ...
 
-    def get_item(self, item: Name | ID, /) -> ItemBase:
+    def get_item(self, item: Name | ID, /) -> ItemData:
         """Lookup an item by its name or ID.
 
         Raises
