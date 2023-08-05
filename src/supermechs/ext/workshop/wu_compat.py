@@ -5,8 +5,8 @@ from attrs import asdict
 from supermechs.api import (
     MAX_BUFFS,
     AnyStatsMapping,
-    DisplayItem,
     InvItem,
+    Item,
     ItemData,
     ItemPack,
     Mech,
@@ -141,7 +141,7 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
         slot = wu_to_mech_slot(wu_slot)
         if item_id != 0:
             item_data = pack.get_item_by_id(item_id)
-            item = DisplayItem.from_data(item_data, item_data.start_stage, maxed=True)
+            item = Item.from_data(item_data, item_data.start_stage, maxed=True)
             mech[slot] = InvItem.from_item(item)
 
         else:

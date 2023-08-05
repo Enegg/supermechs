@@ -6,7 +6,7 @@ from attrs import define, field
 from ..item_stats import AnyStatsMapping, TransformStage, get_final_stage
 from .item_data import ItemData
 
-__all__ = ("DisplayItem",)
+__all__ = ("Item",)
 
 
 Paint: t.TypeAlias = str
@@ -14,7 +14,7 @@ Paint: t.TypeAlias = str
 
 
 @define(kw_only=True)
-class DisplayItem:
+class Item:
     """Represents unique properties of an item."""
 
     data: ItemData = field()

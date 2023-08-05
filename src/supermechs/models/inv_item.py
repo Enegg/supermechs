@@ -12,7 +12,7 @@ from ..enums import Tier
 from ..errors import MaxPowerError, MaxTierError
 
 if t.TYPE_CHECKING:
-    from .display_item import DisplayItem
+    from .item import Item
     from .item_data import ItemData
 
 __all__ = ("InvItem",)
@@ -77,7 +77,7 @@ def get_power_bank(item: ItemData, /) -> t.Mapping[Tier, t.Sequence[int]]:
     return _powers.default
 
 
-def get_power_levels_of_item(item: DisplayItem, /) -> t.Sequence[int]:
+def get_power_levels_of_item(item: Item, /) -> t.Sequence[int]:
     return get_power_bank(item.data).get(item.stage.tier, (0,))
 
 
@@ -85,7 +85,7 @@ def get_power_levels_of_item(item: DisplayItem, /) -> t.Sequence[int]:
 class InvItem:
     """Represents an inventory bound item."""
 
-    item: DisplayItem
+    item: Item
 
     UUID: uuid.UUID = Factory(uuid.uuid4)
     _power: int = 0
@@ -137,5 +137,5 @@ class InvItem:
         self.item.level = 0
 
     @classmethod
-    def from_item(cls, item: DisplayItem, /) -> Self:
+    def from_item(cls, item: Item, /) -> Self:
         return cls(item=item)

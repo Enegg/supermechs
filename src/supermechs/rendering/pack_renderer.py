@@ -9,7 +9,7 @@ from attrs import Factory, define, field
 
 from ..enums import Tier, Type
 from ..item_pack import extract_key
-from ..models.display_item import DisplayItem
+from ..models.item import Item
 from ..typeshed import Coro, T, twotuple
 from ..utils import js_format
 from .attachments import cast_attachment, is_attachable, parse_raw_attachment
@@ -253,13 +253,13 @@ class PackRenderer:
         ...
 
     @t.overload
-    def get_item_sprite(self, item: DisplayItem, /) -> ItemSprite:
+    def get_item_sprite(self, item: Item, /) -> ItemSprite:
         ...
 
     def get_item_sprite(
-        self, item: ItemData | DisplayItem, /, tier: Tier | None = None
+        self, item: ItemData | Item, /, tier: Tier | None = None
     ) -> ItemSprite:
-        if isinstance(item, DisplayItem):
+        if isinstance(item, Item):
             tier = item.stage.tier
             item = item.data
         del tier  # TODO: implement when storing TieredSprite
