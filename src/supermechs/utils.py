@@ -133,10 +133,12 @@ class Nan(int, metaclass=NanMeta):
 NaN: t.Final = Nan()
 
 
+# the urge to name this function in pascal case
 def is_pascal(string: str) -> bool:
     """Returns True if the string is pascal-cased string, False otherwise.
 
-    A string is pascal-cased if it is a single word that starts with a capitalized letter.
+    A string is pascal-cased if it is a single word, begins with a capitalized letter,
+    and has at least a single lowercase letter.
         >>> is_pascal("fooBar")
         False
         >>> is_pascal("FooBar")
@@ -165,14 +167,16 @@ class cached_slot_property(t.Generic[T]):
         return f"<{type(self).__name__} of slot {self.slot!r}>"
 
     @t.overload
-    def __get__(self, obj: None, obj_type: t.Any) -> Self:
+    def __get__(self, obj: None, owner: t.Any, /) -> Self:
         ...
 
     @t.overload
-    def __get__(self, obj: t.Any, obj_type: t.Any) -> T:
+    def __get__(self, obj: t.Any, owner: t.Any, /) -> T:
         ...
 
-    def __get__(self, obj: t.Any | None, obj_type: t.Any) -> T | Self:
+    def __get__(self, obj: t.Any | None, owner: t.Any, /) -> T | Self:
+        del owner
+
         if obj is None:
             return self
 
