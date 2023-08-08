@@ -1,53 +1,19 @@
 from __future__ import annotations
 
 import typing as t
-from pathlib import Path
 from types import MappingProxyType
 
 from typing_extensions import Self
 
-from .enums import Tier
-from .platform import json_decoder
-from .utils import MISSING, is_pascal
+from . import _internal
+from .utils import is_pascal
 
 if t.TYPE_CHECKING:
-    from .typedefs import AnyStatKey, Name, StatData
+    from .typedefs import Name, StatData
 
 __all__ = ("STATS", "Stat")
 
 
-MAX_LVL_FOR_TIER: t.Mapping[Tier, int] = {
-    tier: level for tier, level in zip(Tier, range(9, 50, 10))
-} | {Tier.DIVINE: 0}
-"""A mapping of a tier to the maximum level an item can have at this tier.
-    Note that in game levels start at 1.
-"""
-
-
-class Names(t.NamedTuple):
-    default: str
-    in_game: str = MISSING
-    short: str = MISSING
-
-    def __str__(self) -> str:
-        return self.default
-
-    def __format__(self, format_spec: str, /) -> str:
-        return self.default.__format__(format_spec)
-
-    @property
-    def game_name(self) -> str:
-        return self.default if self.in_game is MISSING else self.in_game
-
-    @property
-    def short_name(self) -> str:
-        if self.short is not MISSING:
-            return self.short
-
-        return self.default if len(self.default) <= len(self.game_name) else self.game_name
-
-
-# TODO: make this locale aware
 class Stat(t.NamedTuple):
     key: str
     beneficial: bool = True
@@ -68,14 +34,7 @@ class Stat(t.NamedTuple):
         )
 
 
-def _load_stats():
-    with (Path(__file__).parent / "static/StatData.json").open() as file:
-        json: dict[AnyStatKey, StatData] = json_decoder(file.read())
-
-    return {stat_key: Stat.from_dict(data, stat_key) for stat_key, data in json.items()}
-
-
-STATS: t.Mapping[str, Stat] = MappingProxyType(_load_stats())
+STATS: t.Mapping[str, Stat] = MappingProxyType(_internal.STATS)
 
 
 def abbreviate_name(name: Name, /) -> str | None:
@@ -86,10 +45,10 @@ def abbreviate_name(name: Name, /) -> str | None:
     are an acronym for something (like EMP).
     """
     if is_pascal(name):
-        # check if there is at least one more capital letter aside from first one
+        # cannot make an abbrev from a single capital letter
         if name[1:].islower():
             return None
-    # at this point, we still need to filter out names like "EMP"
+    # filter out already-acronym names, like "EMP"
     if name.isupper():
         return None
     # Overloaded EMP is fine to make an abbreviation for though
