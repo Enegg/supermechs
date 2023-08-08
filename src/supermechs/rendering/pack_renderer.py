@@ -2,37 +2,21 @@ from __future__ import annotations
 
 import logging
 import typing as t
-from functools import partial
 
-import anyio
-from attrs import Factory, define, field
+from attrs import define, field
 
 from ..enums import Tier, Type
-from ..item_pack import extract_key
 from ..models.item import Item
-from ..typeshed import Coro, T, twotuple
-from ..utils import js_format
-from .attachments import cast_attachment, is_attachable, parse_raw_attachment
-from .sprites import ItemSprite
+from ..typeshed import T, twotuple
+from .attachments import cast_attachment
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-    from ..internal import ResourceCache
     from ..models.item_data import ItemData
     from ..models.mech import Mech
-    from ..typedefs import (
-        ID,
-        AnyItemDict,
-        AnyItemPack,
-        ItemDictVer1,
-        ItemDictVer2,
-        ItemDictVer3,
-        ItemPackVer1,
-        ItemPackVer2,
-        ItemPackVer3,
-        RawPlane2D,
-    )
+    from ..typedefs import ID, RawPlane2D
+    from .sprites import ItemSprite
 
 __all__ = ("Rectangular", "PackRenderer")
 
@@ -62,9 +46,6 @@ class Rectangular(t.Protocol):
     @property
     def height(self) -> int:
         ...
-
-
-ImageFetcher = t.Callable[[str], Coro["Image"]]
 
 
 @define
@@ -150,103 +131,10 @@ class Canvas(t.Generic[T]):
         return canvas
 
 
-def oneshot(
-    item_dict: AnyItemDict, image: Image, sprites: t.MutableMapping[ID, ItemSprite]
-) -> None:
-    width = item_dict.get("width", image.width)
-    height = item_dict.get("height", image.height)
-
-    if image.mode != "RGBA":
-        image = image.convert("RGBA")
-
-    if image.size != (width, height):
-        image = image.resize((width, height))
-
-    attachment = parse_raw_attachment(item_dict.get("attachment"))
-    type = Type[item_dict["type"]]
-    sprite = ItemSprite(image, attachment)
-
-    if attachment is None and is_attachable(type):
-        sprite._create_attachment(type)
-
-    sprites[item_dict["id"]] = sprite
-
-
-def thread_worker(funcs: t.Iterable[t.Callable[[], None]]) -> None:
-    for func in funcs:
-        func()
-
-
-async def loader_v1(
-    data: ItemPackVer1, sprites: t.MutableMapping[ID, ItemSprite], fetch: ImageFetcher
-) -> None:
-    pack_key = extract_key(data)
-    BASE_URL = data["config"]["base_url"]
-
-    results: list[tuple[ItemDictVer1, Image]] = []
-
-    async def async_worker(item_dict: ItemDictVer1) -> None:
-        image = await fetch(js_format(item_dict["image"], url=BASE_URL))
-        results.append((item_dict, image))
-
-    async with anyio.create_task_group() as tg:
-        for item_dict in data["items"]:
-            tg.start_soon(
-                async_worker,
-                item_dict,
-                name=f"<fetch image task {pack_key} #{item_dict['id']}>",
-            )
-
-    sync_futures: list[t.Callable[[], None]] = []
-
-    for item_dict, image in results:
-        sync_futures.append(partial(oneshot, item_dict, image, sprites))
-
-    await anyio.to_thread.run_sync(thread_worker, sync_futures)
-
-
-async def loader_v2_v3(
-    data: ItemPackVer2 | ItemPackVer3,
-    sprites: t.MutableMapping[ID, ItemSprite],
-    fetch: ImageFetcher,
-) -> None:
-    spritessheet_url = data["spritesSheet"]
-    spritessheet_map = data["spritesMap"]
-
-    spritessheet = await fetch(spritessheet_url)
-    sync_futures: list[t.Callable[[], None]] = []
-
-    def sprite_creator(item_dict: ItemDictVer2 | ItemDictVer3) -> None:
-        sheet_key = item_dict["name"].replace(" ", "")
-        image = crop_from_spritesheet(spritessheet, spritessheet_map[sheet_key])
-        oneshot(item_dict, image, sprites)
-
-    for item_dict in data["items"]:
-        sync_futures.append(partial(sprite_creator, item_dict))
-
-    await anyio.to_thread.run_sync(thread_worker, sync_futures)
-
-
 @define
 class PackRenderer:
     pack_key: str
-    url_cache: ResourceCache[Image]
-    item_sprites: t.MutableMapping[ID, ItemSprite] = Factory(dict)
-
-    async def load(self, pack: AnyItemPack, /) -> None:
-        if "version" not in pack or pack["version"] == "1":
-            await loader_v1(pack, self.item_sprites, self.url_cache.fetch)
-
-        elif pack["version"] == "2":
-            await loader_v2_v3(pack, self.item_sprites, self.url_cache.fetch)
-
-        elif pack["version"] == "3":
-            await loader_v2_v3(pack, self.item_sprites, self.url_cache.fetch)
-
-        else:
-            raise ValueError(f"Unknown pack version: {pack['version']}")
-
-        LOGGER.info(f"Pack {self.pack_key!r} loaded {len(self.item_sprites)} sprites")
+    item_sprites: t.Mapping[ID, ItemSprite]
 
     @t.overload
     def get_item_sprite(self, item: ItemData, /, tier: Tier) -> ItemSprite:
