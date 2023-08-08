@@ -7,4 +7,4 @@ from .packs import *
 Name: t.TypeAlias = str
 """String representing item name."""
 ID: t.TypeAlias = int
-"""Integer representing an item ID."""
+"""Positive integer representing an item's ID."""
