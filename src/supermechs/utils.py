@@ -3,6 +3,7 @@ import re
 import statistics
 import typing as t
 from collections import Counter
+from contextlib import suppress
 from string import ascii_letters
 
 from typing_extensions import Self, override
@@ -200,3 +201,19 @@ class cached_slot_property(t.Generic[T]):
 def has_any_of_keys(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
     """Returns True if a mapping contains any of the specified keys."""
     return not mapping.keys().isdisjoint(keys)
+
+
+def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
+    """Assert value is of given type.
+
+    If cast is `True`, will attempt to cast to `type_` before failing.
+    """
+    if isinstance(value, type_):
+        return value
+
+    if cast and not issubclass(type_, str):
+        # we exclude string casting since anything can be casted to string
+        with suppress(Exception):
+            return type_(value)
+
+    raise TypeError(f"Expected {type_.__name__}, got {type(value).__name__}") from None

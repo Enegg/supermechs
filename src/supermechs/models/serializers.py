@@ -1,10 +1,11 @@
 import typing as t
 
 from ..enums import Element, Tier, Type
-from ..errors import MalformedData
+from ..errors import MalformedData, UnknownDataVersion
+from ..item_pack import ItemPack
 from ..item_stats import AnyStatsMapping, TransformStage, ValueRange
-from ..typedefs import AnyItemDict, RawMechStatsMapping, RawStatsMapping
-from ..utils import NaN, has_any_of_keys
+from ..typedefs import AnyItemDict, AnyItemPack, RawMechStatsMapping, RawStatsMapping
+from ..utils import NaN, assert_type, has_any_of_keys
 from .item_data import ItemData, Tags, TransformRange, transform_range
 
 
@@ -39,7 +40,7 @@ def to_tags(
 
 def to_transform_range(string: str, /) -> TransformRange:
     """Construct a TransformRange object from a string like "C-E" or "M"."""
-    up, _, down = string.strip().partition("-")
+    up, _, down = assert_type(str, string).strip().partition("-")
     try:
         return transform_range(Tier.by_initial(up), Tier.by_initial(down) if down else None)
 
@@ -47,7 +48,7 @@ def to_transform_range(string: str, /) -> TransformRange:
         raise MalformedData(data=string) from err
 
 
-def _get_first_stats_mapping(data: AnyItemDict) -> RawStatsMapping:
+def _get_first_stats_mapping(data: AnyItemDict, /) -> RawStatsMapping:
     if "stats" in data:
         return data["stats"]
 
@@ -59,7 +60,9 @@ def _get_first_stats_mapping(data: AnyItemDict) -> RawStatsMapping:
     raise MalformedData("Data contains no item stats")
 
 
-def to_item_data(data: AnyItemDict, pack_key: str, custom: bool, *, strict: bool = False) -> t.Any:
+def to_item_data(
+    data: AnyItemDict, pack_key: str, custom: bool, *, strict: bool = False
+) -> ItemData:
     """Construct ItemData from its serialized form.
 
     Parameters
@@ -72,9 +75,9 @@ def to_item_data(data: AnyItemDict, pack_key: str, custom: bool, *, strict: bool
     tags = to_tags(data.get("tags", ()), transform_range, _get_first_stats_mapping(data), custom)
     stages = to_transform_stages(data, strict=strict)
     item_data = ItemData(
-        id=int(data["id"]),
-        pack_key=str(pack_key),
-        name=data["name"],
+        id=assert_type(int, data["id"]),
+        pack_key=assert_type(str, pack_key),
+        name=assert_type(str, data["name"]),
         type=Type[data["type"].upper()],
         element=Element[data["element"].upper()],
         transform_range=transform_range,
@@ -106,7 +109,7 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
             raise RuntimeError(f"Unexpected type for key {stat_key!r}: {data_type!r} ({origin})")
 
 
-def to_stats_mapping(data: RawStatsMapping, *, strict: bool = False) -> AnyStatsMapping:
+def to_stats_mapping(data: RawStatsMapping, /, *, strict: bool = False) -> AnyStatsMapping:
     """Grabs only expected keys and checks value types. Transforms None values into NaNs."""
 
     final_stats: AnyStatsMapping = {}
@@ -197,3 +200,40 @@ def to_transform_stages(data: AnyItemDict, /, *, strict: bool = False) -> Transf
         raise KeyError("Data contains no item stats")
 
     return current_stage
+
+
+def to_item_pack(data: AnyItemPack, /, *, custom: bool = False, strict: bool = False) -> ItemPack:
+    if "version" not in data or data["version"] == "1":
+        metadata = data["config"]
+
+    elif data["version"] in ("2", "3"):
+        metadata = data
+
+    else:
+        raise UnknownDataVersion("pack", data["version"], 3)
+
+    key = assert_type(str, metadata["key"])
+
+    items: dict[int, ItemData] = {}
+    issues: list[Exception] = []
+
+    for item_data in data["items"]:
+        try:
+            item = to_item_data(item_data, key, custom, strict=strict)
+
+        except Exception as err:
+            issues.append(err)
+
+        else:
+            items[item.id] = item
+
+    # what TODO with the issues?
+
+    pack = ItemPack(
+        key=key,
+        items=items,
+        name=assert_type(str, metadata.get("name", "<no name>")),
+        description=assert_type(str, metadata.get("description", "<no description>")),
+        custom=custom,
+    )
+    return pack
