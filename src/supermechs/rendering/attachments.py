@@ -23,12 +23,12 @@ TorsoAttachments = t.Mapping[str, Point2D]
 AnyAttachment = Point2D | TorsoAttachments | None
 
 
-def is_displayable(type: Type) -> bool:
+def is_displayable(type: Type, /) -> bool:
     """Whether item of given type can appear in a composite mech's image."""
     return type not in (Type.TELEPORTER, Type.CHARGE, Type.HOOK, Type.MODULE)
 
 
-def is_attachable(type: Type) -> bool:
+def is_attachable(type: Type, /) -> bool:
     """Whether item of given type should have an image attachment."""
     return is_displayable(type) and type is not Type.DRONE
 
