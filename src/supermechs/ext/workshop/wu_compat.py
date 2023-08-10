@@ -13,7 +13,7 @@ from supermechs.api import (
     SlotType,
 )
 from supermechs.item_stats import get_final_stage
-from supermechs.platform import json_decoder, json_encoder, json_indented_encoder
+from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typedefs import ID, Name
 from supermechs.user_input import sanitize_string
 
@@ -221,7 +221,7 @@ def export_mechs(mechs: t.Iterable[Mech], pack_key: str) -> ExportedMechsJSONv1:
 
 def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
     """Dumps mechs into bytes representing a .JSON file."""
-    return json_indented_encoder(export_mechs(mechs, pack_key))
+    return indented_json_encoder(export_mechs(mechs, pack_key))
 
 
 def get_battle_item(item: ItemData, slot_name: str) -> WUBattleItem:
@@ -251,7 +251,7 @@ def wu_serialize_mech(mech: Mech, player_name: str) -> WUPlayer:
     # lazy import
     import hashlib
 
-    data = json_encoder(serialized_items_without_modules)
+    data = compact_json_encoder(serialized_items_without_modules)
     hash = hashlib.sha256(data).hexdigest()
 
     return {"name": str(player_name), "itemsHash": hash, "mech": export_mech(mech)}
