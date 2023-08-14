@@ -10,7 +10,6 @@ from attrs.validators import max_len
 from typing_extensions import Self
 
 from .. import constants
-from ..constants import WORKSHOP_STATS
 from ..converters import get_slot_name, slot_to_type
 from ..enums import Element, Type
 from ..user_input import StringLimits
@@ -41,7 +40,7 @@ def jumping_required(mech: Mech) -> bool:
 
 
 def no_duplicate_stats(mech: Mech, module: InvItem) -> bool:
-    exclusive_stats = module.current_stats.keys() & constants.EXCLUSIVE_STATS
+    exclusive_stats = module.current_stats.keys() & constants.EXCLUSIVE_STAT_KEYS
 
     for equipped_module in mech.iter_items(modules=True):
         if equipped_module is None or equipped_module is module:
@@ -54,7 +53,7 @@ def no_duplicate_stats(mech: Mech, module: InvItem) -> bool:
 
 
 def get_constraints_of_item(item: InvItem) -> t.Callable[[Mech], bool] | None:
-    if item.type is Type.MODULE and item.stats.has_any_of_stats(*constants.EXCLUSIVE_STATS):
+    if item.type is Type.MODULE and item.stats.has_any_of_stats(*constants.EXCLUSIVE_STAT_KEYS):
         return partial(no_duplicate_stats, module=item)
 
     if item.tags.require_jump:
@@ -102,7 +101,7 @@ def validate(mech: Mech, /) -> bool:
         # at least one weapon
         and any(wep is not None for wep in mech.iter_items(weapons=True))
         # not over max overload
-        and mech.weight <= constants.MAX_OVERWEIGHT
+        and mech.weight <= constants.OVERLOADED_MAX_WEIGHT
         # no constraints are broken
         and all(constr(mech) for constr in mech.constraints.values())
     )
@@ -151,16 +150,16 @@ class Mech:
     def stats(self) -> t.Mapping[str, int]:
         """A dict of the mech's stats, in order as they appear in workshop."""
 
-        # inherit the order of dict keys from workshop stats
-        stats = dict.fromkeys(WORKSHOP_STATS, 0)
+        # inherit the key order from summary
+        stats = dict.fromkeys(constants.SUMMARY_STAT_KEYS, 0)
 
         for item in filter(None, self.iter_items()):
-            for stat in WORKSHOP_STATS:
+            for stat in constants.SUMMARY_STAT_KEYS:
                 if (value := item.current_stats.get(stat)) is not None:
                     stats[stat] += value
 
-        if (overweight := stats["weight"] - constants.MAX_WEIGHT) > 0:
-            stats["health"] -= overweight * constants.HEALTH_PENALTY_PER_KG
+        if (overload := stats["weight"] - constants.MAX_WEIGHT) > 0:
+            stats["health"] -= overload * constants.HP_PENALTY_PER_KG
 
         for stat, value in tuple(stats.items())[2:]:  # keep weight and health
             if value == 0:

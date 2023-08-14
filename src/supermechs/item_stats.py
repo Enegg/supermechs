@@ -4,7 +4,7 @@ import typing as t
 import typing_extensions as tex
 from attrs import define, field
 
-from .core import MAX_LVL_FOR_TIER
+from .constants import TIER_MAX_LEVELS
 from .enums import Tier
 from .typeshed import dict_items_as
 
@@ -129,7 +129,7 @@ class TransformStage:
     @property
     def max_level(self) -> int:
         """The maximum level this stage can reach, starting from 0."""
-        return MAX_LVL_FOR_TIER[self.tier]
+        return TIER_MAX_LEVELS[self.tier]
 
     def at(self, level: int, /) -> AnyStatsMapping:
         """Returns the stats at given level.
