@@ -57,7 +57,7 @@ class ArenaBuffs:
     )
     # TODO: perhaps include +% titan damage?
     # fmt: on
-    levels: dict[str, int] = Factory(lambda: dict.fromkeys(ArenaBuffs.BUFFABLE_STATS, 0))
+    levels: t.MutableMapping[str, int] = Factory(lambda: dict.fromkeys(ArenaBuffs.BUFFABLE_STATS, 0))
 
     def __getitem__(self, stat_name: str) -> int:
         return self.levels[stat_name]
