@@ -1,0 +1,140 @@
+{
+    "levels": {
+        "+%": [0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 20],
+        "resist%": [0, 2, 6, 10, 14, 18, 22, 26, 30, 34, 40],
+        "+HP": [0, 10, 30, 60, 90, 120, 150, 180, 220, 260, 300, 350]
+    },
+    "stats": [
+        {
+            "key": "weight",
+            "beneficial": false
+        },
+        {
+            "key": "health",
+            "buff": "+HP"
+        },
+        {
+            "key": "eneCap",
+            "buff": "+%"
+        },
+        {
+            "key": "eneReg",
+            "buff": "+%"
+        },
+        {
+            "key": "heaCap",
+            "buff": "+%"
+        },
+        {
+            "key": "heaCol",
+            "buff": "+%"
+        },
+        {
+            "key": "bulletsCap"
+        },
+        {
+            "key": "rocketsCap"
+        },
+        {
+            "key": "phyRes",
+            "buff": "resist%"
+        },
+        {
+            "key": "expRes",
+            "buff": "resist%"
+        },
+        {
+            "key": "eleRes",
+            "buff": "resist%"
+        },
+        {
+            "key": "phyDmg",
+            "buff": "+%"
+        },
+        {
+            "key": "phyResDmg"
+        },
+        {
+            "key": "expDmg",
+            "buff": "+%"
+        },
+        {
+            "key": "heaDmg",
+            "buff": "+%"
+        },
+        {
+            "key": "heaCapDmg"
+        },
+        {
+            "key": "heaColDmg"
+        },
+        {
+            "key": "expResDmg"
+        },
+        {
+            "key": "eleDmg",
+            "buff": "+%"
+        },
+        {
+            "key": "eneDmg",
+            "buff": "+%"
+        },
+        {
+            "key": "eneCapDmg"
+        },
+        {
+            "key": "eneRegDmg"
+        },
+        {
+            "key": "eleResDmg"
+        },
+        {
+            "key": "range"
+        },
+        {
+            "key": "push"
+        },
+        {
+            "key": "pull"
+        },
+        {
+            "key": "recoil"
+        },
+        {
+            "key": "retreat"
+        },
+        {
+            "key": "advance"
+        },
+        {
+            "key": "walk"
+        },
+        {
+            "key": "jump"
+        },
+        {
+            "key": "uses"
+        },
+        {
+            "key": "backfire",
+            "beneficial": false,
+            "buff": "-%"
+        },
+        {
+            "key": "heaCost",
+            "beneficial": false
+        },
+        {
+            "key": "eneCost",
+            "beneficial": false
+        },
+        {
+            "key": "bulletsCost",
+            "beneficial": false
+        },
+        {
+            "key": "rocketsCost",
+            "beneficial": false
+        }
+    ]
+}
