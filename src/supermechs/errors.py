@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import typing as t
 
 if t.TYPE_CHECKING:
@@ -42,12 +40,12 @@ class UnknownDataVersion(SMException):
 class MaxPowerError(SMException):
     """Attempted to add power to an already maxed item."""
 
-    def __init__(self, item: InvItem) -> None:
-        super().__init__(f"Maximum power for item {item.name!r} already reached")
+    def __init__(self, inv_item: "InvItem", /) -> None:
+        super().__init__(f"Maximum power for item {inv_item.item.data.name!r} already reached")
 
 
 class MaxTierError(SMException):
     """Attempted to transform an item at its maximum tier."""
 
-    def __init__(self, item: InvItem) -> None:
-        super().__init__(f"Maximum tier for item {item.name!r} already reached")
+    def __init__(self, inv_item: "InvItem", /) -> None:
+        super().__init__(f"Maximum tier for item {inv_item.item.data.name!r} already reached")
