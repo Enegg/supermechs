@@ -71,6 +71,6 @@ class Type(PartialEnum):
     MODULE      = auto()
     CHARGE_ENGINE = CHARGE
     GRAPPLING_HOOK = HOOK
-    TELE = TELEPORTER
+    TELEPORT = TELEPORTER
     # SHIELD, PERK, KIT?
     # fmt: on

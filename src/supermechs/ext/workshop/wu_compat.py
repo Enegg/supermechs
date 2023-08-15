@@ -115,7 +115,7 @@ def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
     yield from mech.iter_items(weapons=True)
     yield mech.drone
     yield mech.charge
-    yield mech.tele
+    yield mech.teleporter
     yield mech.hook
     yield from mech.iter_items(modules=True)
 
