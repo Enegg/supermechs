@@ -1,5 +1,4 @@
 from .arena_buffs import *
-from .client import *
 from .core import *
 from .enums import *
 from .item_pack import *
