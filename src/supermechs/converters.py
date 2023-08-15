@@ -1,23 +1,13 @@
+import typing as t
+
+import typing_extensions as tex
+
 from .enums import Type
 from .typeshed import XOrTupleXY
 
-__all__ = (
-    "BODY_SLOTS",
-    "MODULE_SLOTS",
-    "SPECIAL_SLOTS",
-    "WEAPON_SLOTS",
-    "get_slot_name",
-    "slot_to_type",
-)
+__all__ = ("parse_slot_name", "slot_to_type")
 
-BODY_SLOTS = ("torso", "legs", "drone")
-WEAPON_SLOTS = ("side1", "side2", "side3", "side4", "top1", "top2")
-SPECIAL_SLOTS = ("tele", "charge", "hook")
-MODULE_SLOTS = ("mod1", "mod2", "mod3", "mod4", "mod5", "mod6", "mod7", "mod8")
-_SLOTS_SET = frozenset(BODY_SLOTS).union(WEAPON_SLOTS, SPECIAL_SLOTS, MODULE_SLOTS)
-
-
-_type_to_slot_lookup = {
+_type_to_slot: t.Mapping[Type, tex.LiteralString] = {
     Type.SIDE_WEAPON: "side",
     Type.TOP_WEAPON: "top",
     Type.TELEPORTER: "tele",
@@ -26,11 +16,11 @@ _type_to_slot_lookup = {
 }
 
 
-def _type_to_partial_slot(type: Type) -> str:
-    return _type_to_slot_lookup.get(type) or type.name.lower()
+def _type_to_partial_slot(type: Type, /) -> tex.LiteralString:
+    return _type_to_slot.get(type) or type.name.lower()
 
 
-def slot_to_type(slot: str) -> Type:
+def slot_to_type(slot: str, /) -> Type:
     """Convert slot literal to corresponding type enum."""
     if slot.startswith("side"):
         return Type.SIDE_WEAPON
@@ -44,9 +34,9 @@ def slot_to_type(slot: str) -> Type:
     return Type[slot.upper()]
 
 
-def get_slot_name(slot_: XOrTupleXY[str | Type, int], /):
+def parse_slot_name(slot_selector: XOrTupleXY[str | Type, int], /) -> str:
     """Parse a slot to appropriate name. Raises ValueError if invalid."""
-    match slot_:
+    match slot_selector:
         case (str() as slot, int() as pos):
             slot = slot.lower() + str(pos)
 
@@ -54,12 +44,9 @@ def get_slot_name(slot_: XOrTupleXY[str | Type, int], /):
             slot = _type_to_partial_slot(slot) + str(pos)
 
         case Type():
-            slot = _type_to_partial_slot(slot_)
+            slot = _type_to_partial_slot(slot_selector)
 
-        case str():
-            slot = slot_.lower()
-
-    if slot not in _SLOTS_SET:
-        raise ValueError(f"{slot_!r} is not a valid slot")
+        case str():  # pyright: ignore[reportUnnecessaryComparison] The hell?
+            slot = slot_selector.lower()
 
     return slot
