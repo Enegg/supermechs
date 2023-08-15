@@ -8,6 +8,7 @@ from attrs import define, field
 from ..enums import Tier, Type
 from ..models.item import Item
 from ..typeshed import T, twotuple
+from ..utils import large_mapping_repr
 from .attachments import cast_attachment
 
 if t.TYPE_CHECKING:
@@ -115,8 +116,8 @@ class Canvas(t.Generic[T]):
 
 @define
 class PackRenderer:
-    pack_key: str
-    item_sprites: t.Mapping[ID, ItemSprite]
+    pack_key: str = field()
+    sprites: t.Mapping[ID, ItemSprite] = field(repr=large_mapping_repr)
 
     @t.overload
     def get_item_sprite(self, item: ItemData, /, tier: Tier) -> ItemSprite:
@@ -137,7 +138,7 @@ class PackRenderer:
         if item.pack_key != self.pack_key:
             raise ValueError("Item of different pack key passed")
 
-        return self.item_sprites[item.id]
+        return self.sprites[item.id]
 
     def create_mech_image(self, mech: Mech, /) -> Image:
         if mech.torso is None:

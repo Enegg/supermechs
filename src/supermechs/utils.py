@@ -217,3 +217,43 @@ def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
             return type_(value)
 
     raise TypeError(f"Expected {type_.__name__}, got {type(value).__name__}") from None
+
+
+def large_sequence_repr(
+    obj: t.Sequence[t.Any] | t.AbstractSet[t.Any], /, threshold: int = 20
+) -> str:
+    if len(obj) <= threshold:
+        return repr(obj)
+
+    if type(obj) is tuple:
+        left, right = "()"
+
+    elif type(obj) is list:
+        left, right = "[]"
+
+    elif type(obj) is set:
+        left, right = "{}"
+
+    else:
+        left, right = f"{type(obj).__name__}<", ">"
+
+    import itertools
+
+    items = ", ".join(map(repr, itertools.islice(obj, threshold)))
+    return f"{left}{items}, +{len(obj) - threshold} more{right}"
+
+
+def large_mapping_repr(mapping: t.Mapping[t.Any, t.Any], /, threshold: int = 20) -> str:
+    if len(mapping) <= threshold:
+        return repr(mapping)
+
+    if type(mapping) is dict:
+        left, right = "{}"
+
+    else:
+        left, right = f"{type(mapping).__name__}<", ">"
+
+    import itertools
+
+    items = ", ".join(f"{k!r}: {v!r}" for k, v in itertools.islice(mapping.items(), threshold))
+    return f"{left}{items}, +{len(mapping) - threshold} more{right}"
