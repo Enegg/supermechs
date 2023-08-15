@@ -4,25 +4,15 @@ import logging
 import typing as t
 
 from attrs import define, field
-from attrs.validators import max_len
-from typing_extensions import Self
 
-from .core import abbreviate_names
 from .errors import UnknownDataVersion
 from .models.item_data import ItemData
-from .typedefs import ID, AnyItemDict, AnyItemPack, Name
-from .user_input import StringLimits, sanitize_string
+from .typedefs import ID, AnyItemPack, Name
+from .utils import assert_type, large_mapping_repr
 
-__all__ = ("ItemPack", "extract_info", "extract_key")
+__all__ = ("ItemPack", "extract_key")
 
 LOGGER = logging.getLogger(__name__)
-
-
-class PackMetadata(t.NamedTuple):
-    version: str
-    key: str
-    name: str
-    description: str
 
 
 # TODO: use match case and/or custom exception for input validation
@@ -42,66 +32,24 @@ def extract_key(pack: AnyItemPack, /) -> str:
     else:
         raise UnknownDataVersion("pack", pack["version"], 3)
 
-    if not isinstance(key, str):
-        raise TypeError(f"{key!r} is not a string")
-
-    return key
-
-
-def extract_info(pack: AnyItemPack, /) -> PackMetadata:
-    """Extract version, key, name and description of the pack.
-
-    Raises
-    ------
-    TypeError on unknown version.
-    """
-    if "version" not in pack or pack["version"] == "1":
-        metadata = pack["config"]
-        version = "1"
-
-    elif pack["version"] in ("2", "3"):
-        metadata = pack
-        version = pack["version"]
-
-    else:
-        raise UnknownDataVersion("pack", pack["version"], 3)
-
-    try:
-        name = sanitize_string(metadata["name"])
-
-    except KeyError:
-        name = "<no name>"
-
-    try:
-        description = sanitize_string(metadata["description"], StringLimits.description)
-
-    except KeyError:
-        description = "<no description>"
-
-    return PackMetadata(version, metadata["key"], name, description)
+    return assert_type(str, key)
 
 
 @define
 class ItemPack:
     """Object representing an item pack."""
 
-    key: str = field(validator=max_len(StringLimits.name))
-    name: str = field(default=t.cast(str, "<no name>"), validator=max_len(StringLimits.name))
-    description: str = field(
-        default=t.cast(str, "<no description>"), validator=max_len(StringLimits.description)
-    )
+    key: str = field()
+    items: t.Mapping[ID, ItemData] = field(repr=large_mapping_repr)
+    name: str = field(default="<no name>")
+    description: str = field(default="<no description>")
     # personal packs
-    extends: str | None = field(default=None)
-    custom: bool = False
+    custom: bool = field(default=False)
 
-    # Item ID to Item
-    items: t.MutableMapping[ID, ItemData] = field(
-        factory=dict, init=False, repr=lambda items: f"{{<{len(items)} items>}}"
-    )
     # Item name to item ID
-    names_to_ids: dict[Name, ID] = field(factory=dict, init=False, repr=False)
+    names_to_ids: t.MutableMapping[Name, ID] = field(factory=dict, init=False, repr=False)
     # Abbrev to a set of names the abbrev matches
-    name_abbrevs: dict[str, set[Name]] = field(factory=dict, init=False, repr=False)
+    name_abbrevs: t.MutableMapping[str, t.AbstractSet[Name]] = field(factory=dict, init=False, repr=False)
 
     def __contains__(self, value: Name | ID | ItemData) -> bool:
         if isinstance(value, Name):
@@ -114,16 +62,6 @@ class ItemPack:
             return value.pack_key == self.key and value.id in self.items
 
         return False
-
-    def load(self, items: t.Iterable[AnyItemDict], /) -> None:
-        """Load pack items from data."""
-        # TODO: move this to serialization
-        for item_dict in items:
-            item = BaseItem.from_json(item_dict, self.key, self.custom)  # FIXME
-            self.items[item.id] = item
-            self.names_to_ids[item.name] = item.id
-
-        self.name_abbrevs |= abbreviate_names(self.names_to_ids)
 
     def get_item_by_name(self, name: Name, /) -> ItemData:
         """Lookup an item by its name.
@@ -169,15 +107,3 @@ class ItemPack:
 
     def iter_item_names(self) -> t.Iterator[Name]:
         return iter(self.names_to_ids)
-
-    @classmethod
-    def from_json(cls, data: AnyItemPack, /, custom: bool = False) -> Self:
-        pack_info = extract_info(data)
-        self = cls(
-            key=pack_info.key,
-            name=pack_info.name,
-            description=pack_info.description,
-            custom=custom,
-        )
-        self.load(data["items"])
-        return self

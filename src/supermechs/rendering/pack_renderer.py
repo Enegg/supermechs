@@ -82,8 +82,8 @@ def combine_attachments(position: twotuple[int], offset: twotuple[int]) -> twotu
 class Canvas(t.Generic[T]):
     """Class responsible for merging layered images into one."""
 
-    base: Image
-    layers: t.Sequence[T]
+    base: Image = field()
+    layers: t.Sequence[T] = field()
     offsets: Offsets = field(factory=Offsets)
     images: list[tuple[int, int, Image] | None] = field(init=False)
 
@@ -93,33 +93,15 @@ class Canvas(t.Generic[T]):
     def __setitem__(self, position: tuple[T, int, int], image: Image, /) -> None:
         layer, x, y = position
         self.offsets.adjust(image, x, y)
-        self._put_image(image, layer, x, y)
-
-    def add_image(
-        self,
-        image: Image,
-        layer: T,
-        position: twotuple[int],
-        offset: twotuple[int] = (0, 0),
-    ) -> None:
-        """Adds an image as a layer to the canvas."""
-
-        position = combine_attachments(position, offset)
-
-        self.offsets.adjust(image, *position)
-        self._put_image(image, layer, *position)
-
-    def _put_image(self, image: Image, layer: T, x: int, y: int) -> None:
-        """Place the image on the canvas."""
         self.images[self.layers.index(layer)] = (x, y, image)
 
     def merge(self, base_layer: T, /) -> Image:
         """Merges all images into one and returns it."""
-        self._put_image(self.base, base_layer, 0, 0)
+        self.images[self.layers.index(base_layer)] = (0, 0, self.base)
 
-        from PIL.Image import new
+        from PIL import Image
 
-        canvas = new(
+        canvas = Image.new(
             "RGBA",
             self.offsets.final_size(self.base),
             (0, 0, 0, 0),
@@ -164,13 +146,15 @@ class PackRenderer:
         torso_sprite = self.get_item_sprite(mech.torso.item)
 
         attachments = cast_attachment(torso_sprite.attachment, Type.TORSO)
-        renderer = Canvas[str](torso_sprite.image, LAYER_ORDER)
+        canvas = Canvas[str](torso_sprite.image, LAYER_ORDER)
 
         if mech.legs is not None:
             legs_sprite = self.get_item_sprite(mech.legs.item)
             leg_attachment = cast_attachment(legs_sprite.attachment, Type.LEGS)
-            renderer.add_image(legs_sprite.image, "leg1", leg_attachment, attachments["leg1"])
-            renderer.add_image(legs_sprite.image, "leg2", leg_attachment, attachments["leg2"])
+
+            for layer in ("leg1", "leg2"):
+                x, y = combine_attachments(leg_attachment, attachments[layer])
+                canvas[layer, x, y] = legs_sprite.image
 
         for inv_item, layer in mech.iter_items(weapons=True, slots=True):
             if inv_item is None:
@@ -178,24 +162,18 @@ class PackRenderer:
 
             item_sprite = self.get_item_sprite(inv_item.item)
             item_attachment = cast_attachment(item_sprite.attachment, Type.SIDE_WEAPON)
-            renderer.add_image(item_sprite.image, layer, item_attachment, attachments[layer])
+            x, y = combine_attachments(item_attachment, attachments[layer])
+            canvas[layer, x, y] = item_sprite.image
 
         if mech.drone is not None:
             drone_sprite = self.get_item_sprite(mech.drone.item)
-            x = drone_sprite.width // 2 + renderer.offsets.left
-            y = drone_sprite.height + 25 + renderer.offsets.above
-            renderer["drone", x, y] = drone_sprite.image
+            x = drone_sprite.width // 2 + canvas.offsets.left
+            y = drone_sprite.height + 25 + canvas.offsets.above
+            canvas["drone", x, y] = drone_sprite.image
 
-        return renderer.merge("torso")
+        return canvas.merge("torso")
 
 
 def crop_from_spritesheet(spritesheet: Image, pos: RawPlane2D) -> Image:
     x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
     return spritesheet.crop((x, y, x + w, y + h))
-
-
-def resize(image: Image, width: int = 0, height: int = 0) -> Image:
-    """Resize image to given width and height.
-    Value of 0 preserves original value for the dimension.
-    """
-    return image.resize((width or image.width, height or image.height))

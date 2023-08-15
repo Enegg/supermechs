@@ -42,8 +42,11 @@ class Item:
 
     @classmethod
     def from_data(
-        cls, data: ItemData, stage: "TransformStage", /, *, maxed: bool = False
+        cls, data: ItemData, stage: "TransformStage | None" = None, /, *, maxed: bool = False
     ) -> tex.Self:
+        if stage is None:
+            stage = data.start_stage
+
         if maxed:
             stage = get_final_stage(stage)
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import typing as t
+
 from attrs import define, field
 
 from ..arena_buffs import ArenaBuffs
@@ -13,13 +15,13 @@ __all__ = ("Player",)
 class Player:
     """Represents a SuperMechs player."""
 
-    id: int
-    name: str
-    builds: dict[str, Mech] = field(factory=dict, init=False)
+    id: int = field()
+    name: str = field()
+    builds: t.MutableMapping[str, Mech] = field(factory=dict, init=False)
     arena_buffs: ArenaBuffs = field(factory=ArenaBuffs, init=False)
     _active_build: Mech | None = field(default=None, init=False)
-    # inventory: dict[uuid.UUID, AnyInvItem] = Factory(dict)
-    # teams: dict[str, list[Mech]] = Factory(dict)
+    # inventory: t.MutableMapping[uuid.UUID, InvItem] = Factory(dict)
+    # teams: t.MutableMapping[str, list[Mech]] = Factory(dict)
     # active_team_name: str = MISSING
     # level: int = 0
     # exp: int = 0
@@ -40,9 +42,7 @@ class Player:
 
         Parameters
         ----------
-        possible_name:
-            The name to create a new build with.
-            Ignored if the player has an active build.
+        possible_name: The name to create a new build with. Ignored if there's an active build.
         """
         if self.active_build is None:
             return self.create_build(possible_name)
@@ -66,8 +66,7 @@ class Player:
 
         Parameters
         ----------
-        name:
-            The name to assign to the build. If `None`, name will be `"Unnamed Mech <n>"`.
+        name: The name to assign to the build. If `None`, defaults to `"Unnamed Mech <n>"`.
         """
 
         if name is None:

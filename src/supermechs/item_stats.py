@@ -1,4 +1,3 @@
-import logging
 import typing as t
 
 import typing_extensions as tex
@@ -9,8 +8,6 @@ from .enums import Tier
 from .typeshed import dict_items_as
 
 __all__ = ("ValueRange", "AnyMechStatsMapping", "AnyStatsMapping", "TransformStage")
-
-LOGGER = logging.getLogger(__name__)
 
 
 class ValueRange(t.NamedTuple):
@@ -40,13 +37,6 @@ class ValueRange(t.NamedTuple):
     def is_single(self) -> bool:
         """Whether the range bounds are equal value."""
         return self.lower == self.upper
-
-    @property
-    def average(self) -> float:
-        """Average of the value range."""
-        if self.is_single:
-            return self.lower
-        return (self.lower + self.upper) / 2
 
     def __add__(self, value: tuple[int, int]) -> tex.Self:
         return type(self)(self.lower + value[0], self.upper + value[1])
