@@ -167,3 +167,9 @@ def get_final_stage(stage: "TransformStage", /) -> "TransformStage":
         stage = stage.next
 
     return stage
+
+
+def max_stats(stage: "TransformStage", /) -> AnyStatsMapping:
+    """Return the max stats."""
+    stage = get_final_stage(stage)
+    return stage.at(stage.max_level)
