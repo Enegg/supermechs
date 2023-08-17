@@ -30,7 +30,7 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.ruff]
-select = ["E", "F", "TCH", "PTH", "RUF", "ASYNC"]
+select = ["E", "F", "G", "Q", "SIM", "TCH", "PTH", "RUF", "ASYNC"]
 
 line-length = 100
 target-version = "py310"
