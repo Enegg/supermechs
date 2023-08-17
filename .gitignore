@@ -11,7 +11,7 @@ venv
 *.log
 
 TODO.md
-dev/
+**/dev/
 
 # local data files
 tests/data/
