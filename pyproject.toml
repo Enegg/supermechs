@@ -31,7 +31,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 select = ["E", "F", "TCH", "PTH", "RUF", "ASYNC"]
-ignore = ["F821"]  # caused by experimental inline TypedDicts
 
 line-length = 100
 target-version = "py310"
@@ -57,15 +56,14 @@ include = ["src/supermechs"]
 
 pythonVersion = "3.10"
 
-reportUnnecessaryTypeIgnoreComment = true
+reportUnnecessaryTypeIgnoreComment = "info"
 reportUnnecessaryCast = true
 reportMatchNotExhaustive = "warning"
-reportUnusedImport = "warning"
+reportUnusedImport = true
 
 reportOverlappingOverload = false
 reportPrivateUsage = false
 reportUnnecessaryIsInstance = false
-reportFunctionMemberAccess = false
 reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
