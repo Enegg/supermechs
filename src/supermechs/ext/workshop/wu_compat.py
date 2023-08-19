@@ -15,7 +15,6 @@ from supermechs.api import (
 from supermechs.item_stats import get_final_stage
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typedefs import ID, Name
-from supermechs.user_input import sanitize_string
 
 # ------------------------------------------ typed dicts -------------------------------------------
 
@@ -135,7 +134,7 @@ def mech_to_id_str(mech: Mech, sep: str = "_") -> str:
 
 def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     """Imports a mech from WU mech."""
-    mech = Mech(name=sanitize_string(data["name"]))
+    mech = Mech(name=data["name"])
 
     for item_id, wu_slot in zip(data["setup"], WU_SLOT_NAMES + WU_MODULE_SLOT_NAMES):
         slot = wu_to_mech_slot(wu_slot)
