@@ -11,32 +11,6 @@ from typing_extensions import Self, override
 from .typeshed import T, twotuple
 
 
-class _MissingSentinel:
-    def __eq__(self, _: t.Any) -> bool:
-        return False
-
-    def __bool__(self) -> bool:
-        return False
-
-    def __repr__(self) -> str:
-        return "..."
-
-    def __hash__(self) -> int:
-        return hash((type(self),))
-
-    def __copy__(self) -> Self:
-        return self
-
-    def __reduce__(self) -> str:
-        return "MISSING"
-
-    def __deepcopy__(self, _: t.Any) -> Self:
-        return self
-
-
-MISSING: t.Final[t.Any] = _MissingSentinel()
-
-
 def search_for(
     phrase: str, iterable: t.Iterable[str], *, case_sensitive: bool = False
 ) -> t.Iterator[str]:
