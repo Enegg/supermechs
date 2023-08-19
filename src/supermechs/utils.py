@@ -128,15 +128,13 @@ class cached_slot_property(t.Generic[T]):
     """Descriptor similar to functools.cached_property, but designed for slotted classes.
     Caches the value to an attribute of the same name as the decorated function, prepended with _.
     """
+    _marker: t.ClassVar = object()
 
-    __slots__ = ("func",)
+    __slots__ = ("func", "slot")
 
     def __init__(self, func: t.Callable[[t.Any], T]) -> None:
-        self.func = func
-
-    @property
-    def slot(self) -> str:
-        return "_" + self.func.__name__
+        self.func: t.Final = func
+        self.slot: t.Final[str] = "_" + func.__name__
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} of slot {self.slot!r}>"
@@ -155,21 +153,16 @@ class cached_slot_property(t.Generic[T]):
         if obj is None:
             return self
 
-        try:
-            return getattr(obj, self.slot)
-
-        except AttributeError:
-            value = self.func(obj)
-            setattr(obj, self.slot, value)
+        if (value := getattr(obj, self.slot)) is not self._marker:
             return value
+
+        value = self.func(obj)
+        setattr(obj, self.slot, value)
+        return value
 
     def __delete__(self, obj: t.Any) -> None:
         """Deletes the cached value."""
-        try:
-            delattr(obj, self.slot)
-
-        except AttributeError:
-            pass
+        setattr(obj, self.slot, self._marker)
 
 
 def has_any_of_keys(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
