@@ -1,15 +1,14 @@
-from __future__ import annotations
-
 import logging
 import typing as t
+from bisect import insort_left
 
 from attrs import define, field
 
 from ..enums import Tier, Type
 from ..models.item import Item
-from ..typeshed import T, twotuple
+from ..typeshed import twotuple
 from ..utils import large_mapping_repr
-from .attachments import cast_attachment
+from .attachments import TORSO_ATTACHMENT_FIELDS, cast_attachment
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
@@ -80,25 +79,21 @@ def combine_attachments(position: twotuple[int], offset: twotuple[int]) -> twotu
 
 
 @define
-class Canvas(t.Generic[T]):
+class Canvas:
     """Class responsible for merging layered images into one."""
 
-    base: Image = field()
-    layers: t.Sequence[T] = field()
+    base: "Image" = field()
     offsets: Offsets = field(factory=Offsets)
-    images: list[tuple[int, int, Image] | None] = field(init=False)
+    images: t.MutableSequence[tuple[int, int, int, "Image"]] = field(init=False, factory=list)
 
-    def __attrs_post_init__(self) -> None:
-        self.images = [None] * len(self.layers)
-
-    def __setitem__(self, position: tuple[T, int, int], image: Image, /) -> None:
+    def __setitem__(self, position: tuple[int, int, int], image: "Image", /) -> None:
         layer, x, y = position
         self.offsets.adjust(image, x, y)
-        self.images[self.layers.index(layer)] = (x, y, image)
+        insort_left(self.images, (layer, x, y, image), key=lambda t: t[0])
 
-    def merge(self, base_layer: T, /) -> Image:
+    def merge(self, base_layer: int, /) -> "Image":
         """Merges all images into one and returns it."""
-        self.images[self.layers.index(base_layer)] = (0, 0, self.base)
+        insort_left(self.images, (base_layer, 0, 0, self.base), key=lambda t: t[0])
 
         from PIL import Image
 
@@ -108,7 +103,7 @@ class Canvas(t.Generic[T]):
             (0, 0, 0, 0),
         )
 
-        for x, y, image in filter(None, self.images):
+        for _, x, y, image in self.images:
             canvas.alpha_composite(image, (x + self.offsets.left, y + self.offsets.above))
 
         return canvas
@@ -117,19 +112,17 @@ class Canvas(t.Generic[T]):
 @define
 class PackRenderer:
     pack_key: str = field()
-    sprites: t.Mapping[ID, ItemSprite] = field(repr=large_mapping_repr)
+    sprites: t.Mapping["ID", "ItemSprite"] = field(repr=large_mapping_repr)
 
     @t.overload
-    def get_item_sprite(self, item: ItemData, /, tier: Tier) -> ItemSprite:
+    def get_item_sprite(self, item: "ItemData", /, tier: Tier) -> "ItemSprite":
         ...
 
     @t.overload
-    def get_item_sprite(self, item: Item, /) -> ItemSprite:
+    def get_item_sprite(self, item: Item, /) -> "ItemSprite":
         ...
 
-    def get_item_sprite(
-        self, item: ItemData | Item, /, tier: Tier | None = None
-    ) -> ItemSprite:
+    def get_item_sprite(self, item: "ItemData | Item", /, tier: Tier | None = None) -> "ItemSprite":
         if isinstance(item, Item):
             tier = item.stage.tier
             item = item.data
@@ -140,41 +133,41 @@ class PackRenderer:
 
         return self.sprites[item.id]
 
-    def create_mech_image(self, mech: Mech, /) -> Image:
+    def create_mech_image(self, mech: "Mech", /) -> "Image":
         if mech.torso is None:
             raise RuntimeError("Cannot create mech image without torso set")
 
         torso_sprite = self.get_item_sprite(mech.torso.item)
 
         attachments = cast_attachment(torso_sprite.attachment, Type.TORSO)
-        canvas = Canvas[str](torso_sprite.image, LAYER_ORDER)
+        canvas = Canvas(torso_sprite.image)
 
         if mech.legs is not None:
             legs_sprite = self.get_item_sprite(mech.legs.item)
             leg_attachment = cast_attachment(legs_sprite.attachment, Type.LEGS)
 
-            for layer in ("leg1", "leg2"):
+            for layer in TORSO_ATTACHMENT_FIELDS[:2]:
                 x, y = combine_attachments(leg_attachment, attachments[layer])
-                canvas[layer, x, y] = legs_sprite.image
+                canvas[LAYER_ORDER.index(layer), x, y] = legs_sprite.image
 
-        for inv_item, layer in mech.iter_items(weapons=True, slots=True):
+        for inv_item, layer in zip(mech.iter_items("weapons"), TORSO_ATTACHMENT_FIELDS[2:]):
             if inv_item is None:
                 continue
 
             item_sprite = self.get_item_sprite(inv_item.item)
             item_attachment = cast_attachment(item_sprite.attachment, Type.SIDE_WEAPON)
             x, y = combine_attachments(item_attachment, attachments[layer])
-            canvas[layer, x, y] = item_sprite.image
+            canvas[LAYER_ORDER.index(layer), x, y] = item_sprite.image
 
         if mech.drone is not None:
             drone_sprite = self.get_item_sprite(mech.drone.item)
             x = drone_sprite.width // 2 + canvas.offsets.left
             y = drone_sprite.height + 25 + canvas.offsets.above
-            canvas["drone", x, y] = drone_sprite.image
+            canvas[LAYER_ORDER.index("drone"), x, y] = drone_sprite.image
 
-        return canvas.merge("torso")
+        return canvas.merge(LAYER_ORDER.index("torso"))
 
 
-def crop_from_spritesheet(spritesheet: Image, pos: RawPlane2D) -> Image:
+def crop_from_spritesheet(spritesheet: "Image", pos: "RawPlane2D") -> "Image":
     x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
     return spritesheet.crop((x, y, x + w, y + h))

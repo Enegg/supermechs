@@ -1,12 +1,19 @@
 import typing as t
 
 from ..enums import Element, Tier, Type
-from ..errors import MalformedData, UnknownDataVersion
+from ..errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from ..item_pack import ItemPack
 from ..item_stats import AnyStatsMapping, TransformStage, ValueRange
 from ..typedefs import AnyItemDict, AnyItemPack, RawMechStatsMapping, RawStatsMapping
 from ..utils import NaN, assert_type, has_any_of_keys
 from .item_data import ItemData, Tags, TransformRange, transform_range
+
+ErrorCallbackType = t.Callable[[Exception], None]
+
+
+def raises(exc: BaseException, /) -> t.NoReturn:
+    """Simply raises passed exception."""
+    raise exc
 
 
 def to_tags(
@@ -61,7 +68,7 @@ def _get_first_stats_mapping(data: AnyItemDict, /) -> RawStatsMapping:
 
 
 def to_item_data(
-    data: AnyItemDict, pack_key: str, custom: bool, *, strict: bool = False
+    data: AnyItemDict, pack_key: str, custom: bool, *, on_error: ErrorCallbackType = raises
 ) -> ItemData:
     """Construct ItemData from its serialized form.
 
@@ -73,7 +80,7 @@ def to_item_data(
     """
     transform_range = to_transform_range(data["transform_range"])
     tags = to_tags(data.get("tags", ()), transform_range, _get_first_stats_mapping(data), custom)
-    stages = to_transform_stages(data, strict=strict)
+    stages = to_transform_stages(data, on_error=on_error)
     item_data = ItemData(
         id=assert_type(int, data["id"]),
         pack_key=assert_type(str, pack_key),
@@ -96,7 +103,7 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
     ):
         origin, args = t.get_origin(data_type), t.get_args(data_type)
 
-        if origin is int:
+        if origin is int:  # noqa: SIM114
             yield stat_key, int
 
         elif origin in (types.UnionType, t.Union) and set(args).issubset((int, type(None))):
@@ -109,12 +116,12 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
             raise RuntimeError(f"Unexpected type for key {stat_key!r}: {data_type!r} ({origin})")
 
 
-def to_stats_mapping(data: RawStatsMapping, /, *, strict: bool = False) -> AnyStatsMapping:
+def to_stats_mapping(
+    data: RawStatsMapping, /, *, on_error: ErrorCallbackType = raises
+) -> AnyStatsMapping:
     """Grabs only expected keys and checks value types. Transforms None values into NaNs."""
 
     final_stats: AnyStatsMapping = {}
-    issues: list[Exception] = []
-
     # TODO: implement extrapolation of missing data
 
     for key, data_type in _iter_stat_keys_and_types():
@@ -132,25 +139,18 @@ def to_stats_mapping(data: RawStatsMapping, /, *, strict: bool = False) -> AnySt
                 )
 
             case unknown:
-                msg = f"Expected {data_type.__name__} on key {key!r}, got {unknown!r:.20}"
-                if strict:
-                    issues.append(TypeError(msg))
-
-    if issues:
-        raise issues[0]  # exception groups when
+                on_error(InvalidKeyValue(unknown, data_type, key))
 
     return final_stats
 
 
-def to_transform_stages(data: AnyItemDict, /, *, strict: bool = False) -> TransformStage:
+def to_transform_stages(
+    data: AnyItemDict, /, *, on_error: ErrorCallbackType = raises
+) -> TransformStage:
     if "stats" in data:
         tier = Tier.by_initial(data["transform_range"][-1])
-        base_stats = to_stats_mapping(data["stats"], strict=strict)
-        return TransformStage(
-            tier=tier,
-            base_stats=base_stats,
-            max_level_stats={}
-        )
+        base_stats = to_stats_mapping(data["stats"], on_error=on_error)
+        return TransformStage(tier=tier, base_stats=base_stats, max_level_stats={})
 
     hit = False
     rolling_stats: AnyStatsMapping = {}
@@ -169,20 +169,19 @@ def to_transform_stages(data: AnyItemDict, /, *, strict: bool = False) -> Transf
             continue
 
         hit = True
-        rolling_stats |= to_stats_mapping(data[key], strict=strict)
+        rolling_stats |= to_stats_mapping(data[key], on_error=on_error)
 
         try:
             max_level_data = data["max_" + key]
 
         except KeyError:
             if tier is not Tier.DIVINE:
-                if strict:
-                    raise KeyError(f"max_{key} key not found for item {data['name']}")
+                on_error(KeyError(f"max_{key} key not found for item {data['name']}"))
 
             upper_stats = AnyStatsMapping()
 
         else:
-            upper_stats = to_stats_mapping(max_level_data, strict=strict)
+            upper_stats = to_stats_mapping(max_level_data, on_error=on_error)
 
         computed.append((tier, rolling_stats.copy(), upper_stats))
 
@@ -190,19 +189,18 @@ def to_transform_stages(data: AnyItemDict, /, *, strict: bool = False) -> Transf
 
     for tier, base, addon in reversed(computed):
         current_stage = TransformStage(
-            tier=tier,
-            base_stats=base,
-            max_level_stats=addon,
-            next=current_stage
+            tier=tier, base_stats=base, max_level_stats=addon, next=current_stage
         )
 
     if current_stage is None:
-        raise KeyError("Data contains no item stats")
+        raise MalformedData("Data contains no item stats")
 
     return current_stage
 
 
-def to_item_pack(data: AnyItemPack, /, *, custom: bool = False, strict: bool = False) -> ItemPack:
+def to_item_pack(
+    data: AnyItemPack, /, *, custom: bool = False, on_error: ErrorCallbackType = raises
+) -> ItemPack:
     if "version" not in data or data["version"] == "1":
         metadata = data["config"]
 
@@ -219,7 +217,7 @@ def to_item_pack(data: AnyItemPack, /, *, custom: bool = False, strict: bool = F
 
     for item_data in data["items"]:
         try:
-            item = to_item_data(item_data, key, custom, strict=strict)
+            item = to_item_data(item_data, key, custom, on_error=on_error)
 
         except Exception as err:
             issues.append(err)

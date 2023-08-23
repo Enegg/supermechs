@@ -160,3 +160,6 @@ class DisplayMech:
         if modules:
             if slots:
                 yield from zip(self._modules, (f"mod{n}" for n in range(1, 9)))
+
+            else:
+                yield from self._modules

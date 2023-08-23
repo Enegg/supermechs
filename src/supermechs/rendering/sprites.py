@@ -4,7 +4,6 @@ import typing as t
 
 from attrs import define
 
-from ..utils import MISSING
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
@@ -14,7 +13,7 @@ if t.TYPE_CHECKING:
 
 @define
 class ItemSprite:
-    image: Image = MISSING
+    image: Image
     attachment: AnyAttachment = None
 
     @property

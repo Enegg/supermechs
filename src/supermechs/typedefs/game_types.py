@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import typing as t
 
-from typing_extensions import NotRequired
-
 # fmt: off
 __all__ = (
     "LiteralType", "LiteralElement",
     "AnyMechStatKey", "AnyStatKey",
-    "RawMechStatsMapping", "RawStatsMapping", "StatData",
+    "RawMechStatsMapping", "RawStatsMapping",
 )
 # fmt: on
 
@@ -34,7 +32,6 @@ AnyMechStatKey = t.Literal[
     "bulletsCap", "rocketsCap",
     "walk", "jump"
 ]
-
 AnyStatKey = AnyMechStatKey | t.Literal[
     "phyDmg", "phyResDmg",
     "expDmg", "heaDmg", "heaCapDmg", "heaColDmg", "expResDmg",
@@ -43,18 +40,6 @@ AnyStatKey = AnyMechStatKey | t.Literal[
     "uses", "backfire", "heaCost", "eneCost", "bulletsCost", "rocketsCost"
 ]
 # fmt: on
-
-
-class StatName(t.TypedDict):
-    default: str
-    in_game: NotRequired[str]
-    short: NotRequired[str]
-
-
-class StatData(t.TypedDict):
-    names: StatName
-    beneficial: NotRequired[bool]
-    buff: NotRequired[t.Literal["+", "+%", "-%", "+2%"]]
 
 
 class RawMechStatsMapping(t.TypedDict, total=False):
