@@ -5,6 +5,7 @@ import typing as t
 from ..enums import Type
 
 __all__ = (
+    "TORSO_ATTACHMENT_FIELDS",
     "Point2D",
     "TorsoAttachments",
     "AnyAttachment",
@@ -21,6 +22,8 @@ class Point2D(t.NamedTuple):
 
 TorsoAttachments = t.Mapping[str, Point2D]
 AnyAttachment = Point2D | TorsoAttachments | None
+
+TORSO_ATTACHMENT_FIELDS = ("leg1", "leg2", "side1", "side2", "side3", "side4", "top1", "top2")
 
 
 def is_displayable(type: Type, /) -> bool:
