@@ -1,18 +1,18 @@
 import typing as t
 
 import anyio
+import typing_extensions as tex
 
-from . import core
 from .enums import Tier
-from .platform import json_decoder
-
-if t.TYPE_CHECKING:
-    from .typedefs import AnyStatKey, StatData
+from .platform import toml_decoder
 
 DEFAULT_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
 PREMIUM_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
 REDUCED_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
-STATS: t.Mapping[str, "core.Stat"] = {}
+STATS: t.Mapping[str, "Stat"] = {}
+BUFFABLE_STATS: t.Sequence[str] = []
+BASE_LVL_INCREASES: t.Sequence[int] = []
+HIT_POINT_INCREASES: t.Sequence[int] = []
 
 
 # this could very well be by IDs, but names are easier to read
@@ -40,9 +40,42 @@ async def load_power_data() -> None:
             tg.start_soon(worker, file_name, rarities, mapping)
 
 
-async def load_stat_data() -> None:
-    async with await (anyio.Path(__file__).parent / "static/StatData.json").open() as file:
-        json: dict[AnyStatKey, StatData] = json_decoder(await file.read())
+class StatData(t.TypedDict):
+    key: str
+    beneficial: tex.NotRequired[bool]
+    buff: tex.NotRequired[t.Literal["+HP", "+%", "-%", "resist%"]]
 
-    for stat_key, data in json.items():
-        STATS[stat_key] = core.Stat.from_dict(data, stat_key)
+
+class StatsData(t.TypedDict):
+    levels: t.Mapping[str, t.Sequence[int]]
+    level_percents: t.Sequence[int]
+    hit_points: t.Sequence[int]
+    stats: t.Sequence[StatData]
+
+
+class Stat(t.NamedTuple):
+    key: str
+    beneficial: bool = True
+    buff: t.Literal["+HP", "+%", "-%", "resist%"] | None = None
+
+    def __str__(self) -> str:
+        return self.key
+
+    def __hash__(self) -> int:
+        return hash((self.key, type(self)))
+
+
+async def load_stat_data() -> None:
+    async with await (anyio.Path(__file__).parent / "static/StatData.toml").open() as file:
+        data: StatsData = toml_decoder(await file.read())
+
+    for stat_data in data["stats"]:
+        stat_key = stat_data["key"]
+        stat = Stat(stat_key, stat_data.get("beneficial", True), stat_data.get("buff"))
+        STATS[stat_key] = stat
+
+        if stat.buff is not None:
+            BUFFABLE_STATS.append(stat_key)
+
+    BASE_LVL_INCREASES.extend(data["level_percents"])
+    HIT_POINT_INCREASES.extend(data["hit_points"])
