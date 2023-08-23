@@ -3,15 +3,15 @@ import typing as t
 
 from supermechs.api import STATS, AnyStatsMapping, Stat, ValueRange
 
-Entry = tuple[t.Any, ...]
+Entry = t.Sequence[t.Any]
 
 
-custom_stats: dict[str, Stat] = {
+custom_stats: t.Mapping[str, Stat] = {
     "spread": Stat("spread", beneficial=False),
     "anyDmg": Stat("anyDmg"),
     "totalDmg": Stat("totalDmg"),
 }
-STAT_KEY_ORDER = tuple(STATS)
+STAT_KEY_ORDER: t.Sequence[str] = tuple(STATS)
 
 
 class ComparisonContext(t.NamedTuple):
@@ -22,8 +22,8 @@ class ComparisonContext(t.NamedTuple):
 
 
 def sum_damage_entries(
-    entries: t.Iterable[tuple[ValueRange | None, ...]], size: int
-) -> tuple[ValueRange | None, ...]:
+    entries: t.Iterable[t.Sequence[ValueRange | None]], size: int
+) -> t.Sequence[ValueRange | None]:
     entry_values: list[ValueRange | None] = [None] * size
 
     for entry in entries:
@@ -42,7 +42,7 @@ def sum_damage_entries(
 
             entry_values[i] = current_value
 
-    return tuple(entry_values)
+    return entry_values
 
 
 damage_keys = frozenset(("phyDmg", "expDmg", "eleDmg", "anyDmg"))
@@ -53,9 +53,9 @@ class EntryConverter:
 
     size: int
     """The number of side to side entries to compare."""
-    key_order: list[str]
+    key_order: t.MutableSequence[str]
     """The order in which final keys should appear."""
-    entries: dict[str, Entry]
+    entries: t.MutableMapping[str, Entry]
     """Current set of entries."""
 
     def __init__(self, *stat_mappings: AnyStatsMapping, key_order: t.Sequence[str]) -> None:
@@ -126,9 +126,10 @@ class EntryConverter:
         self.key_order.remove(key)
         return self.entries.pop(key)
 
-    def run_conversions(self, ctx: ComparisonContext) -> None:
-        if ctx.coerce_damage_types:
-            self.coerce_damage_entries()
 
-        if ctx.damage_spread:
-            self.insert_damage_spread_entry()
+def run_conversions(converter: EntryConverter, ctx: ComparisonContext) -> None:
+    if ctx.coerce_damage_types:
+        converter.coerce_damage_entries()
+
+    if ctx.damage_spread:
+        converter.insert_damage_spread_entry()
