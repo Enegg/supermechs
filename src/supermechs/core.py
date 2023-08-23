@@ -1,40 +1,14 @@
 from __future__ import annotations
 
 import typing as t
-from types import MappingProxyType
 
-from typing_extensions import Self
-
-from . import _internal
+from ._internal import STATS as STATS, Stat as Stat
 from .utils import is_pascal
 
 if t.TYPE_CHECKING:
-    from .typedefs import Name, StatData
+    from .typedefs import Name
 
 __all__ = ("STATS", "Stat")
-
-
-class Stat(t.NamedTuple):
-    key: str
-    beneficial: bool = True
-    buff: t.Literal["+", "+%", "-%", "+2%"] | None = None
-
-    def __str__(self) -> str:
-        return self.key
-
-    def __hash__(self) -> int:
-        return hash((self.key, type(self)))
-
-    @classmethod
-    def from_dict(cls, json: StatData, key: str) -> Self:
-        return cls(
-            key=key,
-            beneficial=json.get("beneficial", True),
-            buff=json.get("buff", None),
-        )
-
-
-STATS: t.Mapping[str, Stat] = MappingProxyType(_internal.STATS)
 
 
 def abbreviate_name(name: Name, /) -> str | None:
@@ -44,10 +18,9 @@ def abbreviate_name(name: Name, /) -> str | None:
     it will not be made for non-PascalCase single-word names, or names which themselves
     are an acronym for something (like EMP).
     """
-    if is_pascal(name):
-        # cannot make an abbrev from a single capital letter
-        if name[1:].islower():
-            return None
+    if is_pascal(name) and name[1:].islower():
+        # cannot make an acronym from a single capital letter
+        return None
     # filter out already-acronym names, like "EMP"
     if name.isupper():
         return None

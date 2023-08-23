@@ -3,8 +3,8 @@ import typing as t
 from attrs import asdict
 
 from supermechs.api import (
-    MAX_BUFFS,
     AnyStatsMapping,
+    ArenaBuffs,
     InvItem,
     Item,
     ItemData,
@@ -12,7 +12,7 @@ from supermechs.api import (
     Mech,
     SlotType,
 )
-from supermechs.item_stats import get_final_stage
+from supermechs.item_stats import max_stats
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typedefs import ID, Name
 
@@ -226,13 +226,12 @@ def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
 def get_battle_item(item: ItemData, slot_name: str) -> WUBattleItem:
     # the keys here are ordered in same fashion as in WU, to maximize
     # chances that the hashes will be same
-    final_stage = get_final_stage(item.start_stage)
     return {
         "slotName": slot_name,
         "element": item.element.name,
         "id": item.id,
         "name": item.name,
-        "stats": MAX_BUFFS.buff_stats(final_stage.at(final_stage.max_level + 1)),
+        "stats": ArenaBuffs.maxed().buff_stats(max_stats(item.start_stage)),
         "tags": asdict(item.tags),
         "timesUsed": 0,
         "type": item.type.name,

@@ -3,12 +3,37 @@ import typing as t
 from attrs import Factory, define
 from typing_extensions import Self
 
-from .core import STATS
+from ._internal import BASE_LVL_INCREASES, BUFFABLE_STATS, HIT_POINT_INCREASES, STATS
 from .item_stats import AnyStatsMapping, ValueRange
 
-__all__ = ("ArenaBuffs", "MAX_BUFFS")
+__all__ = ("ArenaBuffs",)
 
 ValueT = t.TypeVar("ValueT", int, "ValueRange")
+
+
+def max_level_of(stat_key: str, /) -> int:
+    """Get the maximum level for a given buff."""
+    return len(HIT_POINT_INCREASES if STATS[stat_key].buff == "+HP" else BASE_LVL_INCREASES) - 1
+
+
+def get_percent(stat_key: str, level: int, /) -> int:
+    """Returns an int representing the precentage for the stat's modifier."""
+
+    literal_buff = STATS[stat_key].buff
+
+    if literal_buff == "+%":
+        return BASE_LVL_INCREASES[level]
+
+    if literal_buff == "resist%":
+        return BASE_LVL_INCREASES[level] * 2
+
+    if literal_buff == "-%":
+        return -BASE_LVL_INCREASES[level]
+
+    if literal_buff == "+HP":
+        raise TypeError(f"Stat {stat_key!r} has absolute increase")
+
+    raise ValueError(f"Stat {stat_key!r} has no buffs associated")
 
 
 class BuffModifier(t.Protocol):
@@ -46,47 +71,54 @@ class AbsoluteBuffModifier(t.NamedTuple):
         return value + self.value
 
 
+def modifier_at(stat_key: str, level: int, /) -> BuffModifier:
+    """Returns an object interpretable as an int or the buff's str representation
+    at given level.
+    """
+    if STATS[stat_key].buff == "+HP":
+        return AbsoluteBuffModifier(HIT_POINT_INCREASES[level])
+
+    return PercentageBuffModifier(get_percent(stat_key, level))
+
+
+def iter_modifiers_of(stat_key: str, /) -> t.Iterator[BuffModifier]:
+    """Iterator over the modifiers of a stat from 0 to its maximum level."""
+    for level in range(max_level_of(stat_key) + 1):
+        yield modifier_at(stat_key, level)
+
+
 @define
 class ArenaBuffs:
-    BASE_PERCENT: t.ClassVar = (0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 20)
-    HP_INCREASES: t.ClassVar = (0, +10, +30, +60, 90, 120, 150, 180, +220, +260, 300, 350)
-    # fmt: off
-    BUFFABLE_STATS: t.ClassVar = (
-        "eneCap", "eneReg", "eneDmg", "heaCap", "heaCol", "heaDmg", "phyDmg",
-        "expDmg", "eleDmg", "phyRes", "expRes", "eleRes", "health", "backfire"
-    )
-    # TODO: perhaps include +% titan damage?
-    # fmt: on
-    levels: t.MutableMapping[str, int] = Factory(lambda: dict.fromkeys(ArenaBuffs.BUFFABLE_STATS, 0))
+    levels: t.MutableMapping[str, int] = Factory(lambda: dict.fromkeys(BUFFABLE_STATS, 0))
 
-    def __getitem__(self, stat_name: str) -> int:
-        return self.levels[stat_name]
+    def __getitem__(self, stat_key: str, /) -> int:
+        return self.levels[stat_key]
 
-    def __setitem__(self, stat_name: str, level: int) -> None:
-        if level > (max_lvl := self.max_level_of(stat_name)):
-            raise ValueError(f"The max level for {stat_name!r} is {max_lvl}, got {level}")
+    def __setitem__(self, stat_key: str, level: int, /) -> None:
+        if level > (max_lvl := max_level_of(stat_key)):
+            raise ValueError(f"The max level for {stat_key!r} is {max_lvl}, got {level}")
 
-        self.levels[stat_name] = level
+        self.levels[stat_key] = level
 
     def is_at_zero(self) -> bool:
         """Whether all buffs are at level 0."""
         return all(v == 0 for v in self.levels.values())
 
-    def buff(self, stat_name: str, value: int, /) -> int:
+    def buff(self, stat_key: str, value: int, /) -> int:
         """Buffs a value according to given stat."""
-        if stat_name not in self.levels:
+        if stat_key not in self.levels:
             return value
 
-        level = self.levels[stat_name]
-        return self.modifier_at(stat_name, level).apply(value)
+        level = self.levels[stat_key]
+        return modifier_at(stat_key, level).apply(value)
 
-    def buff_damage_range(self, stat_name: str, value: ValueRange, /) -> ValueRange:
+    def buff_damage_range(self, stat_key: str, value: ValueRange, /) -> ValueRange:
         """Buff a value range according to given stat."""
-        if stat_name not in self.levels:
+        if stat_key not in self.levels:
             return value
 
-        level = self.levels[stat_name]
-        modifier = self.modifier_at(stat_name, level)
+        level = self.levels[stat_key]
+        modifier = modifier_at(stat_key, level)
         return ValueRange(*map(modifier.apply, value))
 
     def buff_with_difference(self, stat_name: str, value: int, /) -> tuple[int, int]:
@@ -124,64 +156,17 @@ class ArenaBuffs:
 
         return buffed
 
-    @classmethod
-    def modifier_at(cls, stat_name: str, level: int, /) -> BuffModifier:
-        """Returns an object interpretable as an int or the buff's str representation
-        at given level.
-        """
-        if STATS[stat_name].buff == "+":
-            return AbsoluteBuffModifier(cls.HP_INCREASES[level])
-
-        return PercentageBuffModifier(cls.get_percent(stat_name, level))
-
     def modifier_of(self, stat_name: str, /) -> BuffModifier:
         """Returns an object that can be interpreted as an int or the buff's str representation."""
-        return self.modifier_at(stat_name, self.levels[stat_name])
-
-    @classmethod
-    def get_percent(cls, stat_name: str, level: int) -> int:
-        """Returns an int representing the precentage for the stat's modifier."""
-
-        literal_buff = STATS[stat_name].buff
-
-        if literal_buff == "+%":
-            return cls.BASE_PERCENT[level]
-
-        if literal_buff == "+2%":
-            return cls.BASE_PERCENT[level] * 2
-
-        if literal_buff == "-%":
-            return -cls.BASE_PERCENT[level]
-
-        if literal_buff == "+":
-            raise TypeError(f"Stat {stat_name!r} has absolute increase")
-
-        raise ValueError(f"Stat {stat_name!r} has no buffs associated")
-
-    @classmethod
-    def iter_modifiers_of(cls, stat_name: str) -> t.Iterator[BuffModifier]:
-        """Iterator over the modifiers of a stat from 0 to its maximum level."""
-        for level in range(cls.max_level_of(stat_name) + 1):
-            yield cls.modifier_at(stat_name, level)
-
-    @classmethod
-    def max_level_of(cls, stat_name: str) -> int:
-        """Get the maximum level for a given buff."""
-        if STATS[stat_name].buff == "+":
-            return len(cls.HP_INCREASES) - 1
-
-        return len(cls.BASE_PERCENT) - 1
+        return modifier_at(stat_name, self.levels[stat_name])
 
     @classmethod
     def maxed(cls) -> Self:
         """Factory method returning `ArenaBuffs` with all levels set to max."""
 
-        max_buffs = cls()
-        levels = max_buffs.levels
+        self = cls()
+        levels = self.levels
         for key in levels:
-            levels[key] = cls.max_level_of(key)
+            levels[key] = max_level_of(key)
 
-        return max_buffs
-
-
-MAX_BUFFS = ArenaBuffs.maxed()
+        return self
