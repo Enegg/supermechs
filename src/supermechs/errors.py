@@ -8,6 +8,30 @@ class SMException(Exception):
     """Base class for game exceptions."""
 
 
+class InvalidValue(SMException):
+    """Value of incorrect type."""
+
+    type_to_name: t.ClassVar[t.Mapping[type, str]] = {
+        int: "an integer", float: "a number", str: "a string", list: "an array", bool: "a boolean"
+    }
+
+    def __init__(self, value: object, expected: type) -> None:
+        fmt = f"Expected {self.name_of(expected)}, got {self.name_of(type(value))}"
+        super().__init__(fmt)
+
+    @classmethod
+    def name_of(cls, type_: type) -> str:
+        return cls.type_to_name.get(type_, type_.__name__)
+
+
+class InvalidKeyValue(InvalidValue):
+    """Invalid value at key."""
+
+    def __init__(self, value: object, expected: type, key: str) -> None:
+        super().__init__(value, expected)
+        self.args = (f"{self.args[0]} at key {key!r}",)
+
+
 class MalformedData(SMException):
     """Data of invalid type or missing values."""
 
