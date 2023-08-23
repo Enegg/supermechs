@@ -5,11 +5,10 @@ from collections import Counter
 from functools import partial
 from types import MappingProxyType
 
-from attrs import Attribute, define, field, fields
+from attrs import define, field
 from typing_extensions import Self
 
 from .. import constants
-from ..converters import parse_slot_name, slot_to_type
 from ..enums import Element, Type
 from ..utils import cached_slot_property, format_count, has_any_of_keys
 from .inv_item import InvItem
@@ -22,13 +21,7 @@ if t.TYPE_CHECKING:
 
 __all__ = ("Mech", "SlotType")
 
-BODY_SLOTS = ("torso", "legs", "drone")
-WEAPON_SLOTS = ("side1", "side2", "side3", "side4", "top1", "top2")
-SPECIAL_SLOTS = ("tele", "charge", "hook")
-MODULE_SLOTS = ("mod1", "mod2", "mod3", "mod4", "mod5", "mod6", "mod7", "mod8")
-
 SlotType = InvItem | None
-
 
 # ------------------------------------------ Constraints -------------------------------------------
 
@@ -41,7 +34,7 @@ def jumping_required(mech: Mech) -> bool:
 def no_duplicate_stats(mech: Mech, module: Item) -> bool:
     present_exclusive_stat_keys = module.current_stats.keys() & constants.EXCLUSIVE_STAT_KEYS
 
-    for equipped_module in mech.iter_items(modules=True):
+    for equipped_module in mech.iter_items(Type.MODULE):
         if equipped_module is None or equipped_module.item is module:
             continue
 
@@ -52,10 +45,9 @@ def no_duplicate_stats(mech: Mech, module: Item) -> bool:
 
 
 def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
-    if (
-        item.data.type is Type.MODULE
-        and has_any_of_keys(item.current_stats, *constants.EXCLUSIVE_STAT_KEYS)
-        ):
+    if item.data.type is Type.MODULE and has_any_of_keys(
+        item.current_stats, *constants.EXCLUSIVE_STAT_KEYS
+    ):
         return partial(no_duplicate_stats, module=item)
 
     if item.data.tags.require_jump:
@@ -67,12 +59,8 @@ def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
 # ------------------------------------------- Validators -------------------------------------------
 
 
-def assert_not_custom(mech: Mech) -> bool:
-    for inv_item in filter(None, mech.iter_items()):
-        if inv_item.item.data.tags.custom:
-            return False
-
-    return True
+def assert_not_custom(mech: Mech, /) -> bool:
+    return all(not inv_item.item.data.tags.custom for inv_item in filter(None, mech.iter_items()))
 
 
 def validate(mech: Mech, /) -> bool:
@@ -83,12 +71,51 @@ def validate(mech: Mech, /) -> bool:
         # legs present
         and mech.legs is not None
         # at least one weapon
-        and any(weapon is not None for weapon in mech.iter_items(weapons=True))
+        and any(weapon is not None for weapon in mech.iter_items("weapons"))
         # not overweight
         and mech.weight <= constants.OVERLOADED_MAX_WEIGHT
         # no constraints are broken
-        and all(constr(mech) for constr in mech.constraints.values())
+        and all(constr(mech) for constr in mech._constraints.values())
     )
+
+
+def _index_for_slot(slot: XOrTupleXY[Type, int], /) -> tuple[int, Type]:
+    match slot:
+        case Type() as type_:
+            if abs_index := Mech._indexes.get(type_) is None:
+                raise ValueError(f"{type_} requires an index")
+
+        case (Type() as type_, int() as index):
+            slice_ = Mech._slices.get(type_)
+
+            if slice_ is None:
+                raise ValueError(f"{type_} is not indexable")
+
+            if index not in range(slice_.stop - slice_.start):
+                raise IndexError(f"Item index {index} out of range")
+
+            abs_index = index + int(slice_.start)
+
+        case other:  # pyright: ignore[reportUnnecessaryComparison]
+            raise TypeError(f"Invalid slot: {other}")
+
+    return abs_index, type_
+
+
+_type_groups: t.Mapping[str, t.Sequence[Type]] = {
+    "body": (Type.TORSO, Type.LEGS, Type.DRONE),
+    "weapons": (Type.SIDE_WEAPON, Type.TOP_WEAPON),
+    "specials": (Type.TELEPORTER, Type.CHARGE, Type.HOOK),
+}
+
+
+def _flatten_types(args: t.Iterable[Type | str], /) -> t.Iterator[Type]:
+    for arg in args:
+        if isinstance(arg, Type):
+            yield arg
+
+        else:
+            yield from _type_groups[arg]
 
 
 @define(kw_only=True)
@@ -96,35 +123,65 @@ class Mech:
     """Represents a mech build."""
 
     name: str = field()
-    custom: bool = False
-    constraints: t.MutableMapping[UUID, t.Callable[[Self], bool]] = field(init=False, factory=dict)
+    custom: t.Final[bool] = False
+    _items: t.Final[t.MutableSequence[SlotType]] = field(factory=lambda: [None] * 20)
+    _constraints: t.Final[t.MutableMapping[UUID, t.Callable[[Self], bool]]] = field(
+        init=False, factory=dict
+    )
 
+    # cached properties
     _stats: t.MutableMapping[str, int] = field(init=False, repr=False, eq=False)
     _dominant_element: Element | None = field(init=False, repr=False, eq=False)
 
-    # fmt: off
-    torso:      SlotType = field(init=False, default=None)
-    legs:       SlotType = field(init=False, default=None)
-    drone:      SlotType = field(init=False, default=None)
-    teleporter: SlotType = field(init=False, default=None)
-    charge:     SlotType = field(init=False, default=None)
-    hook:       SlotType = field(init=False, default=None)
-    _side_weapons: list[SlotType] = field(init=False, factory=lambda: [None] * 4)
-    _top_weapons: list[SlotType] = field(init=False, factory=lambda: [None] * 2)
-    _modules: list[SlotType] = field(init=False, factory=lambda: [None] * 8)
-    # fmt: on
+    _indexes: t.ClassVar[t.Mapping[Type, int]] = {
+        Type.TORSO: 0,
+        Type.LEGS: 1,
+        Type.DRONE: 2,
+        Type.TELEPORTER: 3,
+        Type.CHARGE: 4,
+        Type.HOOK: 5,
+    }
+    _slices: t.ClassVar[t.Mapping[Type, slice]] = {
+        Type.SIDE_WEAPON: slice(6, 10),
+        Type.TOP_WEAPON: slice(10, 12),
+        Type.MODULE: slice(12, 20),
+    }
+
+    @property
+    def torso(self) -> SlotType:
+        return self._items[self._indexes[Type.TORSO]]
+
+    @property
+    def legs(self) -> SlotType:
+        return self._items[self._indexes[Type.LEGS]]
+
+    @property
+    def drone(self) -> SlotType:
+        return self._items[self._indexes[Type.DRONE]]
+
+    @property
+    def teleporter(self) -> SlotType:
+        return self._items[self._indexes[Type.TELEPORTER]]
+
+    @property
+    def charge(self) -> SlotType:
+        return self._items[self._indexes[Type.CHARGE]]
+
+    @property
+    def hook(self) -> SlotType:
+        return self._items[self._indexes[Type.HOOK]]
 
     @property
     def side_weapons(self) -> t.Sequence[SlotType]:
-        return tuple(self._side_weapons)
+        return self._items[self._slices[Type.SIDE_WEAPON]]
 
     @property
     def top_weapons(self) -> t.Sequence[SlotType]:
-        return tuple(self._top_weapons)
+        return self._items[self._slices[Type.TOP_WEAPON]]
 
     @property
     def modules(self) -> t.Sequence[SlotType]:
-        return tuple(self._modules)
+        return self._items[self._slices[Type.MODULE]]
 
     @property
     def weight(self) -> int:
@@ -158,7 +215,7 @@ class Mech:
         excluded = (Type.CHARGE_ENGINE, Type.TELEPORTER)
         elements = Counter(
             inv_item.item.data.element
-            for inv_item in self.iter_items(body=True, weapons=True, specials=True)
+            for inv_item in self.iter_items("body", "weapons", "specials")
             if inv_item is not None
             if inv_item.item.data.type not in excluded
         ).most_common(2)
@@ -170,48 +227,54 @@ class Mech:
         # otherwise just return the most common one
         return elements[0][0]
 
-    def __setitem__(self, slot: XOrTupleXY[str | Type, int], inv_item: SlotType, /) -> None:
-        if not isinstance(inv_item, (InvItem, type(None))):
-            raise TypeError(f"Expected Item object or None, got {type(inv_item)}")
+    def __setitem__(self, slot: XOrTupleXY[Type, int], inv_item: SlotType, /) -> None:
+        if not isinstance(inv_item, SlotType):
+            raise TypeError(f"Expected {SlotType}, got {type(inv_item).__name__}")
 
-        slot = parse_slot_name(slot)
-        prev: SlotType = getattr(self, slot)
+        index, target_type = _index_for_slot(slot)
+
+        prev = self._items[index]
 
         if inv_item is not None:
-            if slot_to_type(slot) is not inv_item.item.data.type:
-                raise TypeError(f"Item type {inv_item.item.data.type} does not match slot {slot!r}")
+            data = inv_item.item.data
+            if data.type is not target_type:
+                raise TypeError(f"Item type {data.type} does not match slot {target_type!r}")
 
-            if inv_item.item.data.tags.custom and not self.custom:
+            if data.tags.custom and not self.custom:
                 raise TypeError("Cannot set a custom item on this mech")
 
-            if prev is not None and prev.UUID in self.constraints:
-                del self.constraints[prev.UUID]
+            if prev is not None and prev.UUID in self._constraints:
+                del self._constraints[prev.UUID]
 
             if (constraint := get_constraints_of_item(inv_item.item)) is not None:
-                self.constraints[inv_item.UUID] = constraint
+                self._constraints[inv_item.UUID] = constraint
 
         del self.stat_summary
 
         self._evict_expired_cache(inv_item, prev)
-        setattr(self, slot, inv_item)
+        self._items[index] = inv_item
+
+    def __getitem__(self, slot: XOrTupleXY[Type, int], /) -> SlotType:
+        index, _ = _index_for_slot(slot)
+        return self._items[index]
 
     def __str__(self) -> str:
         string_parts = [
             f"{inv_item.item.data.type.name.capitalize()}: {inv_item}"
-            for inv_item in self.iter_items(body=True)
+            for inv_item in self.iter_items("body")
             if inv_item is not None
         ]
 
-        if weapon_string := ", ".join(format_count(self.iter_items(weapons=True))):
+        if weapon_string := ", ".join(format_count(self.iter_items("weapons"))):
             string_parts.append("Weapons: " + weapon_string)
 
         string_parts.extend(
             f"{inv_item.item.data.type.name.capitalize()}: {inv_item}"
-            for inv_item in self.iter_items(specials=True)
+            for inv_item in self.iter_items("specials")
             if inv_item is not None
         )
 
-        if modules := ", ".join(format_count(self.iter_items(modules=True))):
+        if modules := ", ".join(format_count(self.iter_items(Type.MODULE))):
             string_parts.append("Modules: " + modules)
 
         return "\n".join(string_parts)
@@ -235,11 +298,7 @@ class Mech:
     @t.overload
     def iter_items(
         self,
-        *,
-        body: bool = ...,
-        weapons: bool = ...,
-        specials: bool = ...,
-        modules: bool = ...,
+        *types: Type | t.Literal["body", "weapons", "specials"],
         slots: t.Literal[False] = False,
     ) -> t.Iterator[SlotType]:
         ...
@@ -247,69 +306,54 @@ class Mech:
     @t.overload
     def iter_items(
         self,
-        *,
-        body: bool = ...,
-        weapons: bool = ...,
-        specials: bool = ...,
-        modules: bool = ...,
+        *types: Type | t.Literal["body", "weapons", "specials"],
         slots: t.Literal[True],
-    ) -> t.Iterator[tuple[SlotType, str]]:
+    ) -> t.Iterator[tuple[SlotType, Type]]:
         ...
 
     def iter_items(
         self,
-        *,
-        body: bool = False,
-        weapons: bool = False,
-        specials: bool = False,
-        modules: bool = False,
+        *types: Type | t.Literal["body", "weapons", "specials"],
         slots: bool = False,
-    ) -> t.Iterator[XOrTupleXY[SlotType, str]]:
+    ) -> t.Iterator[XOrTupleXY[SlotType, Type]]:
         """Iterator over mech's selected items.
 
         Parameters
         ----------
-        body, weapons, specials, modules: `bool`
-            Selectors denoting which groups of parts to yield.
-            If none are set to `True`, yields from all groups.
-            - `body` yields torso, legs and drone;
-            - `weapons` yields side & top weapons;
-            - `specials` yields teleport, charge and hook;
-            - `modules` yields modules.
+        types: the order and types of items to yield. "body" is a shorthand for TORSO, LEGS & DRONE\
+        ; "weapons" for SIDE_WEAPON and TOP_WEAPON; "specials" for TELEPORTER, CHARGE & HOOK.\
+        If no types are specified, yields every item.
 
-        slots: `bool`
-            If `True`, yields all selected items as tuple pairs of (`InvItem`, `str`).
-            If `False`, yields only the items.
+        slots: If `True`, yields tuples of both the item and its slot's type.\
+            Otherwise, yields just the items.
 
         Yields
         ------
         `InvItem | None`
             If `slots` is set to `False`.
-        `tuple[InvItem | None, str]`
+        `tuple[InvItem | None, Type]`
             If `slots` is set to `True`.
         """
-        selectors = (body, weapons, specials, modules)
 
-        from itertools import compress, groupby
-
-        factory: t.Callable[[str], XOrTupleXY[SlotType, str]]
+        from itertools import chain, repeat
 
         if slots:
-            factory = lambda slot: (getattr(self, slot), slot)  # noqa: E731
+
+            def factory(item: SlotType, type: Type, /) -> XOrTupleXY[SlotType, Type]:
+                return item, type
 
         else:
-            factory = partial(getattr, self)
 
-        all_fields: tuple[Attribute[t.Any], ...] = fields(type(self))
-        iterator = groupby(
-            all_fields, key=lambda attr: attr.metadata.get("group", "")
-        )
-        next(iterator)  # discard no group fields
+            def factory(item: SlotType, type: Type, /) -> XOrTupleXY[SlotType, Type]:
+                del type
+                return item
 
-        if any(selectors):
-            # in the negative case we treat all selectors as True
-            iterator = compress(iterator, selectors)
+        types_ = chain(self._indexes, self._slices) if not types else _flatten_types(types)
 
-        for _, slot_group in iterator:
-            for slot in slot_group:
-                yield factory(slot.name)
+        for type in types_:
+            if (index := self._indexes.get(type)) is not None:
+                yield factory(self._items[index], type)
+
+            else:
+                slice_ = self._slices[type]
+                yield from map(factory, self._items[slice_], repeat(type))
