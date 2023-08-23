@@ -30,7 +30,7 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.ruff]
-select = ["E", "F", "G", "Q", "SIM", "TCH", "PTH", "RUF", "ASYNC"]
+select = ["E", "F", "C90", "G", "Q", "SIM", "TCH", "PTH", "RUF", "ASYNC"]
 
 line-length = 100
 target-version = "py310"
@@ -48,6 +48,10 @@ forced-separate = ["supermechs"]
 
 [tool.ruff.flake8-type-checking]
 exempt-modules = ["typing", "typing_extensions"]
+
+
+[tool.ruff.mccabe]
+max-complexity = 5
 
 
 [tool.pyright]
