@@ -165,8 +165,7 @@ class ArenaBuffs:
         """Factory method returning `ArenaBuffs` with all levels set to max."""
 
         self = cls()
-        levels = self.levels
-        for key in levels:
-            levels[key] = max_level_of(key)
+        for key in self.levels:
+            self.levels[key] = max_level_of(key)
 
         return self

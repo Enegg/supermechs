@@ -10,7 +10,9 @@ from supermechs.api import (
     ItemData,
     ItemPack,
     Mech,
+    SlotSelectorType,
     SlotType,
+    Type,
 )
 from supermechs.item_stats import max_stats
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
@@ -25,26 +27,26 @@ class WUBattleItem(t.TypedDict):
     name: Name
     type: str
     stats: AnyStatsMapping
-    tags: dict[str, bool]
+    tags: t.Mapping[str, bool]
     element: str
     timesUsed: t.Literal[0]
 
 
 class PartialMechJSON(t.TypedDict):
     name: str
-    setup: list[ID]
+    setup: t.Sequence[ID]
 
 
 class MechJSON(t.TypedDict):
     id: str
     name: str
     pack_key: str
-    setup: list[ID]
+    setup: t.Sequence[ID]
 
 
 class WUMech(t.TypedDict):
     name: str
-    setup: list[ID]
+    setup: t.Sequence[ID]
 
 
 class WUPlayer(t.TypedDict):
@@ -55,15 +57,15 @@ class WUPlayer(t.TypedDict):
 
 class ExportedMechsJSONv1(t.TypedDict):
     version: t.Literal[1]
-    mechs: dict[str, list[WUMech]]
+    mechs: t.Mapping[str, t.Sequence[WUMech]]
 
 
 class ExportedMechsJSONv2(t.TypedDict):
     version: t.Literal[2]
     # a mapping of pack keys to array of [smallest, largest] IDs they hold,
     # offset by previous packs.
-    packs: dict[str, list[int]]
-    mechs: list[WUMech]
+    packs: t.Mapping[str, t.Sequence[int]]
+    mechs: t.Sequence[WUMech]
 
 
 WU_SLOT_NAMES = (
@@ -90,33 +92,35 @@ WU_MODULE_SLOT_NAMES = (
     "module7",
     "module8",
 )
-_slot_for_slot = {"chargeEngine": "charge", "teleporter": "tele", "grapplingHook": "hook"}
+_slot_for_slot: t.Mapping[str, Type] = {
+    "chargeEngine": Type.CHARGE, "teleporter": Type.TELEPORTER, "grapplingHook": Type.HOOK
+}
 
 
-def wu_to_mech_slot(slot: str) -> str:
+def wu_to_mech_slot(slot: str, /) -> SlotSelectorType:
     """Convert workshop's internal slot name to the app's slot name."""
     if slot.startswith("side"):
-        return "side" + slot[-1]
+        return Type.SIDE_WEAPON, int(slot[-1])
 
     if slot.startswith("top"):
-        return "top" + slot[-1]
+        return Type.TOP_WEAPON, int(slot[-1])
 
     if slot.startswith("module"):
-        return "mod" + slot[-1]
+        return Type.MODULE, int(slot[-1])
 
-    return _slot_for_slot.get(slot, slot)
+    return _slot_for_slot.get(slot) or Type.get_by_name(slot)
 
 
 def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
     """Yields mech items in the order expected by WU."""
     yield mech.torso
     yield mech.legs
-    yield from mech.iter_items(weapons=True)
+    yield from mech.iter_items("weapons")
     yield mech.drone
     yield mech.charge
     yield mech.teleporter
     yield mech.hook
-    yield from mech.iter_items(modules=True)
+    yield from mech.iter_items(Type.MODULE)
 
 
 def _mech_items_ids_in_wu_order(mech: Mech) -> t.Iterator[int]:

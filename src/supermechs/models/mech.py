@@ -10,18 +10,19 @@ from typing_extensions import Self
 
 from .. import constants
 from ..enums import Element, Type
+from ..typeshed import XOrTupleXY
 from ..utils import cached_slot_property, format_count, has_any_of_keys
 from .inv_item import InvItem
 
 if t.TYPE_CHECKING:
     from uuid import UUID
 
-    from ..typeshed import XOrTupleXY
     from .item import Item
 
-__all__ = ("Mech", "SlotType")
+__all__ = ("Mech", "SlotType", "SlotSelectorType")
 
 SlotType = InvItem | None
+SlotSelectorType = XOrTupleXY[Type, int]
 
 # ------------------------------------------ Constraints -------------------------------------------
 
@@ -79,7 +80,7 @@ def validate(mech: Mech, /) -> bool:
     )
 
 
-def _index_for_slot(slot: XOrTupleXY[Type, int], /) -> tuple[int, Type]:
+def _index_for_slot(slot: SlotSelectorType, /) -> tuple[int, Type]:
     match slot:
         case Type() as type_:
             if abs_index := Mech._indexes.get(type_) is None:
@@ -227,7 +228,7 @@ class Mech:
         # otherwise just return the most common one
         return elements[0][0]
 
-    def __setitem__(self, slot: XOrTupleXY[Type, int], inv_item: SlotType, /) -> None:
+    def __setitem__(self, slot: SlotSelectorType, inv_item: SlotType, /) -> None:
         if not isinstance(inv_item, SlotType):
             raise TypeError(f"Expected {SlotType}, got {type(inv_item).__name__}")
 
