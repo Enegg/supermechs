@@ -136,6 +136,6 @@ async def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRen
     else:
         raise ValueError(f"Unknown pack version: {data['version']}")
 
-    self = PackRenderer(key, sprites)
+    pack = PackRenderer(key, sprites)
     # LOGGER.info(f"Pack {key!r} loaded {len(sprites)} sprites")
-    return self
+    return pack
