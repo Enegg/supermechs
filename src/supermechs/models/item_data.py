@@ -48,7 +48,7 @@ def transform_range(lower: Tier | int, upper: Tier | int | None = None) -> Trans
     if lower > upper:
         raise ValueError("Minimum tier greater than maximum tier")
 
-    return tuple(map(Tier.get_by_value, range(lower, upper + 1)))
+    return tuple(map(Tier.of_value, range(lower, upper + 1)))
 
 
 @define(kw_only=True)

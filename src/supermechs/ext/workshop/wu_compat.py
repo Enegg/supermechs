@@ -108,7 +108,7 @@ def wu_to_mech_slot(slot: str, /) -> SlotSelectorType:
     if slot.startswith("module"):
         return Type.MODULE, int(slot[-1])
 
-    return _slot_for_slot.get(slot) or Type.get_by_name(slot)
+    return _slot_for_slot.get(slot) or Type.of_name(slot)
 
 
 def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:

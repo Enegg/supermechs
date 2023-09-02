@@ -1,12 +1,14 @@
 import typing as t
 
-from ...enums import Element, Tier, Type
-from ...errors import InvalidKeyValue, MalformedData, UnknownDataVersion
-from ...item_pack import ItemPack
-from ...item_stats import AnyStatsMapping, TransformStage, ValueRange
-from ...typedefs import AnyItemDict, AnyItemPack, RawMechStatsMapping, RawStatsMapping
-from ...utils import NaN, assert_type, has_any_of_keys
-from ...models.item_data import ItemData, Tags, TransformRange, transform_range
+from .typedefs.game_types import RawMechStatsMapping, RawStatsMapping
+from .typedefs.packs import AnyItemDict, AnyItemPack
+
+from supermechs.enums import Element, Tier, Type
+from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
+from supermechs.item_pack import ItemPack
+from supermechs.item_stats import AnyStatsMapping, TransformStage, ValueRange
+from supermechs.models.item_data import ItemData, Tags, TransformRange, transform_range
+from supermechs.utils import NaN, assert_type, has_any_of_keys
 
 ErrorCallbackType = t.Callable[[Exception], None]
 
@@ -49,7 +51,7 @@ def to_transform_range(string: str, /) -> TransformRange:
     """Construct a TransformRange object from a string like "C-E" or "M"."""
     up, _, down = assert_type(str, string).strip().partition("-")
     try:
-        return transform_range(Tier.by_initial(up), Tier.by_initial(down) if down else None)
+        return transform_range(Tier.of_initial(up), Tier.of_initial(down) if down else None)
 
     except ValueError as err:
         raise MalformedData(data=string) from err
@@ -148,7 +150,7 @@ def to_transform_stages(
     data: AnyItemDict, /, *, on_error: ErrorCallbackType = raises
 ) -> TransformStage:
     if "stats" in data:
-        tier = Tier.by_initial(data["transform_range"][-1])
+        tier = Tier.of_initial(data["transform_range"][-1])
         base_stats = to_stats_mapping(data["stats"], on_error=on_error)
         return TransformStage(tier=tier, base_stats=base_stats, max_level_stats={})
 

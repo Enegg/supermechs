@@ -2,6 +2,9 @@ import typing as t
 
 import anyio
 
+from .typedefs.graphics import AnyRawAttachment, RawPlane2D, RawPoint2D, RawTorsoAttachments
+from .typedefs.packs import AnyItemDict, AnyItemPack, ItemDictVer1, ItemDictVer2, ItemDictVer3
+
 from supermechs.enums import Type
 from supermechs.errors import MalformedData
 from supermechs.rendering import (
@@ -13,18 +16,7 @@ from supermechs.rendering import (
     create_synthetic_attachment,
     is_attachable,
 )
-from supermechs.typedefs import (
-    ID,
-    AnyItemDict,
-    AnyItemPack,
-    AnyRawAttachment,
-    ItemDictVer1,
-    ItemDictVer2,
-    ItemDictVer3,
-    RawPlane2D,
-    RawPoint2D,
-    RawTorsoAttachments,
-)
+from supermechs.typedefs import ID
 from supermechs.utils import assert_type, js_format
 
 if t.TYPE_CHECKING:

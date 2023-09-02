@@ -3,11 +3,32 @@ import typing_extensions as tex
 
 from attrs import define, field
 
-from .constants import TIER_MAX_LEVELS
 from .enums import Tier
 from .typeshed import dict_items_as
 
-__all__ = ("ValueRange", "AnyMechStatsMapping", "AnyStatsMapping", "TransformStage")
+__all__ = (
+    "ValueRange", "TransformStage",
+    "AnyMechStatsMapping", "AnyStatsMapping",
+    "AnyMechStatKey", "AnyStatKey"
+)
+
+# fmt: off
+AnyMechStatKey = t.Literal[
+    "weight", "health",
+    "eneCap", "eneReg",
+    "heaCap", "heaCol",
+    "phyRes", "expRes", "eleRes",
+    "bulletsCap", "rocketsCap",
+    "walk", "jump"
+]
+AnyStatKey = AnyMechStatKey | t.Literal[
+    "phyDmg", "phyResDmg",
+    "expDmg", "heaDmg", "heaCapDmg", "heaColDmg", "expResDmg",
+    "eleDmg", "eneDmg", "eneCapDmg", "eneRegDmg", "eleResDmg",
+    "range", "push", "pull", "recoil", "retreat", "advance",
+    "uses", "backfire", "heaCost", "eneCost", "bulletsCost", "rocketsCost"
+]
+# fmt: on
 
 
 class ValueRange(t.NamedTuple):
@@ -119,7 +140,7 @@ class TransformStage:
     @property
     def max_level(self) -> int:
         """The maximum level this stage can reach, starting from 0."""
-        return TIER_MAX_LEVELS[self.tier]
+        return self.tier.max_level
 
     def at(self, level: int, /) -> AnyStatsMapping:
         """Returns the stats at given level.
@@ -132,7 +153,7 @@ class TransformStage:
         if level == self._last[0]:
             return self._last[1]
 
-        max_level = self.max_level
+        max_level = self.tier.max_level
 
         if not 0 <= level <= max_level:
             raise ValueError(f"Level {level} outside range 1-{max_level+1}")

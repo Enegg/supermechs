@@ -1,7 +1,7 @@
 import typing as t
 from typing_extensions import NotRequired
 
-from ..typeshed import LiteralURL
+from supermechs.typeshed import LiteralURL
 from .game_types import LiteralElement, LiteralType, RawStatsMapping
 from .graphics import RawPlane2D, RawPoint2D, RawTorsoAttachments
 

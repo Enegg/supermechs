@@ -1,14 +1,6 @@
-from __future__ import annotations
-
 import typing as t
 
-# fmt: off
-__all__ = (
-    "LiteralType", "LiteralElement",
-    "AnyMechStatKey", "AnyStatKey",
-    "RawMechStatsMapping", "RawStatsMapping",
-)
-# fmt: on
+__all__ = ("LiteralType", "LiteralElement", "RawMechStatsMapping", "RawStatsMapping")
 
 LiteralType = t.Literal[
     "TORSO",
@@ -22,24 +14,6 @@ LiteralType = t.Literal[
     "MODULE",
 ]
 LiteralElement = t.Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
-
-# fmt: off
-AnyMechStatKey = t.Literal[
-    "weight", "health",
-    "eneCap", "eneReg",
-    "heaCap", "heaCol",
-    "phyRes", "expRes", "eleRes",
-    "bulletsCap", "rocketsCap",
-    "walk", "jump"
-]
-AnyStatKey = AnyMechStatKey | t.Literal[
-    "phyDmg", "phyResDmg",
-    "expDmg", "heaDmg", "heaCapDmg", "heaColDmg", "expResDmg",
-    "eleDmg", "eneDmg", "eneCapDmg", "eneRegDmg", "eleResDmg",
-    "range", "push", "pull", "recoil", "retreat", "advance",
-    "uses", "backfire", "heaCost", "eneCost", "bulletsCost", "rocketsCost"
-]
-# fmt: on
 
 
 class RawMechStatsMapping(t.TypedDict, total=False):
