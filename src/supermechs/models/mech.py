@@ -12,12 +12,10 @@ from .. import constants
 from ..enums import Element, Type
 from ..typeshed import XOrTupleXY
 from ..utils import cached_slot_property, format_count, has_any_of_keys
-from .inv_item import InvItem
+from .item import InvItem, Item
 
 if t.TYPE_CHECKING:
     from uuid import UUID
-
-    from .item import Item
 
 __all__ = ("Mech", "SlotType", "SlotSelectorType")
 

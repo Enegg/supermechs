@@ -7,7 +7,7 @@ from supermechs.enums import Element, Tier, Type
 from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import AnyStatsMapping, TransformStage, ValueRange
-from supermechs.models.item_data import ItemData, Tags, TransformRange, transform_range
+from supermechs.models.item import ItemData, Tags, TransformRange, transform_range
 from supermechs.utils import NaN, assert_type, has_any_of_keys
 
 ErrorCallbackType = t.Callable[[Exception], None]
