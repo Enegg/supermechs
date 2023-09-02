@@ -2,13 +2,14 @@ import typing as t
 
 from .typedefs.game_types import RawMechStatsMapping, RawStatsMapping
 from .typedefs.packs import AnyItemDict, AnyItemPack
+from .utils import NaN
 
 from supermechs.enums import Element, Tier, Type
 from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import AnyStatsMapping, TransformStage, ValueRange
 from supermechs.models.item import ItemData, Tags, TransformRange, transform_range
-from supermechs.utils import NaN, assert_type, has_any_of_keys
+from supermechs.utils import assert_type, has_any_of_keys
 
 ErrorCallbackType = t.Callable[[Exception], None]
 
@@ -230,7 +231,7 @@ def to_item_pack(
 
     # what TODO with the issues?
 
-    pack = ItemPack(
+    return ItemPack(
         key=key,
         items=items,
         name=assert_type(str, metadata.get("name", "<no name>")),

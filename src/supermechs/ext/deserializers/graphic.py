@@ -4,6 +4,7 @@ import anyio
 
 from .typedefs.graphics import AnyRawAttachment, RawPlane2D, RawPoint2D, RawTorsoAttachments
 from .typedefs.packs import AnyItemDict, AnyItemPack, ItemDictVer1, ItemDictVer2, ItemDictVer3
+from .utils import js_format
 
 from supermechs.enums import Type
 from supermechs.errors import MalformedData
@@ -17,7 +18,7 @@ from supermechs.rendering import (
     is_attachable,
 )
 from supermechs.typedefs import ID
-from supermechs.utils import assert_type, js_format
+from supermechs.utils import assert_type
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
