@@ -1,7 +1,7 @@
 import typing as t
 
 if t.TYPE_CHECKING:
-    from .models.inv_item import InvItem
+    from .models.item import InvItem
 
 
 class SMException(Exception):

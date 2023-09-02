@@ -5,34 +5,13 @@ import typing as t
 
 from attrs import define, field
 
-from .errors import UnknownDataVersion
-from .models.item_data import ItemData
-from .typedefs import ID, AnyItemPack, Name
-from .utils import assert_type, large_mapping_repr
+from .models.item import ItemData
+from .typedefs import ID, Name
+from .utils import large_mapping_repr
 
-__all__ = ("ItemPack", "extract_key")
+__all__ = ("ItemPack",)
 
 LOGGER = logging.getLogger(__name__)
-
-
-# TODO: use match case and/or custom exception for input validation
-def extract_key(pack: AnyItemPack, /) -> str:
-    """Extract the key of an item pack.
-
-    Raises
-    ------
-    TypeError on unknown version.
-    """
-    if "version" not in pack or pack["version"] == "1":
-        key = pack["config"]["key"]
-
-    elif pack["version"] in ("2", "3"):
-        key = pack["key"]
-
-    else:
-        raise UnknownDataVersion("pack", pack["version"], 3)
-
-    return assert_type(str, key)
 
 
 @define
@@ -48,8 +27,6 @@ class ItemPack:
 
     # Item name to item ID
     names_to_ids: t.MutableMapping[Name, ID] = field(factory=dict, init=False, repr=False)
-    # Abbrev to a set of names the abbrev matches
-    name_abbrevs: t.MutableMapping[str, t.AbstractSet[Name]] = field(factory=dict, init=False, repr=False)
 
     def __contains__(self, value: Name | ID | ItemData) -> bool:
         if isinstance(value, Name):

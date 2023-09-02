@@ -237,4 +237,22 @@ def to_item_pack(
         description=assert_type(str, metadata.get("description", "<no description>")),
         custom=custom,
     )
-    return pack
+
+
+def extract_key(pack: AnyItemPack, /) -> str:
+    """Extract the key of an item pack.
+
+    Raises
+    ------
+    TypeError on unknown version.
+    """
+    if "version" not in pack or pack["version"] == "1":
+        key = pack["config"]["key"]
+
+    elif pack["version"] in ("2", "3"):
+        key = pack["key"]
+
+    else:
+        raise UnknownDataVersion("pack", pack["version"], 3)
+
+    return assert_type(str, key)
