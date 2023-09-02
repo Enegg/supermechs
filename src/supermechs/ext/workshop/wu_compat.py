@@ -18,6 +18,8 @@ from supermechs.item_stats import max_stats
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typedefs import ID, Name
 
+__all__ = ("load_mechs", "dump_mechs")
+
 # ------------------------------------------ typed dicts -------------------------------------------
 
 
