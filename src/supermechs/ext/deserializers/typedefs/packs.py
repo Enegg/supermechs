@@ -1,9 +1,10 @@
 import typing as t
 from typing_extensions import NotRequired
 
-from supermechs.typeshed import LiteralURL
 from .game_types import LiteralElement, LiteralType, RawStatsMapping
-from .graphics import RawPlane2D, RawPoint2D, RawTorsoAttachments
+from .graphics import ItemImageParams, RawPlane2D
+
+from supermechs.typeshed import LiteralURL
 
 # fmt: off
 __all__ = (
@@ -37,16 +38,13 @@ class SpritesSheetMixin(t.TypedDict):
     spritesMap: dict[str, RawPlane2D]
 
 
-class ItemDictBase(t.TypedDict):
+class ItemDictBase(ItemImageParams):
     id: int
     name: str
     type: LiteralType
     element: LiteralElement
     transform_range: str
     tags: NotRequired[list[LiteralTag]]
-    width: NotRequired[int]
-    height: NotRequired[int]
-    attachment: NotRequired[RawPoint2D | RawTorsoAttachments]
 
 
 # -------------------------------------- v1 --------------------------------------

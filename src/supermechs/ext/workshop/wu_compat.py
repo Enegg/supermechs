@@ -32,11 +32,6 @@ class WUBattleItem(t.TypedDict):
     timesUsed: t.Literal[0]
 
 
-class PartialMechJSON(t.TypedDict):
-    name: str
-    setup: t.Sequence[ID]
-
-
 class MechJSON(t.TypedDict):
     id: str
     name: str

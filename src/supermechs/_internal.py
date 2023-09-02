@@ -28,7 +28,7 @@ async def load_power_data() -> None:
     import csv
 
     async def worker(
-        file_name: str, rarities: t.Iterable[Tier], mapping: t.MutableMapping[Tier, t.Sequence[int]]
+        file_name: str, rarities: t.Iterable[Tier], mapping: dict[Tier, t.Sequence[int]]
     ) -> None:
         async with await (path / file_name).open(newline="") as file:
             rows = csv.reader(await file.readlines(), skipinitialspace=True)
