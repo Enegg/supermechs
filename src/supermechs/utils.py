@@ -5,7 +5,6 @@ import typing as t
 from collections import Counter
 from contextlib import suppress
 from string import ascii_letters
-
 from typing_extensions import Self, override
 
 from .typeshed import T, twotuple

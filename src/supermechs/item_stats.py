@@ -1,6 +1,6 @@
 import typing as t
-
 import typing_extensions as tex
+
 from attrs import define, field
 
 from .constants import TIER_MAX_LEVELS

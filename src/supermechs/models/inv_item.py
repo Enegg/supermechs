@@ -3,9 +3,9 @@ from __future__ import annotations
 import typing as t
 import uuid
 from bisect import bisect_left
+from typing_extensions import Self
 
 from attrs import Factory, define, field
-from typing_extensions import Self
 
 from .. import _internal
 from ..enums import Tier

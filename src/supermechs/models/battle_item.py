@@ -1,7 +1,7 @@
 import typing as t
+from typing_extensions import Self
 
 from attrs import define, field
-from typing_extensions import Self
 
 from ..item_stats import AnyStatsMapping
 from .inv_item import InvItem

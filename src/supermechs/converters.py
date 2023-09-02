@@ -1,5 +1,4 @@
 import typing as t
-
 import typing_extensions as tex
 
 from .enums import Type

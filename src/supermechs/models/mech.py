@@ -4,9 +4,9 @@ import typing as t
 from collections import Counter
 from functools import partial
 from types import MappingProxyType
+from typing_extensions import Self
 
 from attrs import define, field
-from typing_extensions import Self
 
 from .. import constants
 from ..enums import Element, Type

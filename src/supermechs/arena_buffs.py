@@ -1,7 +1,7 @@
 import typing as t
+from typing_extensions import Self
 
 from attrs import Factory, define
-from typing_extensions import Self
 
 from ._internal import BASE_LVL_INCREASES, BUFFABLE_STATS, HIT_POINT_INCREASES, STATS
 from .item_stats import AnyStatsMapping, ValueRange

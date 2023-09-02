@@ -1,6 +1,6 @@
 import typing as t
-
 import typing_extensions as tex
+
 from attrs import define, field, validators
 
 from ..enums import Element, Tier, Type

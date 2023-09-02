@@ -1,5 +1,4 @@
 import typing as t
-
 from typing_extensions import NotRequired
 
 from ..typeshed import LiteralURL

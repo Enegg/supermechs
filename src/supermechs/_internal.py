@@ -1,7 +1,7 @@
 import typing as t
+import typing_extensions as tex
 
 import anyio
-import typing_extensions as tex
 
 from .enums import Tier
 from .platform import toml_decoder

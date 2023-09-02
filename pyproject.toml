@@ -4,15 +4,13 @@ version = "0.1.0"
 description = "Package modeling the behavior of the SuperMechs game into python objects."
 authors = ["Eneg"]
 readme = "README.md"
-packages = [
-    {include = "supermechs", from = "src"}
-]
+packages = [{ include = "supermechs", from = "src" }]
 
 
 [tool.poetry.dependencies]
 python = "^3.10"
 typing-extensions = "^4.4.1" # override
-attrs = ">= 22.1.0" # min_len
+attrs = ">= 22.1.0"          # min_len
 Pillow = "^9.0.0"
 rtoml = "*"
 # orjson = "*"
@@ -44,15 +42,12 @@ target-version = "py310"
 
 [tool.ruff.isort]
 combine-as-imports = true
+extra-standard-library = ["typing_extensions"]
 forced-separate = ["supermechs"]
 
 
 [tool.ruff.flake8-type-checking]
 exempt-modules = ["typing", "typing_extensions"]
-
-
-[tool.ruff.mccabe]
-max-complexity = 5
 
 
 [tool.pyright]

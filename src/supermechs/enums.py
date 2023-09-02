@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import typing as t
 from enum import Enum, auto
-
 from typing_extensions import Self
 
 __all__ = ("Tier", "Element", "Type")
