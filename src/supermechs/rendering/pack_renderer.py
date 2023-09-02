@@ -5,7 +5,7 @@ from bisect import insort_left
 from attrs import define, field
 
 from ..enums import Tier, Type
-from ..models.item import Item
+from ..models.item import Item, ItemData
 from ..typeshed import twotuple
 from ..utils import large_mapping_repr
 from .attachments import TORSO_ATTACHMENT_FIELDS, cast_attachment
@@ -13,7 +13,6 @@ from .attachments import TORSO_ATTACHMENT_FIELDS, cast_attachment
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-    from ..models.item_data import ItemData
     from ..models.mech import Mech
     from ..typedefs import ID
     from .sprites import ItemSprite

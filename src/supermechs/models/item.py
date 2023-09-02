@@ -88,12 +88,12 @@ class Item:
     """Represents unique properties of an item."""
 
     data: ItemData = field()
-    stage: "TransformStage" = field()
+    stage: TransformStage = field()
     level: int = field(default=0)
     paint: Paint | None = field(default=None)
 
     @property
-    def current_stats(self) -> "AnyStatsMapping":
+    def current_stats(self) -> AnyStatsMapping:
         """The stats of this item at its particular tier and level."""
         return self.stage.at(self.level)
 
@@ -112,7 +112,7 @@ class Item:
 
     @classmethod
     def from_data(
-        cls, data: ItemData, stage: "TransformStage | None" = None, /, *, maxed: bool = False
+        cls, data: ItemData, stage: TransformStage | None = None, /, *, maxed: bool = False
     ) -> tex.Self:
         if stage is None:
             stage = data.start_stage
@@ -221,21 +221,21 @@ def apply_multipliers(
         stats[key] = round(old * value)
 
 
-def battle_item_factory(base_item: InvItem, multipliers: dict[str, float] = {}) -> "BattleItem":
-    """Create a BattleItem with pre-applied multipliers."""
-    stats = base_item.item.current_stats
-    apply_multipliers(stats, multipliers)
-    return BattleItem.from_item(base_item)
-
-
 @define
 class BattleItem:
     """Represents the state of an item during a battle."""
-    item: InvItem
+    item: Item
     stats: AnyStatsMapping
     multipliers: t.Mapping[str, float] = field(factory=dict)
     # already_used: bool? XXX prolly better to store elsewhere
 
     @classmethod
-    def from_item(cls, inv_item: InvItem, /) -> tex.Self:
-        return cls(item=inv_item, stats=inv_item.item.current_stats)
+    def from_item(cls, item: Item, /) -> tex.Self:
+        return cls(item=item, stats=item.current_stats)
+
+
+def battle_item_factory(item: Item, multipliers: dict[str, float] = {}) -> BattleItem:
+    """Create a BattleItem with pre-applied multipliers."""
+    stats = item.current_stats
+    apply_multipliers(stats, multipliers)
+    return BattleItem.from_item(item)
