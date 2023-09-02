@@ -4,11 +4,12 @@ import typing as t
 
 from attrs import define
 
-
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
     from .attachments import AnyAttachment
+
+__all__ = ("ItemSprite",)
 
 
 @define

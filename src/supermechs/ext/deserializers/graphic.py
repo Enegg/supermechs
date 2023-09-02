@@ -2,9 +2,18 @@ import typing as t
 
 import anyio
 
-from ..enums import Type
-from ..errors import MalformedData
-from ..typedefs import (
+from supermechs.enums import Type
+from supermechs.errors import MalformedData
+from supermechs.rendering import (
+    AnyAttachment,
+    ItemSprite,
+    PackRenderer,
+    Point2D,
+    TorsoAttachments,
+    create_synthetic_attachment,
+    is_attachable,
+)
+from supermechs.typedefs import (
     ID,
     AnyItemDict,
     AnyItemPack,
@@ -12,25 +21,16 @@ from ..typedefs import (
     ItemDictVer1,
     ItemDictVer2,
     ItemDictVer3,
+    RawPlane2D,
     RawPoint2D,
     RawTorsoAttachments,
 )
-from ..typeshed import Coro
-from ..utils import assert_type, js_format
-from .attachments import (
-    AnyAttachment,
-    Point2D,
-    TorsoAttachments,
-    create_synthetic_attachment,
-    is_attachable,
-)
-from .pack_renderer import PackRenderer, crop_from_spritesheet
-from .sprites import ItemSprite
+from supermechs.utils import assert_type, js_format
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-ImageFetcher = t.Callable[[str], Coro["Image"]]
+ImageFetcher = t.Callable[[str], t.Awaitable["Image"]]
 
 
 def to_point2d(data: RawPoint2D, /) -> Point2D:
@@ -65,9 +65,12 @@ def to_attachments(data: AnyRawAttachment, /) -> AnyAttachment:
             raise MalformedData("Invalid attachment", unknown)
 
 
-def oneshot(
-    item_dict: AnyItemDict, image: "Image", sprites: t.MutableMapping[ID, ItemSprite]
-) -> None:
+def bounding_box(pos: RawPlane2D, /) -> tuple[int, int, int, int]:
+    x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
+    return (x, y, x + w, y + h)
+
+
+def oneshot(item_dict: AnyItemDict, image: "Image", sprites: dict[ID, ItemSprite]) -> None:
     width = item_dict.get("width", image.width)
     height = item_dict.get("height", image.height)
 
@@ -115,23 +118,23 @@ async def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRen
 
     elif data["version"] in ("2", "3"):
         key = assert_type(str, data["key"])
-        spritessheet_url = assert_type(str, data["spritesSheet"])
-        spritessheet_map = data["spritesMap"]
+        spritesheet_url = assert_type(str, data["spritesSheet"])
+        spritesheet_map = data["spritesMap"]
 
-        spritessheet = await fetch(spritessheet_url)
-        del spritessheet_url
+        spritesheet = await fetch(spritesheet_url)
+        del spritesheet_url
         sprites: dict[ID, ItemSprite] = {}
 
         def sprite_creator(item_dict: ItemDictVer2 | ItemDictVer3) -> None:
             sheet_key = assert_type(str, item_dict["name"]).replace(" ", "")
-            image = crop_from_spritesheet(spritessheet, spritessheet_map[sheet_key])
+            image = spritesheet.crop(bounding_box(spritesheet_map[sheet_key]))
             oneshot(item_dict, image, sprites)
 
         async with anyio.create_task_group() as tg:
             for item_dict in data["items"]:
                 tg.start_soon(anyio.to_thread.run_sync, sprite_creator, item_dict)
 
-        del spritessheet_map
+        del spritesheet_map
 
     else:
         raise ValueError(f"Unknown pack version: {data['version']}")

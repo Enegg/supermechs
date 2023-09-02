@@ -15,7 +15,7 @@ if t.TYPE_CHECKING:
 
     from ..models.item_data import ItemData
     from ..models.mech import Mech
-    from ..typedefs import ID, RawPlane2D
+    from ..typedefs import ID
     from .sprites import ItemSprite
 
 __all__ = ("Rectangular", "PackRenderer")
@@ -166,8 +166,3 @@ class PackRenderer:
             canvas[LAYER_ORDER.index("drone"), x, y] = drone_sprite.image
 
         return canvas.merge(LAYER_ORDER.index("torso"))
-
-
-def crop_from_spritesheet(spritesheet: "Image", pos: "RawPlane2D") -> "Image":
-    x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
-    return spritesheet.crop((x, y, x + w, y + h))

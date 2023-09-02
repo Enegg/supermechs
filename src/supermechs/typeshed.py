@@ -1,20 +1,17 @@
-import typing as t
+import typing_extensions as t
 
-from typing_extensions import ParamSpec, TypeVar
-
-T = TypeVar("T", infer_variance=True)
-T2 = TypeVar("T2", infer_variance=True)
-KT = TypeVar("KT", bound=t.Hashable)
+T = t.TypeVar("T", infer_variance=True)
+T2 = t.TypeVar("T2", infer_variance=True)
+KT = t.TypeVar("KT", bound=t.Hashable)
 """Key-type of a mapping."""
-VT = TypeVar("VT")
+VT = t.TypeVar("VT")
 """Value-type of a mapping."""
-P = ParamSpec("P")
+P = t.ParamSpec("P")
 
 twotuple = tuple[T, T]
 """Tuple of two elements of same type."""
 XOrTupleXY = T | tuple[T, T2]
 """Type or tuple of two types."""
-Coro = t.Coroutine[t.Any, t.Any, T]
 Factory = t.Callable[[], T]
 """0-argument callable returning an object of given type."""
 LiteralURL: t.TypeAlias = str

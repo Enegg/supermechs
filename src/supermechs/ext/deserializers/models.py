@@ -1,12 +1,12 @@
 import typing as t
 
-from ..enums import Element, Tier, Type
-from ..errors import InvalidKeyValue, MalformedData, UnknownDataVersion
-from ..item_pack import ItemPack
-from ..item_stats import AnyStatsMapping, TransformStage, ValueRange
-from ..typedefs import AnyItemDict, AnyItemPack, RawMechStatsMapping, RawStatsMapping
-from ..utils import NaN, assert_type, has_any_of_keys
-from .item_data import ItemData, Tags, TransformRange, transform_range
+from ...enums import Element, Tier, Type
+from ...errors import InvalidKeyValue, MalformedData, UnknownDataVersion
+from ...item_pack import ItemPack
+from ...item_stats import AnyStatsMapping, TransformStage, ValueRange
+from ...typedefs import AnyItemDict, AnyItemPack, RawMechStatsMapping, RawStatsMapping
+from ...utils import NaN, assert_type, has_any_of_keys
+from ...models.item_data import ItemData, Tags, TransformRange, transform_range
 
 ErrorCallbackType = t.Callable[[Exception], None]
 
