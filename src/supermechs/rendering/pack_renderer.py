@@ -111,17 +111,19 @@ class Canvas:
 @define
 class PackRenderer:
     pack_key: str = field()
-    sprites: t.Mapping["ID", "ItemSprite"] = field(repr=large_mapping_repr)
+    sprites: t.Mapping["ID", "ItemSprite[t.Any]"] = field(repr=large_mapping_repr)
 
     @t.overload
-    def get_item_sprite(self, item: "ItemData", /, tier: Tier) -> "ItemSprite":
+    def get_item_sprite(self, item: "ItemData", /, tier: Tier) -> "ItemSprite[t.Any]":
         ...
 
     @t.overload
-    def get_item_sprite(self, item: Item, /) -> "ItemSprite":
+    def get_item_sprite(self, item: Item, /) -> "ItemSprite[t.Any]":
         ...
 
-    def get_item_sprite(self, item: "ItemData | Item", /, tier: Tier | None = None) -> "ItemSprite":
+    def get_item_sprite(
+        self, item: "ItemData | Item", /, tier: Tier | None = None
+    ) -> "ItemSprite[t.Any]":
         if isinstance(item, Item):
             tier = item.stage.tier
             item = item.data
@@ -132,14 +134,14 @@ class PackRenderer:
 
         return self.sprites[item.id]
 
-    def create_mech_image(self, mech: "Mech", /) -> "Image":
+    async def create_mech_image(self, mech: "Mech", /) -> "Image":
         if mech.torso is None:
             raise RuntimeError("Cannot create mech image without torso set")
 
         torso_sprite = self.get_item_sprite(mech.torso.item)
 
         attachments = cast_attachment(torso_sprite.attachment, Type.TORSO)
-        canvas = Canvas(torso_sprite.image)
+        canvas = Canvas(await torso_sprite.image)
 
         if mech.legs is not None:
             legs_sprite = self.get_item_sprite(mech.legs.item)
@@ -147,7 +149,7 @@ class PackRenderer:
 
             for layer in TORSO_ATTACHMENT_FIELDS[:2]:
                 x, y = combine_attachments(leg_attachment, attachments[layer])
-                canvas[LAYER_ORDER.index(layer), x, y] = legs_sprite.image
+                canvas[LAYER_ORDER.index(layer), x, y] = await legs_sprite.image
 
         for inv_item, layer in zip(mech.iter_items("weapons"), TORSO_ATTACHMENT_FIELDS[2:]):
             if inv_item is None:
@@ -156,12 +158,13 @@ class PackRenderer:
             item_sprite = self.get_item_sprite(inv_item.item)
             item_attachment = cast_attachment(item_sprite.attachment, Type.SIDE_WEAPON)
             x, y = combine_attachments(item_attachment, attachments[layer])
-            canvas[LAYER_ORDER.index(layer), x, y] = item_sprite.image
+            canvas[LAYER_ORDER.index(layer), x, y] = await item_sprite.image
 
         if mech.drone is not None:
             drone_sprite = self.get_item_sprite(mech.drone.item)
-            x = drone_sprite.width // 2 + canvas.offsets.left
-            y = drone_sprite.height + 25 + canvas.offsets.above
-            canvas[LAYER_ORDER.index("drone"), x, y] = drone_sprite.image
+            drone_image = await drone_sprite.image
+            x = drone_image.width // 2 + canvas.offsets.left
+            y = drone_image.height + 25 + canvas.offsets.above
+            canvas[LAYER_ORDER.index("drone"), x, y] = drone_image
 
         return canvas.merge(LAYER_ORDER.index("torso"))
