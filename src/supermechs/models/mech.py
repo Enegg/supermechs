@@ -4,7 +4,6 @@ import typing as t
 from collections import Counter
 from functools import partial
 from types import MappingProxyType
-from typing_extensions import Self
 
 from attrs import define, field
 
@@ -12,14 +11,11 @@ from .. import constants
 from ..enums import Element, Type
 from ..typeshed import XOrTupleXY
 from ..utils import cached_slot_property, format_count, has_any_of
-from .item import InvItem, Item
-
-if t.TYPE_CHECKING:
-    from uuid import UUID
+from .item import Item
 
 __all__ = ("Mech", "SlotType", "SlotSelectorType")
 
-SlotType = InvItem | None
+SlotType = Item | None
 SlotSelectorType = XOrTupleXY[Type, int]
 
 # ------------------------------------------ Constraints -------------------------------------------
@@ -27,14 +23,14 @@ SlotSelectorType = XOrTupleXY[Type, int]
 
 def jumping_required(mech: Mech) -> bool:
     # unequipping legs is allowed, so no legs tests positive
-    return mech.legs is None or "jumping" in mech.legs.item.current_stats
+    return mech.legs is None or "jumping" in mech.legs.current_stats
 
 
 def no_duplicate_stats(mech: Mech, module: Item) -> bool:
     present_exclusive_stat_keys = module.current_stats.keys() & constants.EXCLUSIVE_STAT_KEYS
 
     for equipped_module in mech.iter_items(Type.MODULE):
-        if equipped_module is None or equipped_module.item is module:
+        if equipped_module is None or equipped_module is module:
             continue
 
         if has_any_of(equipped_module.current_stats, present_exclusive_stat_keys):
@@ -59,7 +55,7 @@ def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
 
 
 def assert_not_custom(mech: Mech, /) -> bool:
-    return all(not inv_item.item.data.tags.custom for inv_item in filter(None, mech.iter_items()))
+    return all(not inv_item.data.tags.custom for inv_item in filter(None, mech.iter_items()))
 
 
 def validate(mech: Mech, /) -> bool:
@@ -74,7 +70,7 @@ def validate(mech: Mech, /) -> bool:
         # not overweight
         and mech.weight <= constants.OVERLOADED_MAX_WEIGHT
         # no constraints are broken
-        and all(constr(mech) for constr in mech._constraints.values())
+        # and all(constr(mech) for constr in mech._constraints.values())
     )
 
 
@@ -124,9 +120,6 @@ class Mech:
     name: str = field()
     custom: t.Final[bool] = False
     _items: t.Final[t.MutableSequence[SlotType]] = field(factory=lambda: [None] * 20)
-    _constraints: t.Final[t.MutableMapping[UUID, t.Callable[[Self], bool]]] = field(
-        init=False, factory=dict
-    )
 
     # cached properties
     _stats: t.MutableMapping[str, int] = field(init=False, repr=False, eq=False)
@@ -194,9 +187,9 @@ class Mech:
         # inherit the key order from summary
         stats = dict.fromkeys(constants.SUMMARY_STAT_KEYS, 0)
 
-        for inv_item in filter(None, self.iter_items()):
+        for item in filter(None, self.iter_items()):
             for stat in constants.SUMMARY_STAT_KEYS:
-                if (value := inv_item.item.current_stats.get(stat)) is not None:
+                if (value := item.current_stats.get(stat)) is not None:
                     stats[stat] += value
 
         if (overload := stats["weight"] - constants.MAX_WEIGHT) > 0:
@@ -213,10 +206,10 @@ class Mech:
         """Guesses the mech type by equipped items."""
         excluded = (Type.CHARGE_ENGINE, Type.TELEPORTER)
         elements = Counter(
-            inv_item.item.data.element
-            for inv_item in self.iter_items("body", "weapons", "specials")
-            if inv_item is not None
-            if inv_item.item.data.type not in excluded
+            item.data.element
+            for item in self.iter_items("body", "weapons", "specials")
+            if item is not None
+            if item.data.type not in excluded
         ).most_common(2)
         # return None when there are no elements
         # or the difference between the two most common is indecisive
@@ -226,32 +219,26 @@ class Mech:
         # otherwise just return the most common one
         return elements[0][0]
 
-    def __setitem__(self, slot: SlotSelectorType, inv_item: SlotType, /) -> None:
-        if not isinstance(inv_item, SlotType):
-            raise TypeError(f"Expected {SlotType}, got {type(inv_item).__name__}")
+    def __setitem__(self, slot: SlotSelectorType, item: SlotType, /) -> None:
+        if not isinstance(item, SlotType):
+            raise TypeError(f"Expected {SlotType}, got {type(item).__name__}")
 
         index, target_type = _index_for_slot(slot)
 
         prev = self._items[index]
 
-        if inv_item is not None:
-            data = inv_item.item.data
+        if item is not None:
+            data = item.data
             if data.type is not target_type:
                 raise TypeError(f"Item type {data.type} does not match slot {target_type!r}")
 
             if data.tags.custom and not self.custom:
                 raise TypeError("Cannot set a custom item on this mech")
 
-            if prev is not None and prev.UUID in self._constraints:
-                del self._constraints[prev.UUID]
-
-            if (constraint := get_constraints_of_item(inv_item.item)) is not None:
-                self._constraints[inv_item.UUID] = constraint
-
         del self.stat_summary
 
-        self._evict_expired_cache(inv_item, prev)
-        self._items[index] = inv_item
+        self._evict_expired_cache(item, prev)
+        self._items[index] = item
 
     def __getitem__(self, slot: XOrTupleXY[Type, int], /) -> SlotType:
         index, _ = _index_for_slot(slot)
@@ -259,18 +246,18 @@ class Mech:
 
     def __str__(self) -> str:
         string_parts = [
-            f"{inv_item.item.data.type.name.capitalize()}: {inv_item}"
-            for inv_item in self.iter_items("body")
-            if inv_item is not None
+            f"{item.data.type.name.capitalize()}: {item}"
+            for item in self.iter_items("body")
+            if item is not None
         ]
 
         if weapon_string := ", ".join(format_count(self.iter_items("weapons"))):
             string_parts.append("Weapons: " + weapon_string)
 
         string_parts.extend(
-            f"{inv_item.item.data.type.name.capitalize()}: {inv_item}"
-            for inv_item in self.iter_items("specials")
-            if inv_item is not None
+            f"{item.data.type.name.capitalize()}: {item}"
+            for item in self.iter_items("specials")
+            if item is not None
         )
 
         if modules := ", ".join(format_count(self.iter_items(Type.MODULE))):
@@ -291,7 +278,7 @@ class Mech:
         # elif old is not None and old.type.displayable:
         #     del self.image
 
-        if new is None or old is None or new.item.data.element is not old.item.data.element:
+        if new is None or old is None or new.data.element is not old.data.element:
             del self.dominant_element
 
     @t.overload

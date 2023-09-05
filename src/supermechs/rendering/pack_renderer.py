@@ -1,7 +1,7 @@
-import logging
 import typing as t
 from bisect import insort_left
 
+import anyio
 from attrs import define, field
 
 from ..enums import Tier, Type
@@ -18,8 +18,6 @@ if t.TYPE_CHECKING:
     from .sprites import ItemSprite
 
 __all__ = ("Rectangular", "PackRenderer")
-
-LOGGER = logging.getLogger(__name__)
 
 LAYER_ORDER = (
     "drone",
@@ -134,35 +132,40 @@ class PackRenderer:
 
         return self.sprites[item.id]
 
-    async def create_mech_image(self, mech: "Mech", /) -> "Image":
+    async def load_mech_images(self, mech: "Mech", /) -> None:
+        async with anyio.create_task_group() as tg:
+            for item in filter(None, mech.iter_items(Type.TORSO, Type.LEGS, "weapons")):
+                sprite = self.get_item_sprite(item)
+                tg.start_soon(sprite.load)
+
+    def create_mech_image(self, mech: "Mech", /) -> "Image":
         if mech.torso is None:
             raise RuntimeError("Cannot create mech image without torso set")
 
-        torso_sprite = self.get_item_sprite(mech.torso.item)
-
+        torso_sprite = self.get_item_sprite(mech.torso)
         attachments = cast_attachment(torso_sprite.attachment, Type.TORSO)
-        canvas = Canvas(await torso_sprite.image)
+        canvas = Canvas(torso_sprite.image)
 
         if mech.legs is not None:
-            legs_sprite = self.get_item_sprite(mech.legs.item)
+            legs_sprite = self.get_item_sprite(mech.legs)
             leg_attachment = cast_attachment(legs_sprite.attachment, Type.LEGS)
 
             for layer in TORSO_ATTACHMENT_FIELDS[:2]:
                 x, y = combine_attachments(leg_attachment, attachments[layer])
-                canvas[LAYER_ORDER.index(layer), x, y] = await legs_sprite.image
+                canvas[LAYER_ORDER.index(layer), x, y] = legs_sprite.image
 
-        for inv_item, layer in zip(mech.iter_items("weapons"), TORSO_ATTACHMENT_FIELDS[2:]):
-            if inv_item is None:
+        for item, layer in zip(mech.iter_items("weapons"), TORSO_ATTACHMENT_FIELDS[2:]):
+            if item is None:
                 continue
 
-            item_sprite = self.get_item_sprite(inv_item.item)
+            item_sprite = self.get_item_sprite(item)
             item_attachment = cast_attachment(item_sprite.attachment, Type.SIDE_WEAPON)
             x, y = combine_attachments(item_attachment, attachments[layer])
-            canvas[LAYER_ORDER.index(layer), x, y] = await item_sprite.image
+            canvas[LAYER_ORDER.index(layer), x, y] = item_sprite.image
 
         if mech.drone is not None:
-            drone_sprite = self.get_item_sprite(mech.drone.item)
-            drone_image = await drone_sprite.image
+            drone_sprite = self.get_item_sprite(mech.drone)
+            drone_image = drone_sprite.image
             x = drone_image.width // 2 + canvas.offsets.left
             y = drone_image.height + 25 + canvas.offsets.above
             canvas[LAYER_ORDER.index("drone"), x, y] = drone_image
