@@ -11,7 +11,7 @@ from attrs import define, field
 from .. import constants
 from ..enums import Element, Type
 from ..typeshed import XOrTupleXY
-from ..utils import cached_slot_property, format_count, has_any_of_keys
+from ..utils import cached_slot_property, format_count, has_any_of
 from .item import InvItem, Item
 
 if t.TYPE_CHECKING:
@@ -37,14 +37,14 @@ def no_duplicate_stats(mech: Mech, module: Item) -> bool:
         if equipped_module is None or equipped_module.item is module:
             continue
 
-        if not equipped_module.item.current_stats.keys().isdisjoint(present_exclusive_stat_keys):
+        if has_any_of(equipped_module.current_stats, present_exclusive_stat_keys):
             return False
 
     return True
 
 
 def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
-    if item.data.type is Type.MODULE and has_any_of_keys(
+    if item.data.type is Type.MODULE and has_any_of(
         item.current_stats, *constants.EXCLUSIVE_STAT_KEYS
     ):
         return partial(no_duplicate_stats, module=item)

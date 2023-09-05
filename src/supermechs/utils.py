@@ -115,9 +115,14 @@ class cached_slot_property(t.Generic[T]):
             pass
 
 
-def has_any_of_keys(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
+def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
     """Returns True if a mapping contains any of the specified keys."""
     return not mapping.keys().isdisjoint(keys)
+
+
+def has_all_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
+    """Returns True if a mapping contains all of the specified keys."""
+    return bool(mapping.keys() & keys)
 
 
 def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:

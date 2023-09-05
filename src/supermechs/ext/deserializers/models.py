@@ -9,7 +9,7 @@ from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import AnyStatsMapping, TransformStage, ValueRange
 from supermechs.models.item import ItemData, Tags, TransformRange, transform_range
-from supermechs.utils import assert_type, has_any_of_keys
+from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]
 
@@ -35,7 +35,7 @@ def to_tags(
     elif transform_range[0] >= Tier.LEGENDARY:
         literal_tags.add("premium")
 
-    if has_any_of_keys(stats, "advance", "retreat"):
+    if has_any_of(stats, "advance", "retreat"):
         literal_tags.add("require_jump")
 
     if custom:
