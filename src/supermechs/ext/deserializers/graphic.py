@@ -1,9 +1,7 @@
 import typing as t
 
-import anyio
-
 from .typedefs.graphics import AnyRawAttachment, RawPlane2D, RawPoint2D, RawTorsoAttachments
-from .typedefs.packs import AnyItemDict, AnyItemPack, ItemDictVer1, ItemDictVer2, ItemDictVer3
+from .typedefs.packs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .utils import js_format
 
 from supermechs.enums import Type
@@ -13,6 +11,8 @@ from supermechs.rendering import (
     ItemSprite,
     PackRenderer,
     Point2D,
+    SingleResolver,
+    SpritesheetResolver,
     TorsoAttachments,
     create_synthetic_attachment,
     is_attachable,
@@ -63,75 +63,77 @@ def bounding_box(pos: RawPlane2D, /) -> tuple[int, int, int, int]:
     return (x, y, x + w, y + h)
 
 
-def oneshot(item_dict: AnyItemDict, image: "Image", sprites: dict[ID, ItemSprite]) -> None:
-    width = item_dict.get("width", image.width)
-    height = item_dict.get("height", image.height)
-
-    if image.mode != "RGBA":
-        image = image.convert("RGBA")
-
-    if image.size != (width, height):
-        image = image.resize((width, height))
-
-    attachment = to_attachments(item_dict.get("attachment"))
-    type = Type[item_dict["type"]]
-    sprite = ItemSprite(image, attachment)
-
-    if attachment is None and is_attachable(type):
-        sprite.attachment = create_synthetic_attachment(*image.size, type)
-
-    sprites[item_dict["id"]] = sprite
-
-
-async def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
     """Create an instance of the class by fetching all images."""
 
     if "version" not in data or data["version"] == "1":
-        key = assert_type(str, data["config"]["key"])
-        base_url = assert_type(str, data["config"]["base_url"])
-
-        results: list[tuple[AnyItemDict, Image]] = []
-
-        async def async_worker(item_dict: ItemDictVer1) -> None:
-            image = await fetch(js_format(assert_type(str, item_dict["image"]), url=base_url))
-            results.append((item_dict, image))
-
-        async with anyio.create_task_group() as tg:
-            for item_dict in data["items"]:
-                tg.start_soon(async_worker, item_dict)
-
-        del base_url
-        sprites: dict[ID, ItemSprite] = {}
-
-        async with anyio.create_task_group() as tg:
-            for item_dict, image in results:
-                tg.start_soon(anyio.to_thread.run_sync, oneshot, item_dict, image, sprites)
-
-        del results
+        return to_pack_renderer_v1(data, fetch)
 
     elif data["version"] in ("2", "3"):
-        key = assert_type(str, data["key"])
-        spritesheet_url = assert_type(str, data["spritesSheet"])
-        spritesheet_map = data["spritesMap"]
-
-        spritesheet = await fetch(spritesheet_url)
-        del spritesheet_url
-        sprites: dict[ID, ItemSprite] = {}
-
-        def sprite_creator(item_dict: ItemDictVer2 | ItemDictVer3) -> None:
-            sheet_key = assert_type(str, item_dict["name"]).replace(" ", "")
-            image = spritesheet.crop(bounding_box(spritesheet_map[sheet_key]))
-            oneshot(item_dict, image, sprites)
-
-        async with anyio.create_task_group() as tg:
-            for item_dict in data["items"]:
-                tg.start_soon(anyio.to_thread.run_sync, sprite_creator, item_dict)
-
-        del spritesheet_map
+        return to_pack_renderer_v2(data, fetch)
 
     else:
         raise ValueError(f"Unknown pack version: {data['version']}")
 
-    pack = PackRenderer(key, sprites)
-    # LOGGER.info(f"Pack {key!r} loaded {len(sprites)} sprites")
-    return pack
+
+def make_converter(width: int, height: int, type: Type) -> t.Callable[[ItemSprite[str]], None]:
+    def converter(sprite: ItemSprite[str], /) -> None:
+        image = sprite.image
+
+        if image.mode != "RGBA":
+            image = image.convert("RGBA")
+
+        w = width or image.width
+        h = height or image.height
+
+        if image.size != (w, h):
+            image = image.resize((w, h))
+
+        sprite.image = image
+
+        if sprite.attachment is None and is_attachable(type):
+            sprite.attachment = create_synthetic_attachment(w, h, type)
+
+    return converter
+
+
+def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRenderer:
+    key = assert_type(str, data["config"]["key"])
+    base_url = assert_type(str, data["config"]["base_url"])
+
+    sprites: dict[ID, ItemSprite[str]] = {}
+
+    for item_dict in data["items"]:
+        img_url = js_format(assert_type(str, item_dict["image"]), url=base_url)
+        attachment = to_attachments(item_dict.get("attachment"))
+        converter = make_converter(
+            item_dict.get("width", 0),
+            item_dict.get("height", 0),
+            Type.of_name(item_dict["type"])
+        )
+        sprite = SingleResolver(fetch, img_url, attachment, converter)
+        sprites[item_dict["id"]] = sprite
+
+    return PackRenderer(key, sprites)
+
+
+def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: ImageFetcher) -> PackRenderer:
+    key = assert_type(str, data["key"])
+    spritesheet_url = assert_type(str, data["spritesSheet"])
+    spritesheet_map = data["spritesMap"]
+    spritesheet = SingleResolver(fetch, spritesheet_url, None)
+    sprites: dict[ID, ItemSprite[str]] = {}
+
+    for item_dict in data["items"]:
+        attachment = to_attachments(item_dict.get("attachment"))
+        sheet_key = assert_type(str, item_dict["name"]).replace(" ", "")
+        rect = bounding_box(spritesheet_map[sheet_key])
+        converter = make_converter(
+            item_dict.get("width", 0),
+            item_dict.get("height", 0),
+            Type.of_name(item_dict["type"])
+        )
+        sprite = SpritesheetResolver(spritesheet, rect, attachment, converter)
+        sprites[item_dict["id"]] = sprite
+
+    return PackRenderer(key, sprites)

@@ -13,9 +13,6 @@ __all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver")
 
 MetadataT = t.TypeVar("MetadataT", infer_variance=True)
 Loader = t.Callable[[MetadataT], t.Awaitable[Image]]
-Processor = t.Callable[[Image], Image]
-
-MISSING_ATTACHMENT: t.Any = object()
 
 
 class ItemSprite(t.Protocol[MetadataT]):
@@ -24,17 +21,8 @@ class ItemSprite(t.Protocol[MetadataT]):
         """Image metadata, including its source."""
         ...
 
-    @property
-    def image(self) -> t.Awaitable[Image]:
-        ...
-
-    @image.deleter
-    def image(self) -> None:
-        ...
-
-    @property
-    def attachment(self) -> AnyAttachment:
-        ...
+    image: Image
+    attachment: AnyAttachment
 
     async def load(self) -> None:
         """Resolve image data."""
@@ -45,16 +33,20 @@ class ItemSprite(t.Protocol[MetadataT]):
 class SingleResolver(ItemSprite[MetadataT]):
     loader: t.Final[Loader[MetadataT]]
     metadata: t.Final[MetadataT]
-    attachment: AnyAttachment = MISSING_ATTACHMENT
-    post_processors: t.Final[t.Sequence[Processor]] = field(default=())
+    attachment: AnyAttachment
+    postprocess: t.Callable[[t.Self], None] | None = None
     _image: Image | None = field(default=None, init=False)
 
     @property
     @t.override
-    async def image(self) -> Image:
-        await self.load()
-        assert self._image is not None
+    def image(self) -> Image:
+        if self._image is None:
+            raise RuntimeError("Resource not loaded")
         return self._image
+
+    @image.setter
+    def image(self, image: Image, /) -> None:
+        self._image = image
 
     @image.deleter
     @t.override
@@ -67,20 +59,19 @@ class SingleResolver(ItemSprite[MetadataT]):
         if self._image is not None:
             return
 
-        image = await self.loader(self.metadata)
+        self._image = await self.loader(self.metadata)
 
-        for processor in self.post_processors:
-            image = processor(image)
+        if self.postprocess is not None:
+            self.postprocess(self)
 
-        self._image = image
 
 
 @define
 class SpritesheetResolver(ItemSprite[MetadataT]):
     spritesheet: t.Final[ItemSprite[MetadataT]]
     rect: t.Final[tuple[int, int, int, int]]
-    attachment: AnyAttachment = MISSING_ATTACHMENT
-    post_processors: t.Sequence[Processor] = field(default=())
+    attachment: AnyAttachment
+    postprocess: t.Callable[[t.Self], None] | None = None
     _image: Image | None = field(default=None, init=False)
 
     @property
@@ -90,10 +81,14 @@ class SpritesheetResolver(ItemSprite[MetadataT]):
 
     @property
     @t.override
-    async def image(self) -> Image:
-        await self.load()
-        assert self._image is not None
+    def image(self) -> Image:
+        if self._image is None:
+            raise RuntimeError("Resource not loaded")
         return self._image
+
+    @image.setter
+    def image(self, image: Image, /) -> None:
+        self._image = image
 
     @image.deleter
     @t.override
@@ -106,10 +101,8 @@ class SpritesheetResolver(ItemSprite[MetadataT]):
         if self._image is not None:
             return
 
-        image = await self.spritesheet.image
-        image = image.crop(self.rect)
+        await self.spritesheet.load()
+        self._image = self.spritesheet.image.crop(self.rect)
 
-        for processor in self.post_processors:
-            image = processor(image)
-
-        self._image = image
+        if self.postprocess is not None:
+            self.postprocess(self)
