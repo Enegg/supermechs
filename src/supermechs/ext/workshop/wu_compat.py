@@ -33,13 +33,6 @@ class WUBattleItem(t.TypedDict):
     timesUsed: t.Literal[0]
 
 
-class MechJSON(t.TypedDict):
-    id: str
-    name: str
-    pack_key: str
-    setup: t.Sequence[ID]
-
-
 class WUMech(t.TypedDict):
     name: str
     setup: t.Sequence[ID]
@@ -237,7 +230,7 @@ def get_battle_item(item: ItemData, slot_name: str) -> WUBattleItem:
     }
 
 
-def wu_serialize_mech(mech: Mech, player_name: str) -> WUPlayer:
+def get_player(mech: Mech, player_name: str) -> WUPlayer:
     if mech.custom:
         raise TypeError("Cannot serialize a custom mech into WU format")
 
