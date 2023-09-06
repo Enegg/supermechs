@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import typing_extensions as t
+import typing as t
+import typing_extensions as tex
 from typing import TYPE_CHECKING
 
 from attrs import define, field
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
 
 __all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver")
 
-MetadataT = t.TypeVar("MetadataT", infer_variance=True)
+MetadataT = tex.TypeVar("MetadataT", infer_variance=True)
 Loader = t.Callable[[MetadataT], t.Awaitable[Image]]
 
 
@@ -34,11 +35,11 @@ class SingleResolver(ItemSprite[MetadataT]):
     loader: t.Final[Loader[MetadataT]]
     metadata: t.Final[MetadataT]
     attachment: AnyAttachment
-    postprocess: t.Callable[[t.Self], None] | None = None
+    postprocess: t.Callable[[tex.Self], None] | None = None
     _image: Image | None = field(default=None, init=False)
 
     @property
-    @t.override
+    @tex.override
     def image(self) -> Image:
         if self._image is None:
             raise RuntimeError("Resource not loaded")
@@ -49,11 +50,11 @@ class SingleResolver(ItemSprite[MetadataT]):
         self._image = image
 
     @image.deleter
-    @t.override
+    @tex.override
     def image(self) -> None:
         self._image = None
 
-    @t.override
+    @tex.override
     async def load(self) -> None:
         # TODO: Implement locks
         if self._image is not None:
@@ -71,16 +72,16 @@ class SpritesheetResolver(ItemSprite[MetadataT]):
     spritesheet: t.Final[ItemSprite[MetadataT]]
     rect: t.Final[tuple[int, int, int, int]]
     attachment: AnyAttachment
-    postprocess: t.Callable[[t.Self], None] | None = None
+    postprocess: t.Callable[[tex.Self], None] | None = None
     _image: Image | None = field(default=None, init=False)
 
     @property
-    @t.override
+    @tex.override
     def metadata(self) -> MetadataT:
         return self.spritesheet.metadata
 
     @property
-    @t.override
+    @tex.override
     def image(self) -> Image:
         if self._image is None:
             raise RuntimeError("Resource not loaded")
@@ -91,11 +92,11 @@ class SpritesheetResolver(ItemSprite[MetadataT]):
         self._image = image
 
     @image.deleter
-    @t.override
+    @tex.override
     def image(self) -> None:
         self._image = None
 
-    @t.override
+    @tex.override
     async def load(self) -> None:
         # TODO: Implement locks
         if self._image is not None:
