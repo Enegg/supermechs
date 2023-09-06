@@ -4,7 +4,7 @@ from collections import Counter
 from contextlib import suppress
 from string import ascii_letters
 
-from .typeshed import T, twotuple
+from .typeshed import T
 
 
 def search_for(
@@ -47,20 +47,12 @@ def random_str(length: int, /, charset: str = ascii_letters) -> str:
     return "".join(random.sample(charset, length))
 
 
-def mean_and_deviation(*numbers: float) -> twotuple[float]:
-    """Returns the arithmetric mean and the standard deviation of a sequence of numbers."""
-    import statistics
-
-    mean = statistics.fmean(numbers)
-    return mean, statistics.pstdev(numbers, mean)
-
-
 # the urge to name this function in pascal case
-def is_pascal(string: str) -> bool:
-    """Returns True if the string is pascal-cased string, False otherwise.
+def is_pascal(string: str, /) -> bool:
+    """Returns True if the string is pascal-cased, False otherwise.
 
-    A string is pascal-cased if it is a single word, begins with a capitalized letter,
-    and has at least a single lowercase letter.
+    A string is pascal-cased if it contains no whitespace, begins with an uppercase letter,
+    and all following uppercase letters are separated by least a single lowercase letter.
         >>> is_pascal("fooBar")
         False
         >>> is_pascal("FooBar")
@@ -68,7 +60,43 @@ def is_pascal(string: str) -> bool:
         >>> is_pascal("Foo Bar")
         False
     """
-    return string[:1].isupper() and " " not in string
+    # use not .isupper() to have it True on whitespace too
+    if not string[:1].isupper():
+        return False
+
+    prev_is_upper = False
+
+    for char in string:
+        if char.isspace():
+            return False
+
+        if char.isupper():
+            if prev_is_upper:
+                return False
+
+            prev_is_upper = True
+
+        else:
+            prev_is_upper = False
+
+    return True
+
+
+def acronym_of(name: str, /) -> str | None:
+    """Returns an acronym of the name, or None if one cannot (shouldn't) be made.
+
+    The acronym consists of capital letters in item's name;
+    it will not be made for non-PascalCase single-word names, or names which themselves
+    are an acronym for something (like EMP).
+    """
+    if is_pascal(name) and name[1:].islower():
+        # cannot make an acronym from a single capital letter
+        return None
+    # filter out already-acronym names, like "EMP"
+    if name.isupper():
+        return None
+    # Overloaded EMP is fine to make an abbreviation for though
+    return "".join(filter(str.isupper, name)).lower()
 
 
 class cached_slot_property(t.Generic[T]):
