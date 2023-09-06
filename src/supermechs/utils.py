@@ -1,8 +1,6 @@
 import typing as t
 import typing_extensions as tex
-from collections import Counter
 from contextlib import suppress
-from string import ascii_letters
 
 from .typeshed import T
 
@@ -34,21 +32,8 @@ def search_for(
             yield name
 
 
-def format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
-    return (
-        f'{item}{f" x{count}" * (count > 1)}' for item, count in Counter(filter(None, it)).items()
-    )
-
-
-def random_str(length: int, /, charset: str = ascii_letters) -> str:
-    """Generates a random string of given length from ascii letters."""
-    import random
-
-    return "".join(random.sample(charset, length))
-
-
 # the urge to name this function in pascal case
-def is_pascal(string: str, /) -> bool:
+def _is_pascal(string: str, /) -> bool:
     """Returns True if the string is pascal-cased, False otherwise.
 
     A string is pascal-cased if it contains no whitespace, begins with an uppercase letter,
@@ -89,7 +74,7 @@ def acronym_of(name: str, /) -> str | None:
     it will not be made for non-PascalCase single-word names, or names which themselves
     are an acronym for something (like EMP).
     """
-    if is_pascal(name) and name[1:].islower():
+    if _is_pascal(name) and name[1:].islower():
         # cannot make an acronym from a single capital letter
         return None
     # filter out already-acronym names, like "EMP"

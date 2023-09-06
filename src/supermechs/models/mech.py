@@ -10,7 +10,7 @@ from attrs import define, field
 from .. import constants
 from ..enums import Element, Type
 from ..typeshed import XOrTupleXY
-from ..utils import cached_slot_property, format_count, has_any_of
+from ..utils import cached_slot_property, has_any_of
 from .item import Item
 
 __all__ = ("Mech", "SlotType", "SlotSelectorType")
@@ -102,6 +102,13 @@ _type_groups: t.Mapping[str, t.Sequence[Type]] = {
     "weapons": (Type.SIDE_WEAPON, Type.TOP_WEAPON),
     "specials": (Type.TELEPORTER, Type.CHARGE, Type.HOOK),
 }
+
+
+def _format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
+    from collections import Counter
+    return (
+        f'{item}{f" x{count}" * (count > 1)}' for item, count in Counter(filter(None, it)).items()
+    )
 
 
 def _flatten_types(args: t.Iterable[Type | str], /) -> t.Iterator[Type]:
@@ -251,7 +258,7 @@ class Mech:
             if item is not None
         ]
 
-        if weapon_string := ", ".join(format_count(self.iter_items("weapons"))):
+        if weapon_string := ", ".join(_format_count(self.iter_items("weapons"))):
             string_parts.append("Weapons: " + weapon_string)
 
         string_parts.extend(
@@ -260,7 +267,7 @@ class Mech:
             if item is not None
         )
 
-        if modules := ", ".join(format_count(self.iter_items(Type.MODULE))):
+        if modules := ", ".join(_format_count(self.iter_items(Type.MODULE))):
             string_parts.append("Modules: " + modules)
 
         return "\n".join(string_parts)
