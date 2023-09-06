@@ -5,7 +5,6 @@ from attrs import asdict
 from supermechs.api import (
     AnyStatsMapping,
     ArenaBuffs,
-    InvItem,
     Item,
     ItemData,
     ItemPack,
@@ -122,7 +121,7 @@ def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
 
 def _mech_items_ids_in_wu_order(mech: Mech) -> t.Iterator[int]:
     """Yields mech item IDs in WU compatible order."""
-    return (0 if item is None else item.item.data.id for item in _mech_items_in_wu_order(mech))
+    return (0 if item is None else item.data.id for item in _mech_items_in_wu_order(mech))
 
 
 def mech_to_id_str(mech: Mech, sep: str = "_") -> str:
@@ -141,8 +140,7 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
         slot = wu_to_mech_slot(wu_slot)
         if item_id != 0:
             item_data = pack.get_item_by_id(item_id)
-            item = Item.from_data(item_data, item_data.start_stage, maxed=True)
-            mech[slot] = InvItem.from_item(item)
+            mech[slot] = Item.from_data(item_data, item_data.start_stage, maxed=True)
 
         else:
             mech[slot] = None
@@ -199,11 +197,11 @@ def is_exportable(mech: Mech) -> bool:
 
     packs = set[str]()
 
-    for inv_item in mech.iter_items():
-        if inv_item is None:
+    for item in mech.iter_items():
+        if item is None:
             continue
 
-        packs.add(inv_item.item.data.pack_key)
+        packs.add(item.data.pack_key)
 
     return len(packs) < 2
 
@@ -244,8 +242,8 @@ def wu_serialize_mech(mech: Mech, player_name: str) -> WUPlayer:
         raise TypeError("Cannot serialize a custom mech into WU format")
 
     serialized_items_without_modules = [
-        None if inv_item is None else get_battle_item(inv_item.item.data, slot)
-        for slot, inv_item in zip(WU_SLOT_NAMES, _mech_items_in_wu_order(mech))
+        None if item is None else get_battle_item(item.data, slot)
+        for slot, item in zip(WU_SLOT_NAMES, _mech_items_in_wu_order(mech))
     ]
     # lazy import
     import hashlib
