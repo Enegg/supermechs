@@ -26,7 +26,10 @@ class ItemPack:
     custom: bool = field(default=False)
 
     # Item name to item ID
-    names_to_ids: t.MutableMapping[Name, ID] = field(factory=dict, init=False, repr=False)
+    names_to_ids: t.Mapping[Name, ID] = field(init=False, repr=False)
+
+    def __attrs_post_init__(self) -> None:
+        self.names_to_ids = {item.name: item.id for item in self.items.values()}
 
     def __contains__(self, value: Name | ID | ItemData) -> bool:
         if isinstance(value, Name):
