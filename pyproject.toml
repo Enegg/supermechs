@@ -57,7 +57,7 @@ include = ["src/supermechs"]
 
 pythonVersion = "3.10"
 
-reportUnnecessaryTypeIgnoreComment = "info"
+reportUnnecessaryTypeIgnoreComment = "information"
 reportUnnecessaryCast = true
 reportMatchNotExhaustive = "warning"
 reportUnusedImport = true
