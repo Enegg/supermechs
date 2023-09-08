@@ -9,6 +9,7 @@ from supermechs.errors import MalformedData
 from supermechs.rendering import (
     AnyAttachment,
     ItemSprite,
+    Metadata,
     PackRenderer,
     Point2D,
     SingleResolver,
@@ -17,13 +18,14 @@ from supermechs.rendering import (
     create_synthetic_attachment,
     is_attachable,
 )
-from supermechs.typedefs import ID
 from supermechs.utils import assert_type
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-ImageFetcher = t.Callable[[str], t.Awaitable["Image"]]
+    from supermechs.typedefs import ID
+
+ImageFetcher = t.Callable[[Metadata], t.Awaitable["Image"]]
 
 
 def to_point2d(data: RawPoint2D, /) -> Point2D:
@@ -76,8 +78,8 @@ def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
         raise ValueError(f"Unknown pack version: {data['version']}")
 
 
-def make_converter(width: int, height: int, type: Type) -> t.Callable[[ItemSprite[str]], None]:
-    def converter(sprite: ItemSprite[str], /) -> None:
+def make_converter(width: int, height: int, type: Type) -> t.Callable[[ItemSprite], None]:
+    def converter(sprite: ItemSprite, /) -> None:
         image = sprite.image
 
         if image.mode != "RGBA":
@@ -101,7 +103,7 @@ def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRende
     key = assert_type(str, data["config"]["key"])
     base_url = assert_type(str, data["config"]["base_url"])
 
-    sprites: dict[ID, ItemSprite[str]] = {}
+    sprites: dict[ID, ItemSprite] = {}
 
     for item_dict in data["items"]:
         img_url = js_format(assert_type(str, item_dict["image"]), url=base_url)
@@ -111,7 +113,8 @@ def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRende
             item_dict.get("height", 0),
             Type.of_name(item_dict["type"])
         )
-        sprite = SingleResolver(fetch, img_url, attachment, converter)
+        meta = Metadata("url", "single", img_url)
+        sprite = SingleResolver(fetch, meta, attachment, converter)
         sprites[item_dict["id"]] = sprite
 
     return PackRenderer(key, sprites)
@@ -121,8 +124,9 @@ def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: ImageFetche
     key = assert_type(str, data["key"])
     spritesheet_url = assert_type(str, data["spritesSheet"])
     spritesheet_map = data["spritesMap"]
-    spritesheet = SingleResolver(fetch, spritesheet_url, None)
-    sprites: dict[ID, ItemSprite[str]] = {}
+    sheet_meta = Metadata("url", "single", spritesheet_url)
+    spritesheet = SingleResolver(fetch, sheet_meta, None)
+    sprites: dict[ID, ItemSprite] = {}
 
     for item_dict in data["items"]:
         attachment = to_attachments(item_dict.get("attachment"))

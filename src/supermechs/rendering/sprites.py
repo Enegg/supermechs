@@ -10,15 +10,20 @@ from PIL.Image import Image
 if TYPE_CHECKING:
     from .attachments import AnyAttachment
 
-__all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver")
+__all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver", "Metadata")
 
-MetadataT = tex.TypeVar("MetadataT", infer_variance=True)
-Loader = t.Callable[[MetadataT], t.Awaitable[Image]]
+Loader = t.Callable[["Metadata"], t.Awaitable[Image]]
 
 
-class ItemSprite(t.Protocol[MetadataT]):
+class Metadata(t.NamedTuple):
+    source: t.Literal["url", "file"]
+    method: t.Literal["single", "sheet"]
+    value: str
+
+
+class ItemSprite(t.Protocol):
     @property
-    def metadata(self) -> MetadataT:
+    def metadata(self) -> Metadata:
         """Image metadata, including its source."""
         ...
 
@@ -31,9 +36,9 @@ class ItemSprite(t.Protocol[MetadataT]):
 
 
 @define
-class SingleResolver(ItemSprite[MetadataT]):
-    loader: t.Final[Loader[MetadataT]]
-    metadata: t.Final[MetadataT]
+class SingleResolver(ItemSprite):
+    loader: t.Final[Loader]
+    metadata: t.Final[Metadata]
     attachment: AnyAttachment
     postprocess: t.Callable[[tex.Self], None] | None = None
     _image: Image | None = field(default=None, init=False)
@@ -68,8 +73,8 @@ class SingleResolver(ItemSprite[MetadataT]):
 
 
 @define
-class SpritesheetResolver(ItemSprite[MetadataT]):
-    spritesheet: t.Final[ItemSprite[MetadataT]]
+class SpritesheetResolver(ItemSprite):
+    spritesheet: t.Final[ItemSprite]
     rect: t.Final[tuple[int, int, int, int]]
     attachment: AnyAttachment
     postprocess: t.Callable[[tex.Self], None] | None = None
@@ -77,8 +82,9 @@ class SpritesheetResolver(ItemSprite[MetadataT]):
 
     @property
     @tex.override
-    def metadata(self) -> MetadataT:
-        return self.spritesheet.metadata
+    def metadata(self) -> Metadata:
+        sheet_meta = self.spritesheet.metadata
+        return Metadata(sheet_meta.source, "sheet", sheet_meta.value)
 
     @property
     @tex.override
