@@ -32,6 +32,11 @@ class Tier(TierData, PartialEnum):
 
     _initials2members: t.ClassVar[t.Mapping[str, Tier]]
 
+    def __new__(cls, order: int, max_level: int) -> Self:
+        self = t.cast(Self, TierData.__new__(cls, order, max_level))
+        self._value_ = order
+        return self
+
     # fmt: off
     COMMON    = (0, 9)
     RARE      = (1, 19)
