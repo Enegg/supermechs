@@ -2,20 +2,18 @@ import typing as t
 
 from attrs import asdict
 
-from supermechs.api import (
-    AnyStatsMapping,
-    ArenaBuffs,
-    Item,
-    ItemData,
-    ItemPack,
-    Mech,
-    SlotSelectorType,
-    SlotType,
-    Type,
-)
-from supermechs.item_stats import max_stats
+from supermechs.arena_buffs import ArenaBuffs
+from supermechs.enums import Type
+from supermechs.errors import MalformedData, UnknownDataVersion
+from supermechs.item_stats import AnyStatsMapping, max_stats
+from supermechs.models.item import Item, ItemData
+from supermechs.models.mech import Mech, SlotSelectorType, SlotType
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typedefs import ID, Name
+from supermechs.utils import assert_type
+
+if t.TYPE_CHECKING:
+    from supermechs.item_pack import ItemPack
 
 __all__ = ("load_mechs", "dump_mechs")
 
@@ -89,13 +87,13 @@ _slot_for_slot: t.Mapping[str, Type] = {
 def wu_to_mech_slot(slot: str, /) -> SlotSelectorType:
     """Convert workshop's internal slot name to the app's slot name."""
     if slot.startswith("side"):
-        return Type.SIDE_WEAPON, int(slot[-1])
+        return Type.SIDE_WEAPON, int(slot[-1]) - 1
 
     if slot.startswith("top"):
-        return Type.TOP_WEAPON, int(slot[-1])
+        return Type.TOP_WEAPON, int(slot[-1]) - 1
 
     if slot.startswith("module"):
-        return Type.MODULE, int(slot[-1])
+        return Type.MODULE, int(slot[-1]) - 1
 
     return _slot_for_slot.get(slot) or Type.of_name(slot)
 
@@ -127,13 +125,23 @@ def mech_to_id_str(mech: Mech, sep: str = "_") -> str:
 
 def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     """Imports a mech from WU mech."""
-    mech = Mech(name=data["name"])
+    setup = assert_type(list, data["setup"], cast=False)
+    mech = Mech(name=assert_type(str, data["name"]))
 
-    for item_id, wu_slot in zip(data["setup"], WU_SLOT_NAMES + WU_MODULE_SLOT_NAMES):
+    unknown = setup - pack.items.keys()
+    unknown.discard(0)
+
+    if unknown:
+        raise MalformedData(
+            f"Mech setup contains unknown item IDs: {', '.join(map(str, (sorted(unknown))))}",
+            setup
+        )
+
+    for item_id, wu_slot in zip(setup, WU_SLOT_NAMES + WU_MODULE_SLOT_NAMES):
         slot = wu_to_mech_slot(wu_slot)
         if item_id != 0:
             item_data = pack.get_item_by_id(item_id)
-            mech[slot] = Item.from_data(item_data, item_data.start_stage, maxed=True)
+            mech[slot] = Item.from_data(item_data, maxed=True)
 
         else:
             mech[slot] = None
@@ -142,39 +150,40 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
 
 
 def import_mechs(
-    json: ExportedMechsJSONv1, pack: "ItemPack"
-) -> tuple[list[Mech], list[tuple[int, str]]]:
+    data: ExportedMechsJSONv1, pack: "ItemPack"
+) -> tuple[t.Sequence[Mech], t.Sequence[tuple[int, Exception]]]:
     """Imports mechs from parsed .JSON file."""
 
-    # TODO: in 3.11 consider using ExceptionGroups to catch all problems at once
     try:
-        version = json["version"]
-        mech_list = json["mechs"][pack.key]
+        version = str(data["version"])
+        mech_list = assert_type(list, data["mechs"][pack.key])
         # TODO: file can contain mechs from different pack than default
 
-    except KeyError as e:
-        raise ValueError(f'Malformed data: key "{e}" not found.') from e
+    except KeyError as err:
+        raise MalformedData(f'Malformed data: key "{err}" not found.') from err
 
-    if version != 1:
-        raise ValueError(f"Expected version = 1, got {version}")
+    if version != "1":
+        raise UnknownDataVersion("mech data", version, "1")
 
     if not isinstance(mech_list, list):
-        raise TypeError('Expected a list under "mechs" key')
+        raise MalformedData('Expected a list under "mechs" key', mech_list)
 
     mechs: list[Mech] = []
-    failed: list[tuple[int, str]] = []
+    failed: list[tuple[int, Exception]] = []
 
     for i, wu_mech in enumerate(mech_list, 1):
         try:
             mechs.append(import_mech(wu_mech, pack))
 
-        except Exception as e:
-            failed.append((i, str(e)))
+        except Exception as err:
+            failed.append((i, err))
 
     return mechs, failed
 
 
-def load_mechs(data: bytes, pack: "ItemPack") -> tuple[list[Mech], list[tuple[int, str]]]:
+def load_mechs(
+    data: bytes, pack: "ItemPack"
+) -> tuple[t.Sequence[Mech], t.Sequence[tuple[int, Exception]]]:
     """Loads mechs from bytes object, representing a .JSON file."""
     return import_mechs(json_decoder(data), pack)
 
