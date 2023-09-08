@@ -8,6 +8,9 @@ __all__ = ("Tier", "Element", "Type")
 
 
 class PartialEnum(Enum):
+    def __repr__(self) -> str:
+        return str(self)
+
     @classmethod
     def of_name(cls, name: str, /) -> Self:
         """Get enum member by name."""
