@@ -1,4 +1,4 @@
-from supermechs.ext.deserializers.models import to_item_data
+from supermechs.ext.deserializers import to_item_data
 from supermechs.ext.deserializers.typedefs.packs import ItemDictVer3
 from supermechs.platform import json_decoder
 

@@ -109,19 +109,19 @@ class Canvas:
 @define
 class PackRenderer:
     pack_key: str = field()
-    sprites: t.Mapping["ID", "ItemSprite[t.Any]"] = field(repr=large_mapping_repr)
+    sprites: t.Mapping["ID", "ItemSprite"] = field(repr=large_mapping_repr)
 
     @t.overload
-    def get_item_sprite(self, item: "ItemData", /, tier: Tier) -> "ItemSprite[t.Any]":
+    def get_item_sprite(self, item: "ItemData", /, tier: Tier) -> "ItemSprite":
         ...
 
     @t.overload
-    def get_item_sprite(self, item: Item, /) -> "ItemSprite[t.Any]":
+    def get_item_sprite(self, item: Item, /) -> "ItemSprite":
         ...
 
     def get_item_sprite(
         self, item: "ItemData | Item", /, tier: Tier | None = None
-    ) -> "ItemSprite[t.Any]":
+    ) -> "ItemSprite":
         if isinstance(item, Item):
             tier = item.stage.tier
             item = item.data
