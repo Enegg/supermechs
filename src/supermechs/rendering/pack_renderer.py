@@ -168,6 +168,6 @@ class PackRenderer:
             drone_image = drone_sprite.image
             x = drone_image.width // 2 + canvas.offsets.left
             y = drone_image.height + 25 + canvas.offsets.above
-            canvas[LAYER_ORDER.index("drone"), x, y] = drone_image
+            canvas[LAYER_ORDER.index("drone"), -x, -y] = drone_image
 
         return canvas.merge(LAYER_ORDER.index("torso"))
