@@ -28,10 +28,15 @@ class ItemPack:
     # Item name to item ID
     names_to_ids: t.Mapping[Name, ID] = field(init=False, repr=False)
 
+    @property
+    def item_names(self) -> t.KeysView[Name]:
+        """Set-like view on items' names."""
+        return self.names_to_ids.keys()
+
     def __attrs_post_init__(self) -> None:
         self.names_to_ids = {item.name: item.id for item in self.items.values()}
 
-    def __contains__(self, value: Name | ID | ItemData) -> bool:
+    def __contains__(self, value: Name | ID | ItemData, /) -> bool:
         if isinstance(value, Name):
             return value in self.names_to_ids
 
@@ -48,7 +53,7 @@ class ItemPack:
 
         Raises
         ------
-        LookupError: name not found.
+        LookupError: item not found.
         """
         try:
             id = self.names_to_ids[name]
@@ -59,31 +64,14 @@ class ItemPack:
         return self.items[id]
 
     def get_item_by_id(self, item_id: ID, /) -> ItemData:
+        """Lookup an item by its ID.
+
+        Raises
+        ------
+        LookupError: item not found.
+        """
         try:
             return self.items[item_id]
 
         except KeyError as err:
             raise LookupError(f"No item with ID {item_id} in the pack") from err
-
-    @t.overload
-    def get_item(self, name: Name, /) -> ItemData:
-        ...
-
-    @t.overload
-    def get_item(self, item_id: ID, /) -> ItemData:
-        ...
-
-    def get_item(self, item: Name | ID, /) -> ItemData:
-        """Lookup an item by its name or ID.
-
-        Raises
-        ------
-        LookupError: name or ID not found.
-        """
-        if isinstance(item, ID):
-            return self.get_item_by_id(item)
-
-        return self.get_item_by_name(item)
-
-    def iter_item_names(self) -> t.Iterator[Name]:
-        return iter(self.names_to_ids)
