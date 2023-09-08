@@ -143,12 +143,7 @@ class TransformStage:
         return self.tier.max_level
 
     def at(self, level: int, /) -> AnyStatsMapping:
-        """Returns the stats at given level.
-
-        For convenience, levels follow the game logic; the lowest level is 1
-        and the maximum is a multiple of 10 depending on tier.
-        """
-        level -= 1
+        """Returns the stats at given level."""
 
         if level == self._last[0]:
             return self._last[1]
