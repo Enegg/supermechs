@@ -129,7 +129,7 @@ class Mech:
     _items: t.Final[t.MutableSequence[SlotType]] = field(factory=lambda: [None] * 20)
 
     # cached properties
-    _stats: t.MutableMapping[str, int] = field(init=False, repr=False, eq=False)
+    _stat_summary: t.MutableMapping[str, int] = field(init=False, repr=False, eq=False)
     _dominant_element: Element | None = field(init=False, repr=False, eq=False)
 
     _indexes: t.ClassVar[t.Mapping[Type, int]] = {
