@@ -77,7 +77,7 @@ def validate(mech: Mech, /) -> bool:
 def _index_for_slot(slot: SlotSelectorType, /) -> tuple[int, Type]:
     match slot:
         case Type() as type_:
-            if abs_index := Mech._indexes.get(type_) is None:
+            if (abs_index := Mech._indexes.get(type_)) is None:
                 raise ValueError(f"{type_} requires an index")
 
         case (Type() as type_, int() as index):
