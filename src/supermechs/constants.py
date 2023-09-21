@@ -1,6 +1,7 @@
 """Game constants shared by the library files."""
 
 import typing as t
+import typing_extensions as tex
 
 from .item_stats import AnyMechStatKey
 
@@ -14,5 +15,5 @@ HP_PENALTY_PER_KG: int = 15
 """The ratio at which mech hit points drop for each kg of overload."""
 EXCLUSIVE_STAT_KEYS: t.AbstractSet[AnyMechStatKey] = frozenset(("phyRes", "expRes", "eleRes"))
 """A set of stats of which each can be found at up to one module."""
-SUMMARY_STAT_KEYS: t.Sequence[str] = t.get_args(AnyMechStatKey)
+SUMMARY_STAT_KEYS: t.Sequence[tex.LiteralString] = t.get_args(AnyMechStatKey)
 """The order of stats which appear in mech summary."""
