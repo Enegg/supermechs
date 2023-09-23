@@ -5,7 +5,7 @@ from .typedefs.packs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer
 from .utils import js_format
 
 from supermechs.enums import Type
-from supermechs.errors import MalformedData
+from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.rendering import (
     AnyAttachment,
     ItemSprite,
@@ -66,7 +66,7 @@ def bounding_box(pos: RawPlane2D, /) -> tuple[int, int, int, int]:
 
 
 def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
-    """Create an instance of the class by fetching all images."""
+    """Parse data into an instance primed with item sprites."""
 
     if "version" not in data or data["version"] == "1":
         return to_pack_renderer_v1(data, fetch)
@@ -75,7 +75,7 @@ def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
         return to_pack_renderer_v2(data, fetch)
 
     else:
-        raise ValueError(f"Unknown pack version: {data['version']}")
+        raise UnknownDataVersion(PackRenderer, data["version"])
 
 
 def make_converter(width: int, height: int, type: Type) -> t.Callable[[ItemSprite], None]:
