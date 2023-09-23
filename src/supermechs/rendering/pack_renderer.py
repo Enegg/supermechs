@@ -6,6 +6,7 @@ from attrs import define, field
 
 from ..enums import Tier, Type
 from ..models.item import Item, ItemData
+from ..models.mech import Mech
 from ..typeshed import twotuple
 from ..utils import large_mapping_repr
 from .attachments import TORSO_ATTACHMENT_FIELDS, cast_attachment
@@ -13,7 +14,6 @@ from .attachments import TORSO_ATTACHMENT_FIELDS, cast_attachment
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-    from ..models.mech import Mech
     from ..typedefs import ID
     from .sprites import ItemSprite
 
@@ -132,13 +132,13 @@ class PackRenderer:
 
         return self.sprites[item.id]
 
-    async def load_mech_images(self, mech: "Mech", /) -> None:
+    async def load_mech_images(self, mech: Mech, /) -> None:
         async with anyio.create_task_group() as tg:
-            for item in filter(None, mech.iter_items(Type.TORSO, Type.LEGS, "weapons")):
+            for item in filter(None, mech.iter_items(Mech.Slot.TORSO, Mech.Slot.LEGS, "weapons")):
                 sprite = self.get_item_sprite(item)
                 tg.start_soon(sprite.load)
 
-    def create_mech_image(self, mech: "Mech", /) -> "Image":
+    def create_mech_image(self, mech: Mech, /) -> "Image":
         if mech.torso is None:
             raise RuntimeError("Cannot create mech image without torso set")
 
