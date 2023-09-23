@@ -1,4 +1,5 @@
 import typing as t
+import typing_extensions as tex
 
 from attrs import asdict
 
@@ -7,7 +8,7 @@ from supermechs.enums import Type
 from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.item_stats import AnyStatsMapping, max_stats
 from supermechs.models.item import Item, ItemData
-from supermechs.models.mech import Mech, SlotSelectorType, SlotType
+from supermechs.models.mech import Mech, SlotType
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typedefs import ID, Name
 from supermechs.utils import assert_type
@@ -79,23 +80,26 @@ WU_MODULE_SLOT_NAMES = (
     "module7",
     "module8",
 )
-_slot_for_slot: t.Mapping[str, Type] = {
-    "chargeEngine": Type.CHARGE, "teleporter": Type.TELEPORTER, "grapplingHook": Type.HOOK
-}
 
 
-def wu_to_mech_slot(slot: str, /) -> SlotSelectorType:
+def wu_to_mech_slot(slot: tex.LiteralString, /) -> Mech.Slot:
     """Convert workshop's internal slot name to the app's slot name."""
     if slot.startswith("side"):
-        return Type.SIDE_WEAPON, int(slot[-1]) - 1
+        return Mech.Slot.of_name(f"SIDE_WEAPON_{slot[-1]}")
 
     if slot.startswith("top"):
-        return Type.TOP_WEAPON, int(slot[-1]) - 1
+        return Mech.Slot.of_name(f"TOP_WEAPON_{slot[-1]}")
 
     if slot.startswith("module"):
-        return Type.MODULE, int(slot[-1]) - 1
+        return Mech.Slot.of_name(f"MODULE_{slot[-1]}")
 
-    return _slot_for_slot.get(slot) or Type.of_name(slot)
+    if slot == "chargeEngine":
+        return Mech.Slot.CHARGE
+
+    if slot == "grapplingHook":
+        return Mech.Slot.HOOK
+
+    return Mech.Slot.of_name(slot.upper())
 
 
 def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:

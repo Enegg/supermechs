@@ -84,6 +84,8 @@ class Type(PartialEnum):
     CHARGE      = auto()
     HOOK        = auto()
     MODULE      = auto()
+    SHIELD      = auto()
+    PERK        = auto()
     CHARGE_ENGINE = CHARGE
     GRAPPLING_HOOK = HOOK
     TELEPORT = TELEPORTER
