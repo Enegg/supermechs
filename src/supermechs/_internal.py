@@ -79,3 +79,7 @@ async def load_stat_data() -> None:
 
     BASE_LVL_INCREASES.extend(data["level_percents"])
     HIT_POINT_INCREASES.extend(data["hit_points"])
+
+    from .arena_buffs import MAX_BUFFS, max_out
+
+    max_out(MAX_BUFFS)

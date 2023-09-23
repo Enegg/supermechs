@@ -6,7 +6,7 @@ from attrs import Factory, define
 from ._internal import BASE_LVL_INCREASES, BUFFABLE_STATS, HIT_POINT_INCREASES, STATS
 from .item_stats import AnyStatsMapping, ValueRange
 
-__all__ = ("ArenaBuffs",)
+__all__ = ("MAX_BUFFS", "ArenaBuffs", "max_out")
 
 ValueT = t.TypeVar("ValueT", int, "ValueRange")
 
@@ -95,7 +95,7 @@ class ArenaBuffs:
         return self.levels[stat_key]
 
     def __setitem__(self, stat_key: str, level: int, /) -> None:
-        if level > (max_lvl := max_level_of(stat_key)):
+        if not 0 <= level <= (max_lvl := max_level_of(stat_key)):
             raise ValueError(f"The max level for {stat_key!r} is {max_lvl}, got {level}")
 
         self.levels[stat_key] = level
@@ -169,3 +169,13 @@ class ArenaBuffs:
             self.levels[key] = max_level_of(key)
 
         return self
+
+
+def max_out(buffs: ArenaBuffs, /) -> None:
+    """Sets all levels of arena buffs to max."""
+
+    for key in BUFFABLE_STATS:
+        buffs.levels[key] = max_level_of(key)
+
+
+MAX_BUFFS = ArenaBuffs()  # the buffs are populated by _internal
