@@ -8,7 +8,7 @@ from supermechs.ext.comparators.converter import (
     EntryConverter,
     run_conversions,
 )
-from supermechs.ext.deserializers.models import to_item_data
+from supermechs.ext.deserializers import to_item_data
 from supermechs.item_stats import max_stats
 from supermechs.platform import json_decoder
 

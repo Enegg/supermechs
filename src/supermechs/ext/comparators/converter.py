@@ -1,61 +1,21 @@
-import statistics
 import typing as t
 
-from supermechs.api import STATS, AnyStatsMapping, Stat, ValueRange
+from attrs import define
+
+from supermechs.api import AnyStatsMapping
 
 Entry = t.Sequence[t.Any]
 
 
-custom_stats: t.Mapping[str, Stat] = {
-    "spread": Stat("spread", beneficial=False),
-    "anyDmg": Stat("anyDmg"),
-    "totalDmg": Stat("totalDmg"),
-}
-STAT_KEY_ORDER: t.Sequence[str] = tuple(STATS)
+@define
+class StatsGroup:
+    """Merges a set of mappings and allows for operations on them."""
 
-
-class ComparisonContext(t.NamedTuple):
-    coerce_damage_types: bool = False
-    damage_average: bool = False
-    damage_spread: bool = False
-    damage_potential: bool = False
-
-
-def sum_damage_entries(
-    entries: t.Iterable[t.Sequence[ValueRange | None]], size: int
-) -> t.Sequence[ValueRange | None]:
-    entry_values: list[ValueRange | None] = [None] * size
-
-    for entry in entries:
-        for i, value in enumerate(entry):
-            if value is None:
-                continue
-            # somehow, entry_values[i] is None doesn't narrow type on following item access
-            # so need to reassign the value manually
-            current_value = entry_values[i]
-
-            if current_value is None:
-                current_value = value
-
-            else:
-                current_value += value
-
-            entry_values[i] = current_value
-
-    return entry_values
-
-
-damage_keys = frozenset(("phyDmg", "expDmg", "eleDmg", "anyDmg"))
-
-
-class EntryConverter:
-    """Class responsible for merging a set of mappings and ."""
-
-    size: int
+    size: t.Final[int]
     """The number of side to side entries to compare."""
-    key_order: t.MutableSequence[str]
+    key_order: t.Final[t.MutableSequence[str]]
     """The order in which final keys should appear."""
-    entries: t.MutableMapping[str, Entry]
+    entries: t.Final[t.MutableMapping[str, Entry]]
     """Current set of entries."""
 
     def __init__(self, *stat_mappings: AnyStatsMapping, key_order: t.Sequence[str]) -> None:
@@ -71,44 +31,11 @@ class EntryConverter:
         }
 
     def __str__(self) -> str:
-        return "\n".join(f"{key}: {value}" for key, value in self)
-
-    def __repr__(self) -> str:
-        return f"<Comparator {self.key_order} {self.entries}>"
+        return "\n".join(f"{key}: {', '.join(value)}" for key, value in self)
 
     def __iter__(self) -> t.Iterator[tuple[str, Entry]]:
         for key in self.key_order:
             yield key, self.entries[key]
-
-    def coerce_damage_entries(self) -> None:
-        present_damage_keys = self.entries.keys() & damage_keys
-
-        if not present_damage_keys:
-            return
-
-        # don't add one since the entry will be gone at the time of insert
-        index = min(map(self.key_order.index, present_damage_keys))
-        entry = sum_damage_entries(map(self.remove_entry, present_damage_keys), self.size)
-        self.insert_entry("anyDmg", index, entry)
-
-    def insert_damage_spread_entry(self) -> None:
-        present_damage_keys = self.entries.keys() & damage_keys
-
-        if not present_damage_keys:
-            return
-
-        total_damage = sum_damage_entries(
-            map(self.entries.__getitem__, present_damage_keys), self.size
-        )
-
-        # insert after the last damage entry
-        index = max(map(self.key_order.index, present_damage_keys)) + 1
-
-        self.insert_entry(
-            "spread",
-            index,
-            tuple(None if value is None else statistics.pstdev(value) for value in total_damage),
-        )
 
     def insert_entry(self, key: str, index: int, entry: Entry) -> None:
         """Insert given key: entry pair at given index."""
@@ -125,11 +52,3 @@ class EntryConverter:
         """Remove and return an existing entry."""
         self.key_order.remove(key)
         return self.entries.pop(key)
-
-
-def run_conversions(converter: EntryConverter, ctx: ComparisonContext) -> None:
-    if ctx.coerce_damage_types:
-        converter.coerce_damage_entries()
-
-    if ctx.damage_spread:
-        converter.insert_damage_spread_entry()
