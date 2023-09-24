@@ -108,6 +108,7 @@ class Mech:
         type: Type
 
     class Slot(_SlotData, PartialEnum):
+        """Enumeration of mech slots."""
         TORSO = (Type.TORSO, )
         LEGS = (Type.LEGS, )
         DRONE = (Type.DRONE, )
@@ -141,27 +142,27 @@ class Mech:
 
     @property
     def torso(self) -> SlotType:
-        return self._items.get(Mech.Slot.TORSO)
+        return self._items.get(self.Slot.TORSO)
 
     @property
     def legs(self) -> SlotType:
-        return self._items.get(Mech.Slot.LEGS)
+        return self._items.get(self.Slot.LEGS)
 
     @property
     def drone(self) -> SlotType:
-        return self._items.get(Mech.Slot.DRONE)
+        return self._items.get(self.Slot.DRONE)
 
     @property
     def teleporter(self) -> SlotType:
-        return self._items.get(Mech.Slot.TELEPORTER)
+        return self._items.get(self.Slot.TELEPORTER)
 
     @property
     def charge(self) -> SlotType:
-        return self._items.get(Mech.Slot.CHARGE)
+        return self._items.get(self.Slot.CHARGE)
 
     @property
     def hook(self) -> SlotType:
-        return self._items.get(Mech.Slot.HOOK)
+        return self._items.get(self.Slot.HOOK)
 
     @property
     def side_weapons(self) -> t.Sequence[SlotType]:
@@ -170,8 +171,8 @@ class Mech:
     @property
     def top_weapons(self) -> t.Sequence[SlotType]:
         return [
-            self._items.get(Mech.Slot.TOP_WEAPON_1),
-            self._items.get(Mech.Slot.TOP_WEAPON_2),
+            self._items.get(self.Slot.TOP_WEAPON_1),
+            self._items.get(self.Slot.TOP_WEAPON_2),
         ]
 
     @property
@@ -333,7 +334,7 @@ class Mech:
                 del slot
                 return item
 
-        slots_ = Mech.Slot if not slots else _flatten_slots(slots)
+        slots_ = self.Slot if not slots else _flatten_slots(slots)
 
         for slot in slots_:
             yield factory(self._items.get(slot), slot)
