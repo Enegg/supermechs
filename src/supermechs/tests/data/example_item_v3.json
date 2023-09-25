@@ -1,28 +1,42 @@
 {
-    "id": 69,
-    "name": "Combined Engine Unit",
-    "type": "MODULE",
-    "element": "COMBINED",
+    "id": 187,
+    "name": "Overcharged Rocket Battery",
+    "type": "SIDE_WEAPON",
+    "element": "EXPLOSIVE",
     "transform_range": "L-D",
     "legendary": {
-        "weight": 35,
-        "eneCap": 72,
-        "heaCap": 72
+        "weight": 63,
+        "expDmg": [103, 181],
+        "heaDmg": 56,
+        "expResDmg": 9,
+        "range": [3, 6],
+        "push": 1,
+        "retreat": 1,
+        "uses": 3,
+        "backfire": 123,
+        "heaCost": 47
     },
     "max_legendary": {
-        "eneCap": 105,
-        "heaCap": 97
+        "expDmg": [138, 243],
+        "heaDmg": 75
     },
     "mythical": {
-        "eneCap": 102,
-        "heaCap": 102
+        "expDmg": [154, 276],
+        "heaDmg": 81,
+        "expResDmg": 14,
+        "backfire": 180,
+        "heaCost": 75
     },
     "max_mythical": {
-        "eneCap": 145,
-        "heaCap": 134
+        "expDmg": [202, 362],
+        "heaDmg": 106
     },
     "divine": {
-        "eneCap": 155,
-        "heaCap": 141
+        "expDmg": [213, 382],
+        "heaDmg": 112
+    },
+    "attachment": {
+        "x": 57,
+        "y": 49
     }
 }
