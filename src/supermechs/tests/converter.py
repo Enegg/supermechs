@@ -2,10 +2,10 @@ from pathlib import Path
 
 from supermechs import init
 from supermechs.api import ItemData
-from supermechs.ext.comparators.converter import (
+from supermechs.ext.comparators import (
     STAT_KEY_ORDER,
     ComparisonContext,
-    EntryConverter,
+    StatsGroup,
     run_conversions,
 )
 from supermechs.ext.deserializers import to_item_data
@@ -23,14 +23,13 @@ async def main():
     item1 = loader("tests/data/example_item_v2.json", "@Darkstare", False)
     item2 = loader("tests/data/incomplete_item_v3.json", "@Eneg", False)
 
-    converter = EntryConverter(
+    group = StatsGroup(
         max_stats(item1.start_stage), max_stats(item2.start_stage), key_order=STAT_KEY_ORDER
     )
-    # context = ComparisonContext()
-    print(converter)
+    print(group)
     ctx = ComparisonContext(True, True, True, True)
-    run_conversions(converter, ctx)
-    print(converter)
+    run_conversions(group, ctx)
+    print(group)
 
 if __name__ == "__main__":
     import asyncio
