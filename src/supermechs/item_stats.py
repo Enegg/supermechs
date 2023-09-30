@@ -1,34 +1,65 @@
 import typing as t
 import typing_extensions as tex
+from enum import auto
 
 from attrs import define, field
 
-from .enums import Tier
+from .enums import PartialEnum, Tier
 from .typeshed import dict_items_as
 
 __all__ = (
     "ValueRange", "TransformStage",
-    "AnyMechStatsMapping", "AnyStatsMapping",
-    "AnyMechStatKey", "AnyStatKey"
+    "StatsMapping", "MutableStatsMapping",
 )
 
-# fmt: off
-AnyMechStatKey = t.Literal[
-    "weight", "health",
-    "eneCap", "eneReg",
-    "heaCap", "heaCol",
-    "phyRes", "expRes", "eleRes",
-    "bulletsCap", "rocketsCap",
-    "walk", "jump"
-]
-AnyStatKey = AnyMechStatKey | t.Literal[
-    "phyDmg", "phyResDmg",
-    "expDmg", "heaDmg", "heaCapDmg", "heaColDmg", "expResDmg",
-    "eleDmg", "eneDmg", "eneCapDmg", "eneRegDmg", "eleResDmg",
-    "range", "push", "pull", "recoil", "retreat", "advance",
-    "uses", "backfire", "heaCost", "eneCost", "bulletsCost", "rocketsCost"
-]
-# fmt: on
+
+class Stat(int, PartialEnum):
+    """Enumeration of item stats."""
+    # fmt: off
+    # summary stats
+    weight                      = auto()
+    hit_points                  = auto()
+    energy_capacity             = auto()
+    regeneration                = auto()
+    heat_capacity               = auto()
+    cooling                     = auto()
+    bullets_capacity            = auto()
+    rockets_capacity            = auto()
+    physical_resistance         = auto()
+    explosive_resistance        = auto()
+    electric_resistance         = auto()
+    # physical weapons
+    physical_damage             = auto()
+    physical_resistance_damage  = auto()
+    # energy weapons
+    electric_damage             = auto()
+    energy_damage               = auto()
+    energy_capacity_damage      = auto()
+    regeneration_damage         = auto()
+    electric_resistance_damage  = auto()
+    # heat weapons
+    explosive_damage            = auto()
+    heat_damage                 = auto()
+    heat_capacity_damage        = auto()
+    cooling_damage              = auto()
+    explosive_resistance_damage = auto()
+    # mobility
+    walk                        = auto()
+    jump                        = auto()
+    range                       = auto()
+    push                        = auto()
+    pull                        = auto()
+    recoil                      = auto()
+    advance                     = auto()
+    retreat                     = auto()
+    # costs
+    uses                        = auto()
+    backfire                    = auto()
+    heat_generation             = auto()
+    energy_cost                 = auto()
+    bullets_cost                = auto()
+    rockets_cost                = auto()
+    # fmt: on
 
 
 class ValueRange(t.NamedTuple):
@@ -66,51 +97,19 @@ class ValueRange(t.NamedTuple):
         return type(self)(self.lower * value, self.upper * value)
 
 
-class AnyMechStatsMapping(t.TypedDict, total=False):
-    """Mapping of keys representing overall mech stats."""
-    weight: int
-    health: int
-    eneCap: int
-    eneReg: int
-    heaCap: int
-    heaCol: int
-    phyRes: int
-    expRes: int
-    eleRes: int
-    bulletsCap: int
-    rocketsCap: int
-    walk: int
-    jump: int
+StatsMapping = t.Mapping[Stat, t.Any]
+"""Mapping of item stats to values."""
+MutableStatsMapping = t.MutableMapping[Stat, t.Any]
+"""Mutable mapping of item stats to values."""
 
-
-class AnyStatsMapping(AnyMechStatsMapping, total=False):
-    """Mapping of all possible stat keys findable on an item."""
-    # stats sorted in order they appear in-game
-    phyDmg: ValueRange
-    phyResDmg: int
-    eleDmg: ValueRange
-    eneDmg: int
-    eneCapDmg: int
-    eneRegDmg: int
-    eleResDmg: int
-    expDmg: ValueRange
-    heaDmg: int
-    heaCapDmg: int
-    heaColDmg: int
-    expResDmg: int
-    # walk, jump
-    range: ValueRange
-    push: int
-    pull: int
-    recoil: int
-    advance: int
-    retreat: int
-    uses: int
-    backfire: int
-    heaCost: int
-    eneCost: int
-    bulletsCost: int
-    rocketsCost: int
+SUMMARY_STATS: t.Sequence[Stat] = (
+    Stat.weight, Stat.hit_points,
+    Stat.energy_capacity, Stat.regeneration,
+    Stat.heat_capacity, Stat.cooling,
+    Stat.physical_resistance, Stat.explosive_resistance, Stat.electric_resistance,
+    Stat.bullets_capacity, Stat.rockets_capacity,
+    Stat.walk, Stat.jump,
+)
 
 
 def lerp(lower: int, upper: int, weight: float) -> int:
@@ -128,21 +127,21 @@ class TransformStage:
     """Dataclass collecting transformation tier dependent item data."""
     tier: Tier = field()
     """The tier of the transform stage."""
-    base_stats: AnyStatsMapping = field()
+    base_stats: StatsMapping = field()
     """Stats of the item at level 1."""
-    max_level_stats: AnyStatsMapping = field()
+    max_level_stats: StatsMapping = field()
     """Stats of the item that change as it levels up, at max level."""
     next: tex.Self | None = field(default=None)
     """The next stage the item can transform into."""
 
-    _last: tuple[int, AnyStatsMapping] = field(default=(-1, {}), init=False, repr=False)
+    _last: tuple[int, StatsMapping] = field(default=(-1, {}), init=False, repr=False)
 
     @property
     def max_level(self) -> int:
         """The maximum level this stage can reach, starting from 0."""
         return self.tier.max_level
 
-    def at(self, level: int, /) -> AnyStatsMapping:
+    def at(self, level: int, /) -> StatsMapping:
         """Returns the stats at given level."""
 
         if level == self._last[0]:
@@ -154,13 +153,13 @@ class TransformStage:
             raise ValueError(f"Level {level} outside range 1-{max_level+1}")
 
         if level == 0:
-            return self.base_stats.copy()
+            return self.base_stats
 
         if level == max_level:
-            return self.base_stats | self.max_level_stats
+            return {**self.base_stats, **self.max_level_stats}
 
         weight = level / max_level
-        stats = self.base_stats.copy()
+        stats = dict(self.base_stats)
 
         for key, value in dict_items_as(int | ValueRange, self.max_level_stats):
             base_value: int | ValueRange = stats[key]
@@ -173,7 +172,7 @@ class TransformStage:
                 assert not isinstance(base_value, ValueRange)
                 stats[key] = lerp(base_value, value, weight)
 
-        self._last = (level, stats.copy())
+        self._last = (level, stats)
         return stats
 
 
@@ -185,7 +184,7 @@ def get_final_stage(stage: "TransformStage", /) -> "TransformStage":
     return stage
 
 
-def max_stats(stage: "TransformStage", /) -> AnyStatsMapping:
+def max_stats(stage: "TransformStage", /) -> StatsMapping:
     """Return the max stats."""
     stage = get_final_stage(stage)
     return stage.at(stage.max_level)

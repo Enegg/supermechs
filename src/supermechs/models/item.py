@@ -8,7 +8,7 @@ from attrs import Factory, define, field, validators
 from .. import _internal
 from ..enums import Element, Tier, Type
 from ..errors import MaxPowerError, MaxTierError
-from ..item_stats import AnyStatsMapping, TransformStage, get_final_stage
+from ..item_stats import StatsMapping, TransformStage, get_final_stage
 from ..typedefs import ID, Name
 
 __all__ = (
@@ -93,7 +93,7 @@ class Item:
     paint: Paint | None = field(default=None)
 
     @property
-    def current_stats(self) -> AnyStatsMapping:
+    def current_stats(self) -> StatsMapping:
         """The stats of this item at its particular tier and level."""
         return self.stage.at(self.level)
 
@@ -208,34 +208,14 @@ class InvItem:
 # XXX: should the multipliers be applied on BattleItem creation, or should it hold a reference?
 # BattleItem should be constructible without an InvItem; it has nothing to do with inventory
 
-def apply_multipliers(
-    stats: AnyStatsMapping, multipliers: t.Mapping[str, float] = {}, /, **mults: float
-) -> None:
-    """WIP"""
-    for key, value in {**multipliers, **mults}.items():
-        old = stats.get(key)
-
-        if old is None:
-            continue
-
-        stats[key] = round(old * value)
-
-
 @define
 class BattleItem:
     """Represents the state of an item during a battle."""
     item: Item
-    stats: AnyStatsMapping
+    stats: StatsMapping
     multipliers: t.Mapping[str, float] = field(factory=dict)
     # already_used: bool? XXX prolly better to store elsewhere
 
     @classmethod
     def from_item(cls, item: Item, /) -> tex.Self:
         return cls(item=item, stats=item.current_stats)
-
-
-def battle_item_factory(item: Item, multipliers: dict[str, float] = {}) -> BattleItem:
-    """Create a BattleItem with pre-applied multipliers."""
-    stats = item.current_stats
-    apply_multipliers(stats, multipliers)
-    return BattleItem.from_item(item)

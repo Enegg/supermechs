@@ -1,6 +1,6 @@
 import typing as t
 
-__all__ = ("LiteralType", "LiteralElement", "RawMechStatsMapping", "RawStatsMapping")
+__all__ = ("LiteralType", "LiteralElement", "RawStatsMapping")
 
 LiteralType = t.Literal[
     "TORSO",
@@ -16,7 +16,7 @@ LiteralType = t.Literal[
 LiteralElement = t.Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
 
 
-class RawMechStatsMapping(t.TypedDict, total=False):
+class RawStatsMapping(t.TypedDict, total=False):
     """Data as received from source."""
 
     weight: int | None
@@ -32,11 +32,6 @@ class RawMechStatsMapping(t.TypedDict, total=False):
     rocketsCap: int | None
     walk: int | None
     jump: int | None
-
-
-class RawStatsMapping(RawMechStatsMapping, total=False):
-    """Data as received from source."""
-
     phyDmg: list[int | None]
     phyResDmg: int | None
     eleDmg: list[int | None]

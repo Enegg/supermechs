@@ -1,18 +1,58 @@
 import typing as t
 
-from .typedefs.game_types import RawMechStatsMapping, RawStatsMapping
+from .typedefs.game_types import RawStatsMapping
 from .typedefs.packs import AnyItemDict, AnyItemPack
 from .utils import NaN
 
 from supermechs.enums import Element, Tier, Type
 from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
-from supermechs.item_stats import AnyStatsMapping, TransformStage, ValueRange
+from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
 from supermechs.models.item import ItemData, Tags, TransformRange, transform_range
 from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]
-
+# fmt: off
+_WU_STAT_TO_STAT = {
+    "weight":      Stat.weight,
+    "health":      Stat.hit_points,
+    "eneCap":      Stat.energy_capacity,
+    "eneReg":      Stat.regeneration,
+    "heaCap":      Stat.heat_capacity,
+    "heaCol":      Stat.cooling,
+    "bulletsCap":  Stat.bullets_capacity,
+    "rocketsCap":  Stat.rockets_capacity,
+    "phyRes":      Stat.physical_resistance,
+    "expRes":      Stat.explosive_resistance,
+    "eleRes":      Stat.electric_resistance,
+    "phyDmg":      Stat.physical_damage,
+    "phyResDmg":   Stat.physical_resistance_damage,
+    "eleDmg":      Stat.electric_damage,
+    "eneDmg":      Stat.energy_damage,
+    "eneCapDmg":   Stat.energy_capacity_damage,
+    "eneRegDmg":   Stat.regeneration_damage,
+    "eleResDmg":   Stat.electric_resistance_damage,
+    "expDmg":      Stat.explosive_damage,
+    "heaDmg":      Stat.heat_damage,
+    "heaCapDmg":   Stat.heat_capacity_damage,
+    "heaColDmg":   Stat.cooling_damage,
+    "expResDmg":   Stat.explosive_resistance_damage,
+    "walk":        Stat.walk,
+    "jump":        Stat.jump,
+    "range":       Stat.range,
+    "push":        Stat.push,
+    "pull":        Stat.pull,
+    "recoil":      Stat.recoil,
+    "advance":     Stat.advance,
+    "retreat":     Stat.retreat,
+    "uses":        Stat.uses,
+    "backfire":    Stat.backfire,
+    "heaCost":     Stat.heat_generation,
+    "eneCost":     Stat.energy_cost,
+    "bulletsCost": Stat.bullets_cost,
+    "rocketsCost": Stat.rockets_cost,
+}
+# fmt: on
 
 def raises(exc: BaseException, /) -> t.NoReturn:
     """Simply raises passed exception."""
@@ -98,12 +138,9 @@ def to_item_data(
 
 
 def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
-    import itertools
     import types
 
-    for stat_key, data_type in itertools.chain(
-        t.get_type_hints(RawMechStatsMapping).items(), t.get_type_hints(RawStatsMapping).items()
-    ):
+    for stat_key, data_type in t.get_type_hints(RawStatsMapping).items():
         origin = t.get_origin(data_type)
 
         if origin is int:  # noqa: SIM114
@@ -122,22 +159,24 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
 
 def to_stats_mapping(
     data: RawStatsMapping, /, *, on_error: ErrorCallbackType = raises
-) -> AnyStatsMapping:
+) -> StatsMapping:
     """Grabs only expected keys and checks value types. Transforms None values into NaNs."""
 
-    final_stats: AnyStatsMapping = {}
+    final_stats: StatsMapping = {}
     # TODO: implement extrapolation of missing data
 
     for key, data_type in _iter_stat_keys_and_types():
         if key not in data:
             continue
 
+        stat = _WU_STAT_TO_STAT[key]
+
         match data[key]:
             case int() | None as value if data_type is int:
-                final_stats[key] = NaN if value is None else value
+                final_stats[stat] = NaN if value is None else value
 
             case [int() | None as x, int() | None as y] if data_type is list:
-                final_stats[key] = ValueRange(
+                final_stats[stat] = ValueRange(
                     NaN if x is None else x,
                     NaN if y is None else y,
                 )
@@ -157,9 +196,9 @@ def to_transform_stages(
         return TransformStage(tier=tier, base_stats=base_stats, max_level_stats={})
 
     hit = False
-    rolling_stats: AnyStatsMapping = {}
+    rolling_stats: StatsMapping = {}
 
-    computed: list[tuple[Tier, AnyStatsMapping, AnyStatsMapping]] = []
+    computed: list[tuple[Tier, StatsMapping, StatsMapping]] = []
 
     for tier in Tier:
         key = t.cast(str, tier.name.lower())
@@ -182,7 +221,7 @@ def to_transform_stages(
             if tier is not Tier.DIVINE:
                 on_error(KeyError(f"max_{key} key not found for item {data['name']}"))
 
-            upper_stats = AnyStatsMapping()
+            upper_stats = StatsMapping()
 
         else:
             upper_stats = to_stats_mapping(max_level_data, on_error=on_error)

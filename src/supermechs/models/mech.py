@@ -7,13 +7,30 @@ from types import MappingProxyType
 
 from attrs import define, field
 
-from supermechs import constants
 from supermechs.enums import Element, PartialEnum, Type
+from supermechs.item_stats import SUMMARY_STATS, Stat
 from supermechs.models.item import Item
-from supermechs.typeshed import XOrTupleXY
 from supermechs.utils import cached_slot_property, has_any_of
 
+if t.TYPE_CHECKING:
+    from supermechs.typeshed import XOrTupleXY
+
 __all__ = ("Mech", "SlotType")
+
+# ------------------------------------------- Constants --------------------------------------------
+
+MAX_WEIGHT: int = 1000
+"""The maximum weight of a mech before overload."""
+OVERLOAD: int = 10
+"""The maximum extra weight allowed over the max weight."""
+OVERLOADED_MAX_WEIGHT: int = MAX_WEIGHT + OVERLOAD
+"""The absolute maximum weight of a mech before it is overweight."""
+HP_PENALTY_PER_KG: int = 15
+"""The ratio at which mech hit points drop for each kg of overload."""
+EXCLUSIVE_STAT_KEYS: t.AbstractSet[Stat] = {
+    Stat.physical_resistance, Stat.explosive_resistance, Stat.electric_resistance
+}
+"""A set of stats of which each can be found at most on one module per mech."""
 
 # ------------------------------------------ Constraints -------------------------------------------
 
@@ -24,7 +41,7 @@ def jumping_required(mech: Mech) -> bool:
 
 
 def no_duplicate_stats(mech: Mech, module: Item) -> bool:
-    present_exclusive_stat_keys = module.current_stats.keys() & constants.EXCLUSIVE_STAT_KEYS
+    present_exclusive_stat_keys = module.current_stats.keys() & EXCLUSIVE_STAT_KEYS
 
     for equipped_module in mech.iter_items(Type.MODULE):
         if equipped_module is None or equipped_module is module:
@@ -38,7 +55,7 @@ def no_duplicate_stats(mech: Mech, module: Item) -> bool:
 
 def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
     if item.data.type is Type.MODULE and has_any_of(
-        item.current_stats, *constants.EXCLUSIVE_STAT_KEYS
+        item.current_stats, *EXCLUSIVE_STAT_KEYS
     ):
         return partial(no_duplicate_stats, module=item)
 
@@ -52,7 +69,7 @@ def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
 
 
 def assert_not_custom(mech: Mech, /) -> bool:
-    return all(not inv_item.data.tags.custom for inv_item in filter(None, mech.iter_items()))
+    return all(not item.data.tags.custom for item in filter(None, mech.iter_items()))
 
 
 def validate(mech: Mech, /) -> bool:
@@ -65,7 +82,7 @@ def validate(mech: Mech, /) -> bool:
         # at least one weapon
         and any(weapon is not None for weapon in mech.iter_items("weapons"))
         # not overweight
-        and mech.weight <= constants.OVERLOADED_MAX_WEIGHT
+        and mech.weight <= OVERLOADED_MAX_WEIGHT
         # no constraints are broken
         # and all(constr(mech) for constr in mech._constraints.values())
     )
@@ -182,22 +199,23 @@ class Mech:
     @property
     def weight(self) -> int:
         """The weight of the mech."""
-        return self.stat_summary.get("weight", 0)
+        return self.stat_summary.get(Stat.weight, 0)
 
     @cached_slot_property
-    def stat_summary(self) -> t.Mapping[str, int]:
+    def stat_summary(self) -> t.Mapping[Stat, int]:
         """A dict of the mech's stats, in order as they appear in workshop."""
 
         # inherit the key order from summary
-        stats = dict.fromkeys(constants.SUMMARY_STAT_KEYS, 0)
+        stats = dict.fromkeys(SUMMARY_STATS, 0)
 
         for item in filter(None, self.iter_items()):
-            for stat in constants.SUMMARY_STAT_KEYS:
-                if (value := item.current_stats.get(stat)) is not None:
-                    stats[stat] += value
+            item_stats = item.current_stats
 
-        if (overload := stats["weight"] - constants.MAX_WEIGHT) > 0:
-            stats["health"] -= overload * constants.HP_PENALTY_PER_KG
+            for stat in SUMMARY_STATS:
+                stats[stat] += item_stats.get(stat, 0)
+
+        if (overload := stats[Stat.weight] - MAX_WEIGHT) > 0:
+            stats[Stat.hit_points] -= overload * HP_PENALTY_PER_KG
 
         for stat, value in tuple(stats.items())[2:]:  # keep weight and health
             if value == 0:
@@ -208,12 +226,10 @@ class Mech:
     @cached_slot_property
     def dominant_element(self) -> Element | None:
         """Guesses the mech type by equipped items."""
-        excluded = (Type.CHARGE_ENGINE, Type.TELEPORTER)
         elements = Counter(
             item.data.element
-            for item in self.iter_items("body", "weapons", "specials")
+            for item in self.iter_items("body", "weapons", self.Slot.HOOK)
             if item is not None
-            if item.data.type not in excluded
         ).most_common(2)
         # return None when there are no elements
         # or the difference between the two most common is indecisive
@@ -238,7 +254,7 @@ class Mech:
         self._evict_expired_cache(item, self._items.get(slot))
 
         if item is None:
-            del self._items[slot]
+            self._items.pop(slot, None)
 
         else:
             self._items[slot] = item
@@ -269,16 +285,6 @@ class Mech:
 
     def _evict_expired_cache(self, new: SlotType, old: SlotType) -> None:
         """Deletes cached attributes if they expire."""
-        # # Setting a displayable item will not change the image
-        # # only if the old item was the same item
-        # # For simplicity I don't exclude that case from updating the image
-        # if new is not None and new.type.displayable:
-        #     del self.image
-
-        # # the item was set to None, thus the appearance will change
-        # # only if the previous one was displayable
-        # elif old is not None and old.type.displayable:
-        #     del self.image
         del self.stat_summary
 
         if new is None or old is None or new.data.element is not old.data.element:

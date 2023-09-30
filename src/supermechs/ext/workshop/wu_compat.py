@@ -3,10 +3,10 @@ import typing_extensions as tex
 
 from attrs import asdict
 
-from supermechs.arena_buffs import ArenaBuffs
+from supermechs.arena_buffs import MAX_BUFFS
 from supermechs.enums import Type
 from supermechs.errors import MalformedData, UnknownDataVersion
-from supermechs.item_stats import AnyStatsMapping, max_stats
+from supermechs.item_stats import Stat, max_stats
 from supermechs.models.item import Item, ItemData
 from supermechs.models.mech import Mech, SlotType
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
@@ -20,15 +20,79 @@ __all__ = ("load_mechs", "dump_mechs")
 
 # ------------------------------------------ typed dicts -------------------------------------------
 
+# fmt: off
+_STAT_TO_WU_STAT = {
+    Stat.weight: "weight",
+    Stat.hit_points: "health",
+    Stat.energy_capacity: "eneCap",
+    Stat.regeneration: "eneReg",
+    Stat.heat_capacity: "heaCap",
+    Stat.cooling: "heaCol",
+    Stat.bullets_capacity: "bulletsCap",
+    Stat.rockets_capacity: "rocketsCap",
+    Stat.physical_resistance: "phyRes",
+    Stat.explosive_resistance: "expRes",
+    Stat.electric_resistance: "eleRes",
+    Stat.physical_damage: "phyDmg",
+    Stat.physical_resistance_damage: "phyResDmg",
+    Stat.electric_damage: "eleDmg",
+    Stat.energy_damage: "eneDmg",
+    Stat.energy_capacity_damage: "eneCapDmg",
+    Stat.regeneration_damage: "eneRegDmg",
+    Stat.electric_resistance_damage: "eleResDmg",
+    Stat.explosive_damage: "expDmg",
+    Stat.heat_damage: "heaDmg",
+    Stat.heat_capacity_damage: "heaCapDmg",
+    Stat.cooling_damage: "heaColDmg",
+    Stat.explosive_resistance_damage: "expResDmg",
+    Stat.walk: "walk",
+    Stat.jump: "jump",
+    Stat.range: "range",
+    Stat.push: "push",
+    Stat.pull: "pull",
+    Stat.recoil: "recoil",
+    Stat.advance: "advance",
+    Stat.retreat: "retreat",
+    Stat.uses: "uses",
+    Stat.backfire: "backfire",
+    Stat.heat_generation: "heaCost",
+    Stat.energy_cost: "eneCost",
+    Stat.bullets_cost: "bulletsCost",
+    Stat.rockets_cost: "rocketsCost",
+}
+_WU_SLOT_TO_SLOT: dict[tex.LiteralString, Mech.Slot] = {
+    "torso":         Mech.Slot.TORSO,
+    "legs":          Mech.Slot.LEGS,
+    "sideWeapon1":   Mech.Slot.SIDE_WEAPON_1,
+    "sideWeapon2":   Mech.Slot.SIDE_WEAPON_2,
+    "sideWeapon3":   Mech.Slot.SIDE_WEAPON_3,
+    "sideWeapon4":   Mech.Slot.SIDE_WEAPON_4,
+    "topWeapon1":    Mech.Slot.TOP_WEAPON_1,
+    "topWeapon2":    Mech.Slot.TOP_WEAPON_2,
+    "drone":         Mech.Slot.DRONE,
+    "chargeEngine":  Mech.Slot.CHARGE,
+    "teleporter":    Mech.Slot.TELEPORTER,
+    "grapplingHook": Mech.Slot.HOOK,
+    "module1":       Mech.Slot.MODULE_1,
+    "module2":       Mech.Slot.MODULE_2,
+    "module3":       Mech.Slot.MODULE_3,
+    "module4":       Mech.Slot.MODULE_4,
+    "module5":       Mech.Slot.MODULE_5,
+    "module6":       Mech.Slot.MODULE_6,
+    "module7":       Mech.Slot.MODULE_7,
+    "module8":       Mech.Slot.MODULE_8,
+}
+# fmt: on
+
 
 class WUBattleItem(t.TypedDict):
-    slotName: str
+    slotName: tex.LiteralString
     id: ID
     name: Name
-    type: str
-    stats: AnyStatsMapping
+    type: tex.LiteralString
+    stats: dict[str, int | list[int]]
     tags: t.Mapping[str, bool]
-    element: str
+    element: tex.LiteralString
     timesUsed: t.Literal[0]
 
 
@@ -43,88 +107,12 @@ class WUPlayer(t.TypedDict):
     mech: WUMech
 
 
-class ExportedMechsJSONv1(t.TypedDict):
+class ExportedMechsJSON(t.TypedDict):
     version: t.Literal[1]
     mechs: t.Mapping[str, t.Sequence[WUMech]]
 
 
-class ExportedMechsJSONv2(t.TypedDict):
-    version: t.Literal[2]
-    # a mapping of pack keys to array of [smallest, largest] IDs they hold,
-    # offset by previous packs.
-    packs: t.Mapping[str, t.Sequence[int]]
-    mechs: t.Sequence[WUMech]
-
-
-WU_SLOT_NAMES = (
-    "torso",
-    "legs",
-    "sideWeapon1",
-    "sideWeapon2",
-    "sideWeapon3",
-    "sideWeapon4",
-    "topWeapon1",
-    "topWeapon2",
-    "drone",
-    "chargeEngine",
-    "teleporter",
-    "grapplingHook",
-)
-WU_MODULE_SLOT_NAMES = (
-    "module1",
-    "module2",
-    "module3",
-    "module4",
-    "module5",
-    "module6",
-    "module7",
-    "module8",
-)
-
-
-def wu_to_mech_slot(slot: tex.LiteralString, /) -> Mech.Slot:
-    """Convert workshop's internal slot name to the app's slot name."""
-    if slot.startswith("side"):
-        return Mech.Slot.of_name(f"SIDE_WEAPON_{slot[-1]}")
-
-    if slot.startswith("top"):
-        return Mech.Slot.of_name(f"TOP_WEAPON_{slot[-1]}")
-
-    if slot.startswith("module"):
-        return Mech.Slot.of_name(f"MODULE_{slot[-1]}")
-
-    if slot == "chargeEngine":
-        return Mech.Slot.CHARGE
-
-    if slot == "grapplingHook":
-        return Mech.Slot.HOOK
-
-    return Mech.Slot.of_name(slot.upper())
-
-
-def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
-    """Yields mech items in the order expected by WU."""
-    yield mech.torso
-    yield mech.legs
-    yield from mech.iter_items("weapons")
-    yield mech.drone
-    yield mech.charge
-    yield mech.teleporter
-    yield mech.hook
-    yield from mech.iter_items(Type.MODULE)
-
-
-def _mech_items_ids_in_wu_order(mech: Mech) -> t.Iterator[int]:
-    """Yields mech item IDs in WU compatible order."""
-    return (0 if item is None else item.data.id for item in _mech_items_in_wu_order(mech))
-
-
-def mech_to_id_str(mech: Mech, sep: str = "_") -> str:
-    """Helper function to serialize a mech into a string of item IDs."""
-    return sep.join(map(str, _mech_items_ids_in_wu_order(mech)))
-
-
-# -------------------------------------------- imports ---------------------------------------------
+# --------------------------------------------- WU2lib ---------------------------------------------
 
 
 def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
@@ -141,8 +129,8 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
             setup
         )
 
-    for item_id, wu_slot in zip(setup, WU_SLOT_NAMES + WU_MODULE_SLOT_NAMES):
-        slot = wu_to_mech_slot(wu_slot)
+    for item_id, wu_slot in zip(setup, _WU_SLOT_NAMES):
+        slot = _WU_SLOT_TO_SLOT[wu_slot]
         if item_id != 0:
             item_data = pack.get_item_by_id(item_id)
             mech[slot] = Item.from_data(item_data, maxed=True)
@@ -154,7 +142,7 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
 
 
 def import_mechs(
-    data: ExportedMechsJSONv1, pack: "ItemPack"
+    data: ExportedMechsJSON, pack: "ItemPack"
 ) -> tuple[t.Sequence[Mech], t.Sequence[tuple[int, Exception]]]:
     """Imports mechs from parsed .JSON file."""
 
@@ -192,7 +180,27 @@ def load_mechs(
     return import_mechs(json_decoder(data), pack)
 
 
-# -------------------------------------------- exports ---------------------------------------------
+# --------------------------------------------- lib2WU ---------------------------------------------
+
+
+_WU_SLOT_NAMES = tuple(_WU_SLOT_TO_SLOT)
+
+
+def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
+    """Yields mech items in the order expected by WU."""
+    yield mech.torso
+    yield mech.legs
+    yield from mech.iter_items("weapons")
+    yield mech.drone
+    yield mech.charge
+    yield mech.teleporter
+    yield mech.hook
+    yield from mech.iter_items(Type.MODULE)
+
+
+def _mech_item_ids_in_wu_order(mech: Mech) -> t.Iterator[int]:
+    """Yields mech item IDs in WU compatible order."""
+    return (0 if item is None else item.data.id for item in _mech_items_in_wu_order(mech))
 
 
 def is_exportable(mech: Mech) -> bool:
@@ -214,10 +222,10 @@ def is_exportable(mech: Mech) -> bool:
 
 def export_mech(mech: Mech) -> WUMech:
     """Exports a mech to WU mech."""
-    return {"name": mech.name, "setup": list(_mech_items_ids_in_wu_order(mech))}
+    return {"name": mech.name, "setup": list(_mech_item_ids_in_wu_order(mech))}
 
 
-def export_mechs(mechs: t.Iterable[Mech], pack_key: str) -> ExportedMechsJSONv1:
+def export_mechs(mechs: t.Iterable[Mech], pack_key: str) -> ExportedMechsJSON:
     """Exports mechs to WU compatible format."""
     wu_mechs = list(map(export_mech, mechs))
     return {"version": 1, "mechs": {pack_key: wu_mechs}}
@@ -228,18 +236,22 @@ def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
     return indented_json_encoder(export_mechs(mechs, pack_key))
 
 
-def get_battle_item(item: ItemData, slot_name: str) -> WUBattleItem:
+def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleItem:
     # the keys here are ordered in same fashion as in WU, to maximize
     # chances that the hashes will be same
+    stats = {
+        _STAT_TO_WU_STAT[key]: value if isinstance(value, int) else list(value)
+        for key, value in MAX_BUFFS.buff_stats(max_stats(item.start_stage)).items()
+    }
     return {
         "slotName": slot_name,
         "element": item.element.name,
         "id": item.id,
         "name": item.name,
-        "stats": ArenaBuffs.maxed().buff_stats(max_stats(item.start_stage)),
+        "stats": stats,
         "tags": asdict(item.tags),
         "timesUsed": 0,
-        "type": item.type.name,
+        "type": item.type.name,  # FIXME: WU expects full names
     }
 
 
@@ -249,7 +261,7 @@ def get_player(mech: Mech, player_name: str) -> WUPlayer:
 
     serialized_items_without_modules = [
         None if item is None else get_battle_item(item.data, slot)
-        for slot, item in zip(WU_SLOT_NAMES, _mech_items_in_wu_order(mech))
+        for slot, item in zip(_WU_SLOT_NAMES[:-8], _mech_items_in_wu_order(mech))
     ]
     # lazy import
     import hashlib
