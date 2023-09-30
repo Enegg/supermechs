@@ -1,4 +1,4 @@
-from ._internal import STATS as STATS, Stat as Stat  # TODO: refactor this
+from ._internal import STATS as STATS, BuffData as BuffData  # TODO: refactor this
 from .arena_buffs import *
 from .enums import *
 from .item_pack import *

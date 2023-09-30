@@ -4,13 +4,14 @@ import typing_extensions as tex
 import anyio
 
 from .enums import Tier
+from .item_stats import Stat
 from .platform import toml_decoder
 
 DEFAULT_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
 PREMIUM_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
 REDUCED_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
-STATS: t.Mapping[str, "Stat"] = {}
-BUFFABLE_STATS: t.Sequence[str] = []
+STATS: t.Mapping[Stat, "BuffData"] = {}
+BUFFABLE_STATS: t.Sequence[Stat] = []
 BASE_LVL_INCREASES: t.Sequence[int] = []
 HIT_POINT_INCREASES: t.Sequence[int] = []
 
@@ -40,38 +41,36 @@ async def load_power_data() -> None:
             tg.start_soon(worker, file_name, rarities, mapping)
 
 
-class StatData(t.TypedDict):
+class RawBuffData(t.TypedDict):
     key: str
     beneficial: tex.NotRequired[bool]
     buff: tex.NotRequired[t.Literal["+HP", "+%", "-%", "resist%"]]
 
 
-class StatsData(t.TypedDict):
+class StatsFile(t.TypedDict):
     levels: t.Mapping[str, t.Sequence[int]]
     level_percents: t.Sequence[int]
     hit_points: t.Sequence[int]
-    stats: t.Sequence[StatData]
+    stats: t.Sequence[RawBuffData]
 
 
-class Stat(t.NamedTuple):
-    key: str
+class BuffData(t.NamedTuple):
+    key: Stat
     beneficial: bool = True
     buff: t.Literal["+HP", "+%", "-%", "resist%"] | None = None
 
     def __str__(self) -> str:
-        return self.key
-
-    def __hash__(self) -> int:
-        return hash((self.key, type(self)))
+        return str(self.key)
 
 
 async def load_stat_data() -> None:
     async with await (anyio.Path(__file__).parent / "static/StatData.toml").open() as file:
-        data: StatsData = toml_decoder(await file.read())
+        data: StatsFile = toml_decoder(await file.read())
 
     for stat_data in data["stats"]:
-        stat_key = stat_data["key"]
-        stat = Stat(stat_key, stat_data.get("beneficial", True), stat_data.get("buff"))
+        stat_key = Stat.of_name(stat_data["key"])
+
+        stat = BuffData(stat_key, stat_data.get("beneficial", True), stat_data.get("buff"))
         STATS[stat_key] = stat
 
         if stat.buff is not None:
