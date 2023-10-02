@@ -4,7 +4,8 @@ from enum import auto
 
 from attrs import define, field
 
-from .enums import PartialEnum, Tier
+from .enums import PartialEnum
+from .models.item import Tier
 from .typeshed import dict_items_as
 
 __all__ = (
@@ -150,7 +151,7 @@ class TransformStage:
         max_level = self.tier.max_level
 
         if not 0 <= level <= max_level:
-            raise ValueError(f"Level {level} outside range 1-{max_level+1}")
+            raise ValueError(f"Level {level} outside range 0-{max_level}")
 
         if level == 0:
             return self.base_stats
@@ -176,7 +177,7 @@ class TransformStage:
         return stats
 
 
-def get_final_stage(stage: "TransformStage", /) -> "TransformStage":
+def get_final_stage(stage: TransformStage, /) -> TransformStage:
     """Returns the final stage of transformation."""
     while stage.next is not None:
         stage = stage.next
@@ -184,7 +185,7 @@ def get_final_stage(stage: "TransformStage", /) -> "TransformStage":
     return stage
 
 
-def max_stats(stage: "TransformStage", /) -> StatsMapping:
+def max_stats(stage: TransformStage, /) -> StatsMapping:
     """Return the max stats."""
     stage = get_final_stage(stage)
     return stage.at(stage.max_level)

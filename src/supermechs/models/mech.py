@@ -7,9 +7,9 @@ from types import MappingProxyType
 
 from attrs import define, field
 
-from supermechs.enums import Element, PartialEnum, Type
+from supermechs.enums import PartialEnum
 from supermechs.item_stats import SUMMARY_STATS, Stat
-from supermechs.models.item import Item
+from supermechs.models.item import Element, Item, Type
 from supermechs.utils import cached_slot_property, has_any_of
 
 if t.TYPE_CHECKING:

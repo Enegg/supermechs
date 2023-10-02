@@ -4,8 +4,8 @@ from bisect import insort_left
 import anyio
 from attrs import define, field
 
-from ..enums import Tier, Type
-from ..models.item import Item, ItemData
+from ..models.item import Type
+from ..models.item import Item, ItemData, Tier
 from ..models.mech import Mech
 from ..typeshed import twotuple
 from ..utils import large_mapping_repr

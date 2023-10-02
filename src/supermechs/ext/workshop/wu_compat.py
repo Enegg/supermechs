@@ -4,7 +4,7 @@ import typing_extensions as tex
 from attrs import asdict
 
 from supermechs.arena_buffs import MAX_BUFFS
-from supermechs.enums import Type
+from supermechs.models.item import Type
 from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.item_stats import Stat, max_stats
 from supermechs.models.item import Item, ItemData

@@ -2,11 +2,12 @@ import typing as t
 import typing_extensions as tex
 import uuid
 from bisect import bisect_left
+from enum import auto
 
 from attrs import Factory, define, field, validators
 
 from .. import _internal
-from ..enums import Element, Tier, Type
+from ..enums import PartialEnum
 from ..errors import MaxPowerError, MaxTierError
 from ..item_stats import StatsMapping, TransformStage, get_final_stage
 from ..typedefs import ID, Name
@@ -15,6 +16,43 @@ __all__ = (
     "Tags", "TransformRange", "transform_range",
     "ItemData", "Item", "InvItem", "BattleItem"
 )
+
+
+class TierData(t.NamedTuple):
+    order: int
+    max_level: int
+
+    def __int__(self) -> int:
+        return self.order
+
+
+class Tier(TierData, PartialEnum):
+    """Enumeration of item tiers."""
+
+    _initials2members: t.ClassVar[t.Mapping[str, tex.Self]]
+
+    def __new__(cls, order: int, max_level: int) -> tex.Self:
+        self = t.cast(tex.Self, TierData.__new__(cls, order, max_level))
+        self._value_ = order
+        return self
+
+    # fmt: off
+    COMMON    = (0, 9)
+    RARE      = (1, 19)
+    EPIC      = (2, 29)
+    LEGENDARY = (3, 39)
+    MYTHICAL  = (4, 49)
+    DIVINE    = (5, 0)
+    PERK      = (6, 0)
+    # fmt: on
+
+    @classmethod
+    def of_initial(cls, letter: str, /) -> tex.Self:
+        """Get enum member by the first letter of its name."""
+        return cls._initials2members[letter.upper()]
+
+
+Tier._initials2members = {tier.name[0]: tier for tier in Tier}
 
 
 class Tags(t.NamedTuple):
@@ -56,6 +94,39 @@ def transform_range(lower: Tier | int, upper: Tier | int | None = None) -> Trans
         raise ValueError("Minimum tier greater than maximum tier")
 
     return tuple(map(Tier.of_value, range(lower, upper + 1)))
+
+
+class Element(PartialEnum):
+    """Enumeration of item elements."""
+
+    # fmt: off
+    PHYSICAL  = auto()
+    EXPLOSIVE = auto()
+    ELECTRIC  = auto()
+    COMBINED  = auto()
+    UNKNOWN   = auto()
+    # fmt: on
+
+
+class Type(PartialEnum):
+    """Enumeration of item types."""
+
+    # fmt: off
+    TORSO       = auto()
+    LEGS        = auto()
+    DRONE       = auto()
+    SIDE_WEAPON = auto()
+    TOP_WEAPON  = auto()
+    TELEPORTER  = auto()
+    CHARGE      = auto()
+    HOOK        = auto()
+    MODULE      = auto()
+    SHIELD      = auto()
+    PERK        = auto()
+    CHARGE_ENGINE = CHARGE
+    GRAPPLING_HOOK = HOOK
+    TELEPORT = TELEPORTER
+    # fmt: on
 
 
 @define(kw_only=True)

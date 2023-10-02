@@ -4,7 +4,7 @@ from .typedefs.graphics import AnyRawAttachment, RawPlane2D, RawPoint2D, RawTors
 from .typedefs.packs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .utils import js_format
 
-from supermechs.enums import Type
+from supermechs.models.item import Type
 from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.rendering import (
     AnyAttachment,

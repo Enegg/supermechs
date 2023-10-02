@@ -4,11 +4,11 @@ from .typedefs.game_types import RawStatsMapping
 from .typedefs.packs import AnyItemDict, AnyItemPack
 from .utils import NaN
 
-from supermechs.enums import Element, Tier, Type
+from supermechs.models.item import Type
 from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
-from supermechs.models.item import ItemData, Tags, TransformRange, transform_range
+from supermechs.models.item import Element, ItemData, Tags, Tier, TransformRange, transform_range
 from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]

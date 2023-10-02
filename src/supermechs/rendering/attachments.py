@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing as t
 
-from ..enums import Type
+from ..models.item import Type
 
 __all__ = (
     "TORSO_ATTACHMENT_FIELDS",

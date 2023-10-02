@@ -3,7 +3,7 @@ import typing_extensions as tex
 
 import anyio
 
-from .enums import Tier
+from .models.item import Tier
 from .item_stats import Stat
 from .platform import toml_decoder
 
