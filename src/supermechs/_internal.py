@@ -3,8 +3,8 @@ import typing_extensions as tex
 
 import anyio
 
-from .models.item import Tier
 from .item_stats import Stat
+from .models.item import Tier
 from .platform import toml_decoder
 
 DEFAULT_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
