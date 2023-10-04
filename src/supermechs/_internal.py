@@ -1,3 +1,4 @@
+import array
 import typing as t
 import typing_extensions as tex
 
@@ -34,7 +35,7 @@ async def load_power_data() -> None:
         async with await (path / file_name).open(newline="") as file:
             rows = csv.reader(await file.readlines(), skipinitialspace=True)
             for rarity, row in zip(rarities, rows):
-                mapping[rarity] = tuple(map(int, row))
+                mapping[rarity] = array.array("i", map(int, row))
 
     async with anyio.create_task_group() as tg:
         for file_name, rarities, mapping in zip(file_names, iterables, mappings, strict=True):
