@@ -27,7 +27,7 @@ TORSO_ATTACHMENT_FIELDS = ("leg1", "leg2", "side1", "side2", "side3", "side4", "
 
 
 def is_displayable(type: Type, /) -> bool:
-    """Whether item of given type can appear in a composite mech's image."""
+    """Whether item of given type is a part of mech's sprite."""
     return type not in (Type.TELEPORTER, Type.CHARGE, Type.HOOK, Type.MODULE)
 
 
@@ -46,19 +46,19 @@ def create_synthetic_attachment(width: int, height: int, type: Type) -> AnyAttac
 
     Note: likely won't work well for scope-like items.
 
-    Taken directly from WU, credits to Raul.
+    https://github.com/ctrlraul/supermechs-workshop/blob/6fe2e0a29bd4776f50f893d2ab0722020279e2d3/src/items/ItemsManager.ts#L286-L325
     """
     if type is Type.TORSO:
-        return dict(
-            leg1=Point2D(round(width * 0.40), round(height * 0.9)),
-            leg2=Point2D(round(width * 0.80), round(height * 0.9)),
-            side1=Point2D(round(width * 0.25), round(height * 0.6)),
-            side2=Point2D(round(width * 0.75), round(height * 0.6)),
-            side3=Point2D(round(width * 0.20), round(height * 0.3)),
-            side4=Point2D(round(width * 0.80), round(height * 0.3)),
-            top1=Point2D(round(width * 0.25), round(height * 0.1)),
-            top2=Point2D(round(width * 0.75), round(height * 0.1)),
-        )
+        return {
+            "leg1": Point2D(round(width * 0.40), round(height * 0.9)),
+            "leg2": Point2D(round(width * 0.80), round(height * 0.9)),
+            "side1": Point2D(round(width * 0.25), round(height * 0.6)),
+            "side2": Point2D(round(width * 0.75), round(height * 0.6)),
+            "side3": Point2D(round(width * 0.20), round(height * 0.3)),
+            "side4": Point2D(round(width * 0.80), round(height * 0.3)),
+            "top1": Point2D(round(width * 0.25), round(height * 0.1)),
+            "top2": Point2D(round(width * 0.75), round(height * 0.1)),
+        }
 
     if coeffs := _position_coeffs.get(type, None):
         return Point2D(round(width * coeffs[0]), round(height * coeffs[1]))
