@@ -17,6 +17,7 @@ Loader = t.Callable[["Metadata"], t.Awaitable[Image]]
 
 class Metadata(t.NamedTuple):
     """Image related metadata."""
+
     source: t.Literal["url", "file"]
     method: t.Literal["single", "sheet"]
     value: str
@@ -70,7 +71,6 @@ class SingleResolver(ItemSprite):
 
         if self.postprocess is not None:
             self.postprocess(self)
-
 
 
 @define

@@ -2,7 +2,7 @@ import typing as t
 from typing_extensions import NotRequired
 
 from .game_types import LiteralElement, LiteralType, RawStatsMapping
-from .graphics import ItemImageParams, RawPlane2D
+from .graphics import ItemImageParams, RawBox2D
 
 from supermechs.typeshed import LiteralURL
 
@@ -35,7 +35,7 @@ class TiersMixin(t.TypedDict, total=False):
 
 class SpritesSheetMixin(t.TypedDict):
     spritesSheet: LiteralURL
-    spritesMap: dict[str, RawPlane2D]
+    spritesMap: dict[str, RawBox2D]
 
 
 class ItemDictBase(ItemImageParams):

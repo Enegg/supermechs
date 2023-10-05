@@ -1,6 +1,6 @@
 import typing as t
 
-from .typedefs.graphics import AnyRawAttachment, RawPlane2D, RawPoint2D, RawTorsoAttachments
+from .typedefs.graphics import AnyRawAttachment, RawBox2D, RawPoint2D, RawTorsoAttachments
 from .typedefs.packs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .utils import js_format
 
@@ -60,7 +60,7 @@ def to_attachments(data: AnyRawAttachment, /) -> AnyAttachment:
             raise MalformedData("Invalid attachment", unknown)
 
 
-def bounding_box(pos: RawPlane2D, /) -> tuple[int, int, int, int]:
+def bounding_box(pos: RawBox2D, /) -> tuple[int, int, int, int]:
     x = assert_type(int, pos["x"])
     y = assert_type(int, pos["y"])
     w = assert_type(int, pos["width"])
@@ -114,7 +114,7 @@ def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRende
         converter = make_converter(
             item_dict.get("width", 0),
             item_dict.get("height", 0),
-            Type.of_name(item_dict["type"])
+            Type.of_name(item_dict["type"]),
         )
         meta = Metadata("url", "single", img_url)
         sprite = SingleResolver(fetch, meta, attachment, converter)
@@ -138,7 +138,7 @@ def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: ImageFetche
         converter = make_converter(
             item_dict.get("width", 0),
             item_dict.get("height", 0),
-            Type.of_name(item_dict["type"])
+            Type.of_name(item_dict["type"]),
         )
         sprite = SpritesheetResolver(spritesheet, rect, attachment, converter)
         sprites[item_dict["id"]] = sprite

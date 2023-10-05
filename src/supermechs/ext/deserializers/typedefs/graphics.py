@@ -1,8 +1,8 @@
 import typing as t
 
 __all__ = (
+    "RawBox2D",
     "RawPoint2D",
-    "RawPlane2D",
     "RawTorsoAttachments",
     "AnyRawAttachment",
     "ItemImageParams",
@@ -18,7 +18,7 @@ RawTorsoAttachments = t.Mapping[str, RawPoint2D]
 AnyRawAttachment = RawPoint2D | RawTorsoAttachments | None
 
 
-class RawPlane2D(RawPoint2D):
+class RawBox2D(RawPoint2D):
     width: int
     height: int
 
