@@ -19,8 +19,7 @@ rtoml = "*"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.0.270"
-black = "*"
+ruff = "^0.0.291" # > .291 replaces black (alpha)
 
 
 [build-system]
