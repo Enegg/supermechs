@@ -8,7 +8,7 @@ from supermechs.models.item import Type
 from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
-from supermechs.models.item import Element, ItemData, Tags, Tier, TransformRange, transform_range
+from supermechs.models.item import Element, ItemData, Tags, Tier
 from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]
@@ -61,7 +61,7 @@ def raises(exc: BaseException, /) -> t.NoReturn:
 
 def to_tags(
     tags: t.Iterable[str],
-    transform_range: TransformRange,
+    start_tier: Tier,
     stats: RawStatsMapping,
     custom: bool,
     /,
@@ -69,10 +69,10 @@ def to_tags(
     literal_tags = set(tags)
 
     if "legacy" in literal_tags:
-        if transform_range[0] is Tier.MYTHICAL:
+        if start_tier is Tier.MYTHICAL:
             literal_tags.add("premium")
 
-    elif transform_range[0] >= Tier.LEGENDARY:
+    elif start_tier >= Tier.LEGENDARY:
         literal_tags.add("premium")
 
     if has_any_of(stats, "advance", "retreat"):
@@ -86,16 +86,6 @@ def to_tags(
 
     except TypeError as err:
         raise MalformedData(data=literal_tags) from err
-
-
-def to_transform_range(string: str, /) -> TransformRange:
-    """Construct a TransformRange object from a string like "C-E" or "M"."""
-    up, _, down = assert_type(str, string).strip().partition("-")
-    try:
-        return transform_range(Tier.of_initial(up), Tier.of_initial(down) if down else None)
-
-    except ValueError as err:
-        raise MalformedData(data=string) from err
 
 
 def _get_first_stats_mapping(data: AnyItemDict, /) -> RawStatsMapping:
@@ -121,8 +111,13 @@ def to_item_data(
     pack_key: The key of a pack this item comes from.
     custom: Whether the item comes from arbitrary or official source.
     """
-    transform_range = to_transform_range(data["transform_range"])
-    tags = to_tags(data.get("tags", ()), transform_range, _get_first_stats_mapping(data), custom)
+    t_range = assert_type(str, data["transform_range"])
+    tags = to_tags(
+        data.get("tags", ()),
+        Tier.of_initial(t_range[0]),
+        _get_first_stats_mapping(data),
+        custom
+    )
     stages = to_transform_stages(data, on_error=on_error)
     item_data = ItemData(
         id=assert_type(int, data["id"]),
@@ -130,7 +125,6 @@ def to_item_data(
         name=assert_type(str, data["name"]),
         type=Type[data["type"].upper()],
         element=Element[data["element"].upper()],
-        transform_range=transform_range,
         tags=tags,
         start_stage=stages,
     )
@@ -190,35 +184,39 @@ def to_stats_mapping(
 def to_transform_stages(
     data: AnyItemDict, /, *, on_error: ErrorCallbackType = raises
 ) -> TransformStage:
+    range_str = assert_type(str, data["transform_range"])
+
     if "stats" in data:
-        tier = Tier.of_initial(data["transform_range"][-1])
+        tier = Tier.of_initial(range_str[-1])
         base_stats = to_stats_mapping(data["stats"], on_error=on_error)
         return TransformStage(tier=tier, base_stats=base_stats, max_level_stats={})
 
-    hit = False
     rolling_stats: StatsMapping = {}
 
     computed: list[tuple[Tier, StatsMapping, StatsMapping]] = []
+    start_tier = Tier.of_initial(range_str[0])
+    final_tier = Tier.of_initial(range_str[-1])
 
-    for tier in Tier:
+    if start_tier > final_tier:
+        raise MalformedData("Starting tier higher than final tier")
+
+    for tier in map(Tier.of_value, range(start_tier.value, final_tier.value + 1)):
         key = t.cast(str, tier.name.lower())
 
-        if key not in data:
-            # if we already populated the dict with stats,
-            # missing key means we should break as there will be no further stats
-            if hit:
-                break
+        try:
+            base_tier_data = data[key]
 
-            continue
+        except KeyError:
+            on_error(KeyError(f"{key} key not found for item {data['name']}"))
 
-        hit = True
-        rolling_stats |= to_stats_mapping(data[key], on_error=on_error)
+        else:
+            rolling_stats |= to_stats_mapping(base_tier_data, on_error=on_error)
 
         try:
             max_level_data = data["max_" + key]
 
         except KeyError:
-            if tier is not Tier.DIVINE:
+            if tier < Tier.DIVINE:
                 on_error(KeyError(f"max_{key} key not found for item {data['name']}"))
 
             upper_stats = StatsMapping()

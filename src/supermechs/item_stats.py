@@ -123,6 +123,10 @@ def lerp_vector(minor: ValueRange, major: ValueRange, weight: float) -> ValueRan
     return ValueRange(*map(lerp, minor, major, (weight, weight)))
 
 
+MAX_LVL_FOR_TIER: t.Mapping[Tier, int] = {tier: level for tier, level in zip(Tier, range(9, 50, 10))}
+MAX_LVL_FOR_TIER[Tier.DIVINE] = MAX_LVL_FOR_TIER[Tier.PERK] = 0
+
+
 @define(kw_only=True)
 class TransformStage:
     """Dataclass collecting transformation tier dependent item data."""
@@ -140,7 +144,7 @@ class TransformStage:
     @property
     def max_level(self) -> int:
         """The maximum level this stage can reach, starting from 0."""
-        return self.tier.max_level
+        return MAX_LVL_FOR_TIER[self.tier]
 
     def at(self, level: int, /) -> StatsMapping:
         """Returns the stats at given level."""
@@ -148,7 +152,7 @@ class TransformStage:
         if level == self._last[0]:
             return self._last[1]
 
-        max_level = self.tier.max_level
+        max_level = self.max_level
 
         if not 0 <= level <= max_level:
             raise ValueError(f"Level {level} outside range 0-{max_level}")

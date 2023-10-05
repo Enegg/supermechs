@@ -18,33 +18,20 @@ __all__ = (
 )
 
 
-class TierData(t.NamedTuple):
-    order: int
-    max_level: int
-
-    def __int__(self) -> int:
-        return self.order
-
-
-class Tier(TierData, PartialEnum):
+class Tier(int, PartialEnum):
     """Enumeration of item tiers."""
 
-    _initials2members: t.ClassVar[t.Mapping[str, tex.Self]]
-
-    def __new__(cls, order: int, max_level: int) -> tex.Self:
-        self = t.cast(tex.Self, TierData.__new__(cls, order, max_level))
-        self._value_ = order
-        return self
-
     # fmt: off
-    COMMON    = (0, 9)
-    RARE      = (1, 19)
-    EPIC      = (2, 29)
-    LEGENDARY = (3, 39)
-    MYTHICAL  = (4, 49)
-    DIVINE    = (5, 0)
-    PERK      = (6, 0)
+    COMMON    = auto()
+    RARE      = auto()
+    EPIC      = auto()
+    LEGENDARY = auto()
+    MYTHICAL  = auto()
+    DIVINE    = auto()
+    PERK      = auto()
     # fmt: on
+
+    _initials2members: t.ClassVar[t.Mapping[str, tex.Self]]
 
     @classmethod
     def of_initial(cls, letter: str, /) -> tex.Self:
@@ -142,8 +129,6 @@ class ItemData:
     """Member of Type enum denoting the function of the item."""
     element: Element = field(validator=validators.in_(Element), repr=str)
     """Member of Element enum denoting the element of the item."""
-    transform_range: TransformRange = field(validator=validators.min_len(1))
-    """Range of transformation tiers the item can have."""
     tags: Tags = field()
     """A set of boolean tags which alter item's behavior/appearance."""
     start_stage: TransformStage = field()
@@ -203,11 +188,11 @@ def _get_power_bank(item: ItemData, /) -> t.Mapping[Tier, t.Sequence[int]]:
 
     if item.name in _internal.SPECIAL_ITEMS:
         return _internal.REDUCED_POWERS
-
-    if item.transform_range[0] >= Tier.LEGENDARY:
+    
+    if item.start_stage.tier >= Tier.LEGENDARY:
         return _internal.PREMIUM_POWERS
-
-    if item.transform_range[-1] <= Tier.EPIC:
+    
+    if get_final_stage(item.start_stage).tier <= Tier.EPIC:
         pass
 
     return _internal.DEFAULT_POWERS
