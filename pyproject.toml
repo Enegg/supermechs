@@ -13,9 +13,6 @@ typing-extensions = "^4.4.1" # override
 attrs = ">= 22.1.0"          # min_len
 Pillow = "^9.0.0"
 rtoml = "*"
-# orjson = "*"
-# git+https://github.com/Enegg/python-socketio
-# aiohttp
 
 
 [tool.poetry.group.dev.dependencies]
