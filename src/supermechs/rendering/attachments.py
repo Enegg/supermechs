@@ -1,29 +1,45 @@
 from __future__ import annotations
 
 import typing as t
+from enum import auto
 
+from ..enums import PartialEnum
 from ..models.item import Type
 
 __all__ = (
-    "TORSO_ATTACHMENT_FIELDS",
-    "Point2D",
-    "TorsoAttachments",
     "AnyAttachment",
+    "AttachmentMapping",
+    "Attachment",
+    "Point2D",
+    "create_synthetic_attachments",
     "is_attachable",
-    "create_synthetic_attachment",
-    "cast_attachment",
 )
 
 
+class Attachment(PartialEnum):
+    """Enumeration of attachment points."""
+
+    TORSO = auto()
+    LEG_1 = auto()
+    LEG_2 = auto()
+    SIDE_WEAPON_1 = auto()
+    SIDE_WEAPON_2 = auto()
+    SIDE_WEAPON_3 = auto()
+    SIDE_WEAPON_4 = auto()
+    TOP_WEAPON_1 = auto()
+    TOP_WEAPON_2 = auto()
+    HAT = auto()
+    CHARGE = auto()
+    JUMP_JETS = auto()
+
+
 class Point2D(t.NamedTuple):
-    x: int
-    y: int
+    x: float
+    y: float
 
 
-TorsoAttachments = t.Mapping[str, Point2D]
-AnyAttachment = Point2D | TorsoAttachments | None
-
-TORSO_ATTACHMENT_FIELDS = ("leg1", "leg2", "side1", "side2", "side3", "side4", "top1", "top2")
+AttachmentMapping: t.TypeAlias = t.Mapping[Attachment, Point2D]
+AnyAttachment = AttachmentMapping | None
 
 
 def is_displayable(type: Type, /) -> bool:
@@ -37,11 +53,13 @@ def is_attachable(type: Type, /) -> bool:
 
 
 _position_coeffs: t.Mapping[Type, tuple[float, float]] = {
-    Type.LEGS: (0.5, 0.1), Type.SIDE_WEAPON: (0.3, 0.5), Type.TOP_WEAPON: (0.3, 0.8)
+    Type.LEGS: (0.5, 0.1),
+    Type.SIDE_WEAPON: (0.3, 0.5),
+    Type.TOP_WEAPON: (0.3, 0.8),
 }
 
 
-def create_synthetic_attachment(width: int, height: int, type: Type) -> AnyAttachment:
+def create_synthetic_attachments(width: int, height: int, type: Type) -> AttachmentMapping | None:
     """Create an attachment off given image size.
 
     Note: likely won't work well for scope-like items.
@@ -49,40 +67,27 @@ def create_synthetic_attachment(width: int, height: int, type: Type) -> AnyAttac
     https://github.com/ctrlraul/supermechs-workshop/blob/6fe2e0a29bd4776f50f893d2ab0722020279e2d3/src/items/ItemsManager.ts#L286-L325
     """
     if type is Type.TORSO:
+        # fmt: off
         return {
-            "leg1": Point2D(round(width * 0.40), round(height * 0.9)),
-            "leg2": Point2D(round(width * 0.80), round(height * 0.9)),
-            "side1": Point2D(round(width * 0.25), round(height * 0.6)),
-            "side2": Point2D(round(width * 0.75), round(height * 0.6)),
-            "side3": Point2D(round(width * 0.20), round(height * 0.3)),
-            "side4": Point2D(round(width * 0.80), round(height * 0.3)),
-            "top1": Point2D(round(width * 0.25), round(height * 0.1)),
-            "top2": Point2D(round(width * 0.75), round(height * 0.1)),
+            Attachment.LEG_1:         Point2D(width * 0.40, height * 0.9),
+            Attachment.LEG_2:         Point2D(width * 0.80, height * 0.9),
+            Attachment.SIDE_WEAPON_1: Point2D(width * 0.25, height * 0.6),
+            Attachment.SIDE_WEAPON_2: Point2D(width * 0.75, height * 0.6),
+            Attachment.SIDE_WEAPON_3: Point2D(width * 0.20, height * 0.3),
+            Attachment.SIDE_WEAPON_4: Point2D(width * 0.80, height * 0.3),
+            Attachment.TOP_WEAPON_1:  Point2D(width * 0.25, height * 0.1),
+            Attachment.TOP_WEAPON_2:  Point2D(width * 0.75, height * 0.1),
         }
+        # fmt: on
 
-    if coeffs := _position_coeffs.get(type, None):
-        return Point2D(round(width * coeffs[0]), round(height * coeffs[1]))
+    if coeffs := _position_coeffs.get(type):
+        return {Attachment.TORSO: Point2D(width * coeffs[0], height * coeffs[1])}
 
     return None
 
 
-@t.overload
-def cast_attachment(attachment: AnyAttachment, type: t.Literal[Type.TORSO]) -> TorsoAttachments:
-    ...
+def assert_attachment(attachment: AnyAttachment, /) -> AttachmentMapping:
+    if attachment is None:
+        raise TypeError("Item does not have a joint")
 
-
-@t.overload
-def cast_attachment(
-    attachment: AnyAttachment, type: t.Literal[Type.SIDE_WEAPON, Type.TOP_WEAPON, Type.LEGS]
-) -> Point2D:
-    ...
-
-
-@t.overload
-def cast_attachment(attachment: AnyAttachment, type: Type) -> None:
-    ...
-
-
-def cast_attachment(attachment: AnyAttachment, type: Type) -> AnyAttachment:
-    del type
     return attachment

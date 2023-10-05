@@ -4,12 +4,11 @@ from bisect import insort_left
 import anyio
 from attrs import define, field
 
-from ..models.item import Type
 from ..models.item import Item, ItemData, Tier
 from ..models.mech import Mech
 from ..typeshed import twotuple
 from ..utils import large_mapping_repr
-from .attachments import TORSO_ATTACHMENT_FIELDS, cast_attachment
+from .attachments import Attachment, assert_attachment
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
@@ -20,16 +19,15 @@ if t.TYPE_CHECKING:
 __all__ = ("Rectangular", "PackRenderer")
 
 LAYER_ORDER = (
-    "drone",
-    "side2",
-    "side4",
-    "top2",
-    "leg2",
-    "torso",
-    "leg1",
-    "top1",
-    "side1",
-    "side3",
+    Attachment.SIDE_WEAPON_2,
+    Attachment.SIDE_WEAPON_4,
+    Attachment.TOP_WEAPON_2,
+    Attachment.LEG_2,
+    Attachment.TORSO,
+    Attachment.LEG_1,
+    Attachment.TOP_WEAPON_1,
+    Attachment.SIDE_WEAPON_1,
+    Attachment.SIDE_WEAPON_3,
 )
 
 
@@ -69,10 +67,8 @@ class Offsets:
         )
 
 
-def combine_attachments(position: twotuple[int], offset: twotuple[int]) -> twotuple[int]:
-    corner_x, corner_y = position
-    offset_x, offset_y = offset
-    return (offset_x - corner_x, offset_y - corner_y)
+def combine_attachments(position: twotuple[float], offset: twotuple[float]) -> twotuple[int]:
+    return (round(offset[0] - position[0]), round(offset[1] - position[1]))
 
 
 @define
@@ -119,9 +115,7 @@ class PackRenderer:
     def get_item_sprite(self, item: Item, /) -> "ItemSprite":
         ...
 
-    def get_item_sprite(
-        self, item: "ItemData | Item", /, tier: Tier | None = None
-    ) -> "ItemSprite":
+    def get_item_sprite(self, item: "ItemData | Item", /, tier: Tier | None = None) -> "ItemSprite":
         if isinstance(item, Item):
             tier = item.stage.tier
             item = item.data
@@ -143,23 +137,25 @@ class PackRenderer:
             raise RuntimeError("Cannot create mech image without torso set")
 
         torso_sprite = self.get_item_sprite(mech.torso)
-        attachments = cast_attachment(torso_sprite.attachment, Type.TORSO)
+        attachments = assert_attachment(torso_sprite.attachment)
         canvas = Canvas(torso_sprite.image)
 
         if mech.legs is not None:
             legs_sprite = self.get_item_sprite(mech.legs)
-            leg_attachment = cast_attachment(legs_sprite.attachment, Type.LEGS)
+            leg_attachment = assert_attachment(legs_sprite.attachment)[Attachment.TORSO]
 
-            for layer in TORSO_ATTACHMENT_FIELDS[:2]:
+            for layer in (Attachment.LEG_1, Attachment.LEG_2):
                 x, y = combine_attachments(leg_attachment, attachments[layer])
                 canvas[LAYER_ORDER.index(layer), x, y] = legs_sprite.image
 
-        for item, layer in zip(mech.iter_items("weapons"), TORSO_ATTACHMENT_FIELDS[2:]):
+        for item, slot in mech.iter_items("weapons", yield_slots=True):
             if item is None:
                 continue
 
+            layer = Attachment.of_name(slot.name)
+
             item_sprite = self.get_item_sprite(item)
-            item_attachment = cast_attachment(item_sprite.attachment, Type.SIDE_WEAPON)
+            item_attachment = assert_attachment(item_sprite.attachment)[Attachment.TORSO]
             x, y = combine_attachments(item_attachment, attachments[layer])
             canvas[LAYER_ORDER.index(layer), x, y] = item_sprite.image
 
@@ -168,6 +164,6 @@ class PackRenderer:
             drone_image = drone_sprite.image
             x = drone_image.width // 2 + canvas.offsets.left
             y = drone_image.height + 25 + canvas.offsets.above
-            canvas[LAYER_ORDER.index("drone"), -x, -y] = drone_image
+            canvas[-1, -x, -y] = drone_image
 
         return canvas.merge(LAYER_ORDER.index("torso"))
