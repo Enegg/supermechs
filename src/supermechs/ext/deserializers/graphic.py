@@ -61,7 +61,10 @@ def to_attachments(data: AnyRawAttachment, /) -> AnyAttachment:
 
 
 def bounding_box(pos: RawPlane2D, /) -> tuple[int, int, int, int]:
-    x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
+    x = assert_type(int, pos["x"])
+    y = assert_type(int, pos["y"])
+    w = assert_type(int, pos["width"])
+    h = assert_type(int, pos["height"])
     return (x, y, x + w, y + h)
 
 
