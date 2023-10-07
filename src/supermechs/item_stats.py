@@ -7,14 +7,12 @@ from attrs import define, field
 from .enums import PartialEnum, Tier
 from .typeshed import dict_items_as
 
-__all__ = (
-    "ValueRange", "TransformStage",
-    "StatsMapping", "MutableStatsMapping",
-)
+__all__ = ("ValueRange", "TransformStage", "StatsMapping", "MutableStatsMapping")
 
 
 class Stat(int, PartialEnum):
     """Enumeration of item stats."""
+
     # fmt: off
     # summary stats
     weight                      = auto()
@@ -103,12 +101,19 @@ MutableStatsMapping = t.MutableMapping[Stat, t.Any]
 """Mutable mapping of item stats to values."""
 
 SUMMARY_STATS: t.Sequence[Stat] = (
-    Stat.weight, Stat.hit_points,
-    Stat.energy_capacity, Stat.regeneration,
-    Stat.heat_capacity, Stat.cooling,
-    Stat.physical_resistance, Stat.explosive_resistance, Stat.electric_resistance,
-    Stat.bullets_capacity, Stat.rockets_capacity,
-    Stat.walk, Stat.jump,
+    Stat.weight,
+    Stat.hit_points,
+    Stat.energy_capacity,
+    Stat.regeneration,
+    Stat.heat_capacity,
+    Stat.cooling,
+    Stat.physical_resistance,
+    Stat.explosive_resistance,
+    Stat.electric_resistance,
+    Stat.bullets_capacity,
+    Stat.rockets_capacity,
+    Stat.walk,
+    Stat.jump,
 )
 
 
@@ -125,6 +130,7 @@ def lerp_vector(minor: ValueRange, major: ValueRange, weight: float) -> ValueRan
 @define(kw_only=True)
 class TransformStage:
     """Dataclass collecting transformation tier dependent item data."""
+
     tier: Tier = field()
     """The tier of the transform stage."""
     base_stats: StatsMapping = field()
@@ -150,7 +156,7 @@ class TransformStage:
         max_level = self.tier.max_level
 
         if not 0 <= level <= max_level:
-            raise ValueError(f"Level {level} outside range 1-{max_level+1}")
+            raise ValueError(level)
 
         if level == 0:
             return self.base_stats

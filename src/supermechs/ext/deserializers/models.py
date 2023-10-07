@@ -147,8 +147,9 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
         if origin is int:  # noqa: SIM114
             yield stat_key, int
 
-        elif origin in (types.UnionType, t.Union)\
-            and set(t.get_args(data_type)).issubset((int, type(None))):
+        elif origin in (types.UnionType, t.Union) and set(t.get_args(data_type)).issubset(
+            (int, type(None))
+        ):
             yield stat_key, int
 
         elif origin is list:
