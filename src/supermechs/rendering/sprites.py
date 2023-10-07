@@ -8,7 +8,7 @@ from PIL.Image import Image
 
 from .attachments import AnyAttachment
 
-__all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver", "Metadata")
+__all__ = ("ItemSprite", "SpriteResolver", "SpritesheetResolver", "Metadata")
 
 Loader = t.Callable[["Metadata"], t.Awaitable[Image]]
 
@@ -36,7 +36,7 @@ class ItemSprite(t.Protocol):
 
 
 @define
-class SingleResolver(ItemSprite):
+class SpriteResolver(ItemSprite):
     loader: t.Final[Loader]
     metadata: t.Final[Metadata]
     attachment: AnyAttachment

@@ -12,7 +12,7 @@ from supermechs.rendering import (
     Metadata,
     PackRenderer,
     Point2D,
-    SingleResolver,
+    SpriteResolver,
     SpritesheetResolver,
     TorsoAttachments,
     create_synthetic_attachment,
@@ -112,7 +112,7 @@ def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: Loader) -> PackRenderer:
             Type.of_name(item_dict["type"]),
         )
         meta = Metadata("url", "single", img_url)
-        sprite = SingleResolver(fetch, meta, attachment, converter)
+        sprite = SpriteResolver(fetch, meta, attachment, converter)
         sprites[item_dict["id"]] = sprite
 
     return PackRenderer(key, sprites)
@@ -123,7 +123,7 @@ def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: Loader) -> 
     spritesheet_url = assert_type(str, data["spritesSheet"])
     spritesheet_map = data["spritesMap"]
     sheet_meta = Metadata("url", "single", spritesheet_url)
-    spritesheet = SingleResolver(fetch, sheet_meta, None)
+    spritesheet = SpriteResolver(fetch, sheet_meta, None)
     sprites: dict[ID, ItemSprite] = {}
 
     for item_dict in data["items"]:
