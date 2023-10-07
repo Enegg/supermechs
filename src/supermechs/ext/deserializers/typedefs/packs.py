@@ -1,14 +1,13 @@
 import typing as t
 from typing_extensions import NotRequired
 
-from .game_types import LiteralElement, LiteralType, RawStatsMapping
 from .graphics import ItemImageParams, RawBox2D
 
 from supermechs.typeshed import LiteralURL
 
 # fmt: off
 __all__ = (
-    "TiersMixin",
+    "TiersMixin", "RawStatsMapping",
     "ItemDictVer1", "ItemPackVer1",
     "ItemDictVer2", "ItemPackVer2",
     "ItemDictVer3", "ItemPackVer3",
@@ -17,6 +16,62 @@ __all__ = (
 # fmt: on
 
 LiteralTag = t.Literal["sword", "melee", "roller"]
+LiteralType = t.Literal[
+    "TORSO",
+    "LEGS",
+    "DRONE",
+    "SIDE_WEAPON",
+    "TOP_WEAPON",
+    "TELEPORTER",
+    "CHARGE_ENGINE",
+    "GRAPPLING_HOOK",
+    "MODULE",
+]
+LiteralElement = t.Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
+_nint = int | None
+
+
+class RawStatsMapping(t.TypedDict, total=False):
+    """Data as received from source."""
+
+    weight: _nint
+    health: _nint
+    eneCap: _nint
+    eneReg: _nint
+    heaCap: _nint
+    heaCol: _nint
+    phyRes: _nint
+    expRes: _nint
+    eleRes: _nint
+    bulletsCap: _nint
+    rocketsCap: _nint
+    walk: _nint
+    jump: _nint
+    phyDmg: list[_nint]
+    phyResDmg: _nint
+    eleDmg: list[_nint]
+    eneDmg: _nint
+    eneCapDmg: _nint
+    eneRegDmg: _nint
+    eleResDmg: _nint
+    expDmg: list[_nint]
+    heaDmg: _nint
+    heaCapDmg: _nint
+    heaColDmg: _nint
+    expResDmg: _nint
+    # walk, jump
+    range: list[_nint]
+    push: _nint
+    pull: _nint
+    recoil: _nint
+    advance: _nint
+    retreat: _nint
+    uses: _nint
+    backfire: _nint
+    heaCost: _nint
+    eneCost: _nint
+    bulletsCost: _nint
+    rocketsCost: _nint
 
 
 class TiersMixin(t.TypedDict, total=False):
@@ -48,10 +103,8 @@ class ItemDictBase(ItemImageParams):
 
 
 # -------------------------------------- v1 --------------------------------------
-# https://gist.githubusercontent.com/ctrlraul/3b5669e4246bc2d7dc669d484db89062/raw
-# "version": "1" or non-existent
-# "config" with "base_url"
-# "image" per item (usually name without spaces + .png)
+# - "config" with "base_url"
+# - "image" per item (usually name without spaces + .png)
 
 
 class ItemDictVer1(ItemDictBase):
@@ -73,8 +126,6 @@ class ItemPackVer1(t.TypedDict):
 
 
 # -------------------------------------- v2 --------------------------------------
-# https://gist.githubusercontent.com/ctrlraul/22b71089a0dd7fef81e759dfb3dda67b/raw
-# "version": "2"
 # no "config"
 # spritesheets
 
@@ -92,9 +143,6 @@ class ItemPackVer2(SpritesSheetMixin):
 
 
 # -------------------------------------- v3 --------------------------------------
-# https://raw.githubusercontent.com/Enegg/Item-packs/master/items.json
-# "version": "3" or "standalone"
-# lacks tags and attachments
 
 
 class ItemDictVer3(ItemDictBase, TiersMixin):

@@ -1,7 +1,6 @@
 import typing as t
 
-from .typedefs.game_types import RawStatsMapping
-from .typedefs.packs import AnyItemDict, AnyItemPack
+from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
 from .utils import NaN
 
 from supermechs.enums import Element, Tier, Type
@@ -53,6 +52,7 @@ _WU_STAT_TO_STAT = {
     "rocketsCost": Stat.rockets_cost,
 }
 # fmt: on
+
 
 def raises(exc: BaseException, /) -> t.NoReturn:
     """Simply raises passed exception."""
@@ -107,7 +107,8 @@ def _get_first_stats_mapping(data: AnyItemDict, /) -> RawStatsMapping:
         if key in data:
             return data[key]
 
-    raise MalformedData("Data contains no item stats")
+    msg = "Data contains no item stats"
+    raise MalformedData(msg)
 
 
 def to_item_data(
@@ -154,7 +155,7 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
             yield stat_key, list
 
         else:
-            raise RuntimeError(f"Unexpected type for key {stat_key!r}: {data_type!r} ({origin})")
+            raise RuntimeError(data_type)
 
 
 def to_stats_mapping(
@@ -236,7 +237,8 @@ def to_transform_stages(
         )
 
     if current_stage is None:
-        raise MalformedData("Data contains no item stats")
+        msg = "Data contains no item stats"
+        raise MalformedData(msg)
 
     return current_stage
 
@@ -251,7 +253,7 @@ def to_item_pack(
         metadata = data
 
     else:
-        raise UnknownDataVersion("pack", data["version"], 3)
+        raise UnknownDataVersion("pack", data["version"], 3)  # noqa: EM101
 
     key = assert_type(str, metadata["key"])
 
@@ -293,6 +295,6 @@ def extract_key(pack: AnyItemPack, /) -> str:
         key = pack["key"]
 
     else:
-        raise UnknownDataVersion("pack", pack["version"], 3)
+        raise UnknownDataVersion("pack", pack["version"], 3)  # noqa: EM101
 
     return assert_type(str, key)

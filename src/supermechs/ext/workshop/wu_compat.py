@@ -10,7 +10,7 @@ from supermechs.item_stats import Stat, max_stats
 from supermechs.models.item import Item, ItemData
 from supermechs.models.mech import Mech, SlotType
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
-from supermechs.typedefs import ID, Name
+from supermechs.typeshed import ID, Name
 from supermechs.utils import assert_type
 
 if t.TYPE_CHECKING:
@@ -124,10 +124,8 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     unknown.discard(0)
 
     if unknown:
-        raise MalformedData(
-            f"Mech setup contains unknown item IDs: {', '.join(map(str, (sorted(unknown))))}",
-            setup
-        )
+        msg = f"Mech setup contains unknown item IDs: {', '.join(map(str, sorted(unknown)))}"
+        raise MalformedData(msg, setup)
 
     for item_id, wu_slot in zip(setup, _WU_SLOT_NAMES):
         slot = _WU_SLOT_TO_SLOT[wu_slot]
@@ -152,13 +150,15 @@ def import_mechs(
         # TODO: file can contain mechs from different pack than default
 
     except KeyError as err:
-        raise MalformedData(f'Malformed data: key "{err}" not found.') from err
+        msg = f'Malformed data: key "{err}" not found.'
+        raise MalformedData(msg) from err
 
     if version != "1":
-        raise UnknownDataVersion("mech data", version, "1")
+        raise UnknownDataVersion("mech data", version, "1")  # noqa: EM101
 
     if not isinstance(mech_list, list):
-        raise MalformedData('Expected a list under "mechs" key', mech_list)
+        msg = 'Expected a list under "mechs" key'
+        raise MalformedData(msg, mech_list)
 
     mechs: list[Mech] = []
     failed: list[tuple[int, Exception]] = []
@@ -217,7 +217,7 @@ def is_exportable(mech: Mech) -> bool:
 
         packs.add(item.data.pack_key)
 
-    return len(packs) < 2
+    return len(packs) < 2  # noqa: PLR2004
 
 
 def export_mech(mech: Mech) -> WUMech:
@@ -257,7 +257,8 @@ def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleIte
 
 def get_player(mech: Mech, player_name: str) -> WUPlayer:
     if mech.custom:
-        raise TypeError("Cannot serialize a custom mech into WU format")
+        msg = "Cannot serialize a custom mech into WU format"
+        raise TypeError(msg)
 
     serialized_items_without_modules = [
         None if item is None else get_battle_item(item.data, slot)

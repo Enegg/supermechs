@@ -27,18 +27,24 @@ build-backend = "poetry.core.masonry.api"
 select = [
     "E",     # general errors
     "F",
+    "RUF",
+
     "G",     # avoid formatting in logging
     "Q",     # consistent string quotes
     "FLY",   # static joins
+    "ISC",   # string concatenation
+
     "SIM",   # simplifiable logic
+    "C4",    # simplifiable comprehensions
+    "ASYNC", # blocking calls in async context
     "TCH",   # type-checking-only imports
     "PTH",   # use pathlib for path manipulation
-    "RUF",
-    "ASYNC", # blocking calls in async context
     "PL",    # pylint
     "TRY",   # try - except pitfalls
+    "EM",    # don't inline exception messages
     "ERA",   # commented out code
 ]
+ignore = ["TRY003"]
 line-length = 100
 target-version = "py310"
 

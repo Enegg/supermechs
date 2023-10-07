@@ -18,7 +18,13 @@ Factory = t.Callable[[], T]
 LiteralURL: t.TypeAlias = str
 """String representing a URL."""
 
+Name: t.TypeAlias = str
+"""String representing item name."""
+ID: t.TypeAlias = int
+"""Positive integer representing an item's ID."""
+
 
 def dict_items_as(value_type: type[VT], obj: t.Mapping[KT, t.Any]) -> t.ItemsView[KT, VT]:
     """Helper function to aid iterating over TypedDict.items()."""
+    del value_type
     return obj.items()

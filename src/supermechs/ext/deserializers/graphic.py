@@ -1,7 +1,7 @@
 import typing as t
 
+from .typedefs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .typedefs.graphics import AnyRawAttachment, RawBox2D, RawPoint2D, RawTorsoAttachments
-from .typedefs.packs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .utils import js_format
 
 from supermechs.enums import Type
@@ -18,14 +18,9 @@ from supermechs.rendering import (
     create_synthetic_attachment,
     is_attachable,
 )
+from supermechs.rendering.sprites import Loader
+from supermechs.typeshed import ID
 from supermechs.utils import assert_type
-
-if t.TYPE_CHECKING:
-    from PIL.Image import Image
-
-    from supermechs.typedefs import ID
-
-ImageFetcher = t.Callable[[Metadata], t.Awaitable["Image"]]
 
 
 def to_point2d(data: RawPoint2D, /) -> Point2D:
@@ -57,7 +52,7 @@ def to_attachments(data: AnyRawAttachment, /) -> AnyAttachment:
             return None
 
         case unknown:
-            raise MalformedData("Invalid attachment", unknown)
+            raise MalformedData("Invalid attachment", unknown)  # noqa: EM101
 
 
 def bounding_box(pos: RawBox2D, /) -> tuple[int, int, int, int]:
@@ -68,7 +63,7 @@ def bounding_box(pos: RawBox2D, /) -> tuple[int, int, int, int]:
     return (x, y, x + w, y + h)
 
 
-def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer(data: AnyItemPack, /, fetch: Loader) -> PackRenderer:
     """Parse data into an instance primed with item sprites."""
 
     if "version" not in data or data["version"] == "1":
@@ -102,7 +97,7 @@ def make_converter(width: int, height: int, type: Type) -> t.Callable[[ItemSprit
     return converter
 
 
-def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: Loader) -> PackRenderer:
     key = assert_type(str, data["config"]["key"])
     base_url = assert_type(str, data["config"]["base_url"])
 
@@ -123,7 +118,7 @@ def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRende
     return PackRenderer(key, sprites)
 
 
-def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: Loader) -> PackRenderer:
     key = assert_type(str, data["key"])
     spritesheet_url = assert_type(str, data["spritesSheet"])
     spritesheet_map = data["spritesMap"]

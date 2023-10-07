@@ -9,7 +9,7 @@ from .. import _internal
 from ..enums import Element, Tier, Type
 from ..errors import MaxPowerError, MaxTierError
 from ..item_stats import StatsMapping, TransformStage, get_final_stage
-from ..typedefs import ID, Name
+from ..typeshed import ID, Name
 
 __all__ = (
     "Tags", "TransformRange", "transform_range",
@@ -53,7 +53,8 @@ def transform_range(lower: Tier | int, upper: Tier | int | None = None) -> Trans
     upper = lower if upper is None else int(upper)
 
     if lower > upper:
-        raise ValueError("Minimum tier greater than maximum tier")
+        msg = "Minimum tier greater than maximum tier"
+        raise ValueError(msg)
 
     return tuple(map(Tier.of_value, range(lower, upper + 1)))
 
@@ -177,7 +178,8 @@ class InvItem:
     @power.setter
     def power(self, power: int) -> None:
         if power < 0:
-            raise ValueError("Power cannot be negative")
+            msg = "Power cannot be negative"
+            raise ValueError(msg)
 
         if self.is_max_power:
             raise MaxPowerError(self)
@@ -192,7 +194,8 @@ class InvItem:
     def transform(self) -> None:
         """Transforms the item to higher tier, if it has enough power"""
         if not self.is_max_power:
-            raise ValueError("Cannot transform a non-maxed item")
+            msg = "Cannot transform a non-maxed item"
+            raise ValueError(msg)
 
         if self.item.stage.next is None:
             raise MaxTierError(self)

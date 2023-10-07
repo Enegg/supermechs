@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import typing as t
 import typing_extensions as tex
-from typing import TYPE_CHECKING
 
 from attrs import define, field
 from PIL.Image import Image
 
-if TYPE_CHECKING:
-    from .attachments import AnyAttachment
+from .attachments import AnyAttachment
 
 __all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver", "Metadata")
 
@@ -49,7 +47,7 @@ class SingleResolver(ItemSprite):
     @tex.override
     def image(self) -> Image:
         if self._image is None:
-            raise RuntimeError("Resource not loaded")
+            raise RuntimeError("Resource not loaded")  # noqa: EM101
         return self._image
 
     @image.setter
@@ -91,7 +89,7 @@ class SpritesheetResolver(ItemSprite):
     @tex.override
     def image(self) -> Image:
         if self._image is None:
-            raise RuntimeError("Resource not loaded")
+            raise RuntimeError("Resource not loaded")  # noqa: EM101
         return self._image
 
     @image.setter
