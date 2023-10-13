@@ -7,18 +7,16 @@ from attrs import Factory, define, field, validators
 
 from .. import _internal
 from ..enums import Element, Tier, Type
-from ..errors import MaxPowerError, MaxTierError
+from ..errors import CantBeNegative, MaxPowerError, MaxTierError
 from ..item_stats import StatsMapping, TransformStage, get_final_stage
 from ..typeshed import ID, Name
 
-__all__ = (
-    "Tags", "TransformRange", "transform_range",
-    "ItemData", "Item", "InvItem", "BattleItem"
-)
+__all__ = ("Tags", "TransformRange", "transform_range", "ItemData", "Item", "InvItem", "BattleItem")
 
 
 class Tags(t.NamedTuple):
     """Lightweight class for storing a set of boolean tags about an item."""
+
     premium: bool = False
     """Whether the item is considered "premium"."""
     sword: bool = False
@@ -62,6 +60,7 @@ def transform_range(lower: Tier | int, upper: Tier | int | None = None) -> Trans
 @define(kw_only=True)
 class ItemData:
     """Dataclass storing item data independent of its tier and level."""
+
     id: ID = field(validator=validators.ge(1))
     """The ID of the item, unique within its pack."""
     pack_key: str = field()
@@ -178,11 +177,10 @@ class InvItem:
     @power.setter
     def power(self, power: int) -> None:
         if power < 0:
-            msg = "Power cannot be negative"
-            raise ValueError(msg)
+            raise CantBeNegative(power)
 
         if self.is_max_power:
-            raise MaxPowerError(self)
+            raise MaxPowerError
 
         levels = _get_power_levels_of_item(self.item)
         self.item.level = bisect_left(levels, self.power) + 1
@@ -211,9 +209,11 @@ class InvItem:
 # XXX: should the multipliers be applied on BattleItem creation, or should it hold a reference?
 # BattleItem should be constructible without an InvItem; it has nothing to do with inventory
 
+
 @define
 class BattleItem:
     """Represents the state of an item during a battle."""
+
     item: Item
     stats: StatsMapping
     multipliers: t.Mapping[str, float] = field(factory=dict)

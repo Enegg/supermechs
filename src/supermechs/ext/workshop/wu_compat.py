@@ -5,13 +5,18 @@ from attrs import asdict
 
 from supermechs.arena_buffs import MAX_BUFFS
 from supermechs.enums import Type
-from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.item_stats import Stat, max_stats
 from supermechs.models.item import Item, ItemData
 from supermechs.models.mech import Mech, SlotType
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
 from supermechs.typeshed import ID, Name
 from supermechs.utils import assert_type
+
+from supermechs.ext.deserializers.errors import (
+    MalformedData,
+    MissingRequiredKey,
+    UnknownDataVersion,
+)
 
 if t.TYPE_CHECKING:
     from supermechs.item_pack import ItemPack
@@ -150,8 +155,7 @@ def import_mechs(
         # TODO: file can contain mechs from different pack than default
 
     except KeyError as err:
-        msg = f'Malformed data: key "{err}" not found.'
-        raise MalformedData(msg) from err
+        raise MissingRequiredKey(str(err)) from err
 
     if version != "1":
         raise UnknownDataVersion("mech data", version, "1")  # noqa: EM101

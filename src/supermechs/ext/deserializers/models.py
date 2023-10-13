@@ -1,10 +1,10 @@
 import typing as t
 
+from .errors import InvalidKeyValueType, MalformedData, UnknownDataVersion
 from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
 from .utils import NaN
 
 from supermechs.enums import Element, Tier, Type
-from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
 from supermechs.models.item import ItemData, Tags, TransformRange, transform_range
@@ -184,7 +184,7 @@ def to_stats_mapping(
                 )
 
             case unknown:
-                on_error(InvalidKeyValue(unknown, data_type, key))
+                on_error(InvalidKeyValueType(unknown, data_type, key))
 
     return final_stats
 

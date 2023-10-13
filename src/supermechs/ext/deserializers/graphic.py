@@ -1,11 +1,11 @@
 import typing as t
 
+from .errors import MalformedData, UnknownDataVersion
 from .typedefs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .typedefs.graphics import AnyRawAttachment, RawBox2D, RawPoint2D, RawTorsoAttachments
 from .utils import js_format
 
 from supermechs.enums import Type
-from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.rendering import (
     AnyAttachment,
     ItemSprite,
