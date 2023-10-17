@@ -23,10 +23,8 @@ if t.TYPE_CHECKING:
 
 __all__ = ("load_mechs", "dump_mechs")
 
-# ------------------------------------------ typed dicts -------------------------------------------
-
 # fmt: off
-_STAT_TO_WU_STAT = {
+_STAT_TO_WU_STAT: dict[Stat, tex.LiteralString] = {
     Stat.weight: "weight",
     Stat.hit_points: "health",
     Stat.energy_capacity: "eneCap",
@@ -88,6 +86,11 @@ _WU_SLOT_TO_SLOT: dict[tex.LiteralString, Mech.Slot] = {
     "module8":       Mech.Slot.MODULE_8,
 }
 # fmt: on
+_TYPE_TO_WU_TYPE: dict[Type, tex.LiteralString] = {type: type.name for type in Type}
+_TYPE_TO_WU_TYPE[Type.CHARGE] = "CHARGE_ENGINE"
+_TYPE_TO_WU_TYPE[Type.HOOK] = "GRAPPLING_HOOK"
+
+# ------------------------------------------ typed dicts -------------------------------------------
 
 
 class WUBattleItem(t.TypedDict):
@@ -255,7 +258,7 @@ def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleIte
         "stats": stats,
         "tags": asdict(item.tags),
         "timesUsed": 0,
-        "type": item.type.name,  # FIXME: WU expects full names
+        "type": _TYPE_TO_WU_TYPE[item.type],
     }
 
 
