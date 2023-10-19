@@ -7,7 +7,7 @@ from supermechs.arena_buffs import MAX_BUFFS
 from supermechs.item_stats import Stat, max_stats
 from supermechs.models.item import Item, ItemData, Type
 from supermechs.models.mech import Mech, SlotType
-from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
+from supermechs.platform import json_decoder, json_encoder
 from supermechs.typeshed import ID, Name
 from supermechs.utils import assert_type
 
@@ -239,7 +239,7 @@ def export_mechs(mechs: t.Iterable[Mech], pack_key: str) -> ExportedMechsJSON:
 
 def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
     """Dumps mechs into bytes representing a .JSON file."""
-    return indented_json_encoder(export_mechs(mechs, pack_key))
+    return json_encoder(export_mechs(mechs, pack_key), True)
 
 
 def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleItem:
@@ -273,7 +273,7 @@ def get_player(mech: Mech, player_name: str) -> WUPlayer:
     # lazy import
     import hashlib
 
-    data = compact_json_encoder(serialized_items_without_modules)
+    data = json_encoder(serialized_items_without_modules)
     hash = hashlib.sha256(data).hexdigest()
 
     return {"name": str(player_name), "itemsHash": hash, "mech": export_mech(mech)}
