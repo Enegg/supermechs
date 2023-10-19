@@ -12,7 +12,7 @@ from ..errors import CantBeNegative, MaxPowerError, MaxTierError
 from ..item_stats import StatsMapping, TransformStage, get_final_stage
 from ..typeshed import ID, Name
 
-__all__ = ("Tags", "TransformRange", "transform_range", "ItemData", "Item", "InvItem", "BattleItem")
+__all__ = ("Tags", "ItemData", "Item", "InvItem", "BattleItem")
 
 
 class Tier(int, PartialEnum):
@@ -61,25 +61,6 @@ class Tags(t.NamedTuple):
     def from_keywords(cls, it: t.Iterable[str], /) -> tex.Self:
         """Create Tags object from an iterable of string attributes."""
         return cls(**dict.fromkeys(it, True))
-
-
-TransformRange = t.Sequence[Tier]
-"""A range of transformation tiers an item can have."""
-
-
-def transform_range(lower: Tier | int, upper: Tier | int | None = None) -> TransformRange:
-    """Construct a transform range from upper and lower bounds.
-
-    Note: unlike `range` object, upper bound is inclusive.
-    """
-    lower = int(lower)
-    upper = lower if upper is None else int(upper)
-
-    if lower > upper:
-        msg = "Minimum tier greater than maximum tier"
-        raise ValueError(msg)
-
-    return tuple(map(Tier.of_value, range(lower, upper + 1)))
 
 
 class Element(PartialEnum):
@@ -188,10 +169,10 @@ def _get_power_bank(item: ItemData, /) -> t.Mapping[Tier, t.Sequence[int]]:
 
     if item.name in _internal.SPECIAL_ITEMS:
         return _internal.REDUCED_POWERS
-    
+
     if item.start_stage.tier >= Tier.LEGENDARY:
         return _internal.PREMIUM_POWERS
-    
+
     if get_final_stage(item.start_stage).tier <= Tier.EPIC:
         pass
 
