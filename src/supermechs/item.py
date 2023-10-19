@@ -6,11 +6,11 @@ from enum import auto
 
 from attrs import Factory, define, field, validators
 
-from .. import _internal
-from ..enums import PartialEnum
-from ..errors import CantBeNegative, MaxPowerError, MaxTierError
-from ..item_stats import StatsMapping, TransformStage, get_final_stage
-from ..typeshed import ID, Name
+from . import _internal
+from .enums import PartialEnum
+from .errors import CantBeNegative, MaxPowerError, MaxTierError
+from .item_stats import StatsMapping, TransformStage, get_final_stage
+from .typeshed import ID, Name
 
 __all__ = ("Tags", "ItemData", "Item", "InvItem", "BattleItem")
 

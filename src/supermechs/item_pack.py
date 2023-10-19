@@ -5,7 +5,7 @@ import typing as t
 
 from attrs import define, field
 
-from .models.item import ItemData
+from .item import ItemData
 from .typeshed import ID, Name
 from .utils import large_mapping_repr
 

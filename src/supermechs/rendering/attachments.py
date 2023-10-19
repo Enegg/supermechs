@@ -4,7 +4,7 @@ import typing as t
 from enum import auto
 
 from ..enums import PartialEnum
-from ..models.item import Type
+from ..item import Type
 
 __all__ = (
     "AnyAttachment",
@@ -88,6 +88,7 @@ def create_synthetic_attachments(width: int, height: int, type: Type) -> Attachm
 
 def assert_attachment(attachment: AnyAttachment, /) -> AttachmentMapping:
     if attachment is None:
-        raise TypeError("Item does not have a joint")
+        msg = "Item does not have a joint"
+        raise TypeError(msg)
 
     return attachment

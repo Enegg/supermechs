@@ -5,7 +5,7 @@ from enum import auto
 from attrs import define, field
 
 from .enums import PartialEnum
-from .models.item import Tier
+from .item import Tier
 from .typeshed import dict_items_as
 
 __all__ = ("ValueRange", "TransformStage", "Stat", "StatsMapping", "MutableStatsMapping")

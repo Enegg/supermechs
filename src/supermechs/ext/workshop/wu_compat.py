@@ -4,9 +4,9 @@ import typing_extensions as tex
 from attrs import asdict
 
 from supermechs.arena_buffs import MAX_BUFFS
+from supermechs.item import Item, ItemData, Type
 from supermechs.item_stats import Stat, max_stats
-from supermechs.models.item import Item, ItemData, Type
-from supermechs.models.mech import Mech, SlotType
+from supermechs.mech import Mech, SlotType
 from supermechs.platform import json_decoder, json_encoder
 from supermechs.typeshed import ID, Name
 from supermechs.utils import assert_type

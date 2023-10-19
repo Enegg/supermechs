@@ -7,13 +7,13 @@ from types import MappingProxyType
 
 from attrs import define, field
 
-from supermechs.enums import PartialEnum
-from supermechs.item_stats import SUMMARY_STATS, Stat
-from supermechs.models.item import Element, Item, Type
-from supermechs.utils import cached_slot_property, has_any_of
+from .enums import PartialEnum
+from .item import Element, Item, Type
+from .item_stats import SUMMARY_STATS, Stat
+from .utils import cached_slot_property, has_any_of
 
 if t.TYPE_CHECKING:
-    from supermechs.typeshed import XOrTupleXY
+    from .typeshed import XOrTupleXY
 
 __all__ = ("Mech", "SlotType")
 
@@ -114,7 +114,8 @@ def _flatten_slots(args: t.Iterable[SlotSelectorType], /) -> t.Iterator[Mech.Slo
             yield from _type_to_slots[Type.TOP_WEAPON]
 
         else:
-            raise TypeError(f"Unknown selector type: {arg!r}")
+            msg = f"Unknown selector type: {arg!r}"
+            raise TypeError(msg)
 
 
 @define(kw_only=True)
@@ -233,7 +234,7 @@ class Mech:
         ).most_common(2)
         # return None when there are no elements
         # or the difference between the two most common is indecisive
-        if len(elements) == 0 or (len(elements) > 1 and elements[0][1] - elements[1][1] < 2):
+        if len(elements) == 0 or (len(elements) > 1 and elements[0][1] - elements[1][1] < 2):  # noqa: PLR2004
             return None
 
         # otherwise just return the most common one
@@ -241,15 +242,18 @@ class Mech:
 
     def __setitem__(self, slot: Slot, item: SlotType, /) -> None:
         if not isinstance(item, SlotType):
-            raise TypeError(f"Expected {SlotType}, got {type(item).__name__}")
+            msg = f"Expected {SlotType}, got {type(item).__name__}"
+            raise TypeError(msg)
 
         if item is not None:
             data = item.data
             if data.type is not slot.type:
-                raise TypeError(f"Item type {data.type} does not match slot {slot.type}")
+                msg = f"Item type {data.type} does not match slot {slot.type}"
+                raise TypeError(msg)
 
             if data.tags.custom and not self.custom:
-                raise TypeError("Cannot set a custom item on this mech")
+                msg = "Cannot set a custom item on this mech"
+                raise TypeError(msg)
 
         self._evict_expired_cache(item, self._items.get(slot))
 

@@ -4,9 +4,9 @@ from .errors import InvalidKeyValueType, MalformedData, UnknownDataVersion
 from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
 from .utils import NaN
 
+from supermechs.item import Element, ItemData, Tags, Tier, Type
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
-from supermechs.models.item import Element, ItemData, Tags, Tier, Type
 from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]

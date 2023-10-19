@@ -5,7 +5,7 @@ from .typedefs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
 from .typedefs.graphics import AnyRawAttachment, RawBox2D, RawPoint2D, RawTorsoAttachments
 from .utils import js_format
 
-from supermechs.models.item import Type
+from supermechs.item import Type
 from supermechs.rendering import (
     AnyAttachment,
     Attachment,
