@@ -7,7 +7,7 @@ from attrs import define, field
 from .enums import PartialEnum, Tier
 from .typeshed import dict_items_as
 
-__all__ = ("ValueRange", "TransformStage", "StatsMapping", "MutableStatsMapping")
+__all__ = ("ValueRange", "TransformStage", "Stat", "StatsMapping", "MutableStatsMapping")
 
 
 class Stat(int, PartialEnum):
