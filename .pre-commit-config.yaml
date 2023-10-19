@@ -1,0 +1,21 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+    - id: trailing-whitespace
+
+- repo: local
+  hooks:
+    - id: ruff
+      name: ruff
+      entry: poetry run ruff
+      language: system
+      types: [python]
+      args: []
+      exclude: "tests"
+
+    # - id: pyright
+    #   name: pyright
+    #   entry: poetry run pyright
+    #   language: system
+    #   types: [python]

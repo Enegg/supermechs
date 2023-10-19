@@ -1,14 +1,12 @@
 import typing as t
 
-from .typedefs.game_types import RawStatsMapping
-from .typedefs.packs import AnyItemDict, AnyItemPack
+from .errors import InvalidKeyValueType, MalformedData, UnknownDataVersion
+from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
 from .utils import NaN
 
-from supermechs.models.item import Type
-from supermechs.errors import InvalidKeyValue, MalformedData, UnknownDataVersion
 from supermechs.item_pack import ItemPack
 from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
-from supermechs.models.item import Element, ItemData, Tags, Tier
+from supermechs.models.item import Element, ItemData, Tags, Tier, Type
 from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]
@@ -54,6 +52,7 @@ _WU_STAT_TO_STAT = {
 }
 # fmt: on
 
+
 def raises(exc: BaseException, /) -> t.NoReturn:
     """Simply raises passed exception."""
     raise exc
@@ -97,7 +96,8 @@ def _get_first_stats_mapping(data: AnyItemDict, /) -> RawStatsMapping:
         if key in data:
             return data[key]
 
-    raise MalformedData("Data contains no item stats")
+    msg = "Data contains no item stats"
+    raise MalformedData(msg)
 
 
 def to_item_data(
@@ -113,10 +113,7 @@ def to_item_data(
     """
     t_range = assert_type(str, data["transform_range"])
     tags = to_tags(
-        data.get("tags", ()),
-        Tier.of_initial(t_range[0]),
-        _get_first_stats_mapping(data),
-        custom
+        data.get("tags", ()), Tier.of_initial(t_range[0]), _get_first_stats_mapping(data), custom
     )
     stages = to_transform_stages(data, on_error=on_error)
     item_data = ItemData(
@@ -140,15 +137,16 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
         if origin is int:  # noqa: SIM114
             yield stat_key, int
 
-        elif origin in (types.UnionType, t.Union)\
-            and set(t.get_args(data_type)).issubset((int, type(None))):
+        elif origin in (types.UnionType, t.Union) and set(t.get_args(data_type)).issubset(
+            (int, type(None))
+        ):
             yield stat_key, int
 
         elif origin is list:
             yield stat_key, list
 
         else:
-            raise RuntimeError(f"Unexpected type for key {stat_key!r}: {data_type!r} ({origin})")
+            raise RuntimeError(data_type)
 
 
 def to_stats_mapping(
@@ -176,7 +174,7 @@ def to_stats_mapping(
                 )
 
             case unknown:
-                on_error(InvalidKeyValue(unknown, data_type, key))
+                on_error(InvalidKeyValueType(unknown, data_type, key))
 
     return final_stats
 
@@ -198,7 +196,8 @@ def to_transform_stages(
     final_tier = Tier.of_initial(range_str[-1])
 
     if start_tier > final_tier:
-        raise MalformedData("Starting tier higher than final tier")
+        msg = "Starting tier higher than final tier"
+        raise MalformedData(msg)
 
     for tier in map(Tier.of_value, range(start_tier.value, final_tier.value + 1)):
         key = t.cast(str, tier.name.lower())
@@ -234,7 +233,8 @@ def to_transform_stages(
         )
 
     if current_stage is None:
-        raise MalformedData("Data contains no item stats")
+        msg = "Data contains no item stats"
+        raise MalformedData(msg)
 
     return current_stage
 
@@ -249,7 +249,7 @@ def to_item_pack(
         metadata = data
 
     else:
-        raise UnknownDataVersion("pack", data["version"], 3)
+        raise UnknownDataVersion("pack", data["version"], 3)  # noqa: EM101
 
     key = assert_type(str, metadata["key"])
 
@@ -291,6 +291,6 @@ def extract_key(pack: AnyItemPack, /) -> str:
         key = pack["key"]
 
     else:
-        raise UnknownDataVersion("pack", pack["version"], 3)
+        raise UnknownDataVersion("pack", pack["version"], 3)  # noqa: EM101
 
     return assert_type(str, key)

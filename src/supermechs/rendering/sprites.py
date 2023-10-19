@@ -2,21 +2,20 @@ from __future__ import annotations
 
 import typing as t
 import typing_extensions as tex
-from typing import TYPE_CHECKING
 
 from attrs import define, field
 from PIL.Image import Image
 
-if TYPE_CHECKING:
-    from .attachments import AnyAttachment
+from .attachments import AnyAttachment
 
-__all__ = ("ItemSprite", "SingleResolver", "SpritesheetResolver", "Metadata")
+__all__ = ("ItemSprite", "SpriteResolver", "SpritesheetResolver", "Metadata")
 
 Loader = t.Callable[["Metadata"], t.Awaitable[Image]]
 
 
 class Metadata(t.NamedTuple):
     """Image related metadata."""
+
     source: t.Literal["url", "file"]
     method: t.Literal["single", "sheet"]
     value: str
@@ -37,7 +36,7 @@ class ItemSprite(t.Protocol):
 
 
 @define
-class SingleResolver(ItemSprite):
+class SpriteResolver(ItemSprite):
     loader: t.Final[Loader]
     metadata: t.Final[Metadata]
     attachment: AnyAttachment
@@ -48,7 +47,7 @@ class SingleResolver(ItemSprite):
     @tex.override
     def image(self) -> Image:
         if self._image is None:
-            raise RuntimeError("Resource not loaded")
+            raise RuntimeError("Resource not loaded")  # noqa: EM101
         return self._image
 
     @image.setter
@@ -72,7 +71,6 @@ class SingleResolver(ItemSprite):
             self.postprocess(self)
 
 
-
 @define
 class SpritesheetResolver(ItemSprite):
     spritesheet: t.Final[ItemSprite]
@@ -91,7 +89,7 @@ class SpritesheetResolver(ItemSprite):
     @tex.override
     def image(self) -> Image:
         if self._image is None:
-            raise RuntimeError("Resource not loaded")
+            raise RuntimeError("Resource not loaded")  # noqa: EM101
         return self._image
 
     @image.setter

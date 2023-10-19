@@ -19,11 +19,6 @@ class Player:
     builds: t.MutableMapping[str, Mech] = field(factory=dict, init=False)
     arena_buffs: ArenaBuffs = field(factory=ArenaBuffs, init=False)
     _active_build: Mech | None = field(default=None, init=False)
-    # inventory: t.MutableMapping[uuid.UUID, InvItem] = Factory(dict)
-    # teams: t.MutableMapping[str, list[Mech]] = Factory(dict)
-    # active_team_name: str = MISSING
-    # level: int = 0
-    # exp: int = 0
 
     @property
     def active_build(self) -> Mech | None:
@@ -32,7 +27,8 @@ class Player:
     @active_build.setter
     def active_build(self, mech: Mech) -> None:
         if mech.name not in self.builds:
-            raise ValueError("Active build set to a mech not belonging to the player")
+            msg = "Active build set to a mech not belonging to the player"
+            raise ValueError(msg)
 
         self._active_build = mech
 
@@ -87,10 +83,12 @@ class Player:
         new_name: A new name for the build.
         """
         if old_name not in self.builds:
-            raise ValueError(f"No build named {old_name!r}")
+            msg = f"No build named {old_name!r}"
+            raise ValueError(msg)
 
         if new_name in self.builds and not overwrite:
-            raise ValueError("Provided name is already in use")
+            msg = "Provided name is already in use"
+            raise ValueError(msg)
 
         mech = self.builds[new_name] = self.builds.pop(old_name)
         mech.name = new_name
@@ -106,4 +104,5 @@ class Player:
             del self.builds[name]
 
         except KeyError:
-            raise ValueError(f"No build named {name!r}") from None
+            msg = f"No build named {name!r}"
+            raise ValueError(msg) from None

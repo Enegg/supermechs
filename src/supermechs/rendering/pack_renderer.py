@@ -6,14 +6,13 @@ from attrs import define, field
 
 from ..models.item import Item, ItemData, Tier
 from ..models.mech import Mech
-from ..typeshed import twotuple
+from ..typeshed import ID, twotuple
 from ..utils import large_mapping_repr
 from .attachments import Attachment, assert_attachment
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-    from ..typedefs import ID
     from .sprites import ItemSprite
 
 __all__ = ("Rectangular", "PackRenderer")
@@ -122,7 +121,8 @@ class PackRenderer:
         del tier  # TODO: implement when storing TieredSprite
 
         if item.pack_key != self.pack_key:
-            raise ValueError("Item of different pack key passed")
+            msg = "Item of different pack key passed"
+            raise ValueError(msg)
 
         return self.sprites[item.id]
 
@@ -134,7 +134,8 @@ class PackRenderer:
 
     def create_mech_image(self, mech: Mech, /) -> "Image":
         if mech.torso is None:
-            raise RuntimeError("Cannot create mech image without torso set")
+            msg = "Cannot create mech image without torso set"
+            raise RuntimeError(msg)
 
         torso_sprite = self.get_item_sprite(mech.torso)
         attachments = assert_attachment(torso_sprite.attachment)

@@ -4,24 +4,26 @@ import typing_extensions as tex
 from attrs import asdict
 
 from supermechs.arena_buffs import MAX_BUFFS
-from supermechs.models.item import Type
-from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.item_stats import Stat, max_stats
-from supermechs.models.item import Item, ItemData
+from supermechs.models.item import Item, ItemData, Type
 from supermechs.models.mech import Mech, SlotType
 from supermechs.platform import compact_json_encoder, indented_json_encoder, json_decoder
-from supermechs.typedefs import ID, Name
+from supermechs.typeshed import ID, Name
 from supermechs.utils import assert_type
+
+from supermechs.ext.deserializers.errors import (
+    MalformedData,
+    MissingRequiredKey,
+    UnknownDataVersion,
+)
 
 if t.TYPE_CHECKING:
     from supermechs.item_pack import ItemPack
 
 __all__ = ("load_mechs", "dump_mechs")
 
-# ------------------------------------------ typed dicts -------------------------------------------
-
 # fmt: off
-_STAT_TO_WU_STAT = {
+_STAT_TO_WU_STAT: dict[Stat, tex.LiteralString] = {
     Stat.weight: "weight",
     Stat.hit_points: "health",
     Stat.energy_capacity: "eneCap",
@@ -83,6 +85,11 @@ _WU_SLOT_TO_SLOT: dict[tex.LiteralString, Mech.Slot] = {
     "module8":       Mech.Slot.MODULE_8,
 }
 # fmt: on
+_TYPE_TO_WU_TYPE: dict[Type, tex.LiteralString] = {type: type.name for type in Type}
+_TYPE_TO_WU_TYPE[Type.CHARGE] = "CHARGE_ENGINE"
+_TYPE_TO_WU_TYPE[Type.HOOK] = "GRAPPLING_HOOK"
+
+# ------------------------------------------ typed dicts -------------------------------------------
 
 
 class WUBattleItem(t.TypedDict):
@@ -124,10 +131,8 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     unknown.discard(0)
 
     if unknown:
-        raise MalformedData(
-            f"Mech setup contains unknown item IDs: {', '.join(map(str, (sorted(unknown))))}",
-            setup
-        )
+        msg = f"Mech setup contains unknown item IDs: {', '.join(map(str, sorted(unknown)))}"
+        raise MalformedData(msg, setup)
 
     for item_id, wu_slot in zip(setup, _WU_SLOT_NAMES):
         slot = _WU_SLOT_TO_SLOT[wu_slot]
@@ -152,13 +157,14 @@ def import_mechs(
         # TODO: file can contain mechs from different pack than default
 
     except KeyError as err:
-        raise MalformedData(f'Malformed data: key "{err}" not found.') from err
+        raise MissingRequiredKey(str(err)) from err
 
     if version != "1":
-        raise UnknownDataVersion("mech data", version, "1")
+        raise UnknownDataVersion("mech data", version, "1")  # noqa: EM101
 
     if not isinstance(mech_list, list):
-        raise MalformedData('Expected a list under "mechs" key', mech_list)
+        msg = 'Expected a list under "mechs" key'
+        raise MalformedData(msg, mech_list)
 
     mechs: list[Mech] = []
     failed: list[tuple[int, Exception]] = []
@@ -217,7 +223,7 @@ def is_exportable(mech: Mech) -> bool:
 
         packs.add(item.data.pack_key)
 
-    return len(packs) < 2
+    return len(packs) < 2  # noqa: PLR2004
 
 
 def export_mech(mech: Mech) -> WUMech:
@@ -251,13 +257,14 @@ def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleIte
         "stats": stats,
         "tags": asdict(item.tags),
         "timesUsed": 0,
-        "type": item.type.name,  # FIXME: WU expects full names
+        "type": _TYPE_TO_WU_TYPE[item.type],
     }
 
 
 def get_player(mech: Mech, player_name: str) -> WUPlayer:
     if mech.custom:
-        raise TypeError("Cannot serialize a custom mech into WU format")
+        msg = "Cannot serialize a custom mech into WU format"
+        raise TypeError(msg)
 
     serialized_items_without_modules = [
         None if item is None else get_battle_item(item.data, slot)

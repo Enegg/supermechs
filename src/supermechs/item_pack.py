@@ -6,7 +6,7 @@ import typing as t
 from attrs import define, field
 
 from .models.item import ItemData
-from .typedefs import ID, Name
+from .typeshed import ID, Name
 from .utils import large_mapping_repr
 
 __all__ = ("ItemPack",)
@@ -59,7 +59,8 @@ class ItemPack:
             id = self.names_to_ids[name]
 
         except KeyError as err:
-            raise LookupError(f"No item named {name!r} in the pack") from err
+            msg = f"No item named {name!r} in the pack"
+            raise LookupError(msg) from err
 
         return self.items[id]
 
@@ -74,4 +75,5 @@ class ItemPack:
             return self.items[item_id]
 
         except KeyError as err:
-            raise LookupError(f"No item with ID {item_id} in the pack") from err
+            msg = f"No item with ID {item_id} in the pack"
+            raise LookupError(msg) from err

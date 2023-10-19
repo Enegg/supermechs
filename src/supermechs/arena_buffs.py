@@ -29,9 +29,11 @@ def get_percent(stat: Stat, level: int, /) -> int:
         return -BASE_LVL_INCREASES[level]
 
     if literal_buff == "+HP":
-        raise TypeError(f"Stat {stat} has absolute increase")
+        msg = f"Stat {stat} has absolute increase"
+        raise TypeError(msg)
 
-    raise ValueError(f"Stat {stat} has no buffs associated")
+    msg = f"Stat {stat} has no buffs associated"
+    raise ValueError(msg)
 
 
 class BuffModifier(t.Protocol):
@@ -94,7 +96,8 @@ class ArenaBuffs:
 
     def __setitem__(self, stat: Stat, level: int, /) -> None:
         if not 0 <= level <= (max_lvl := max_level_of(stat)):
-            raise ValueError(f"The max level for {stat!r} is {max_lvl}, got {level}")
+            msg = f"The max level for {stat!r} is {max_lvl}, got {level}"
+            raise ValueError(msg)
 
         self.levels[stat] = level
 
@@ -124,9 +127,7 @@ class ArenaBuffs:
         buffed = self.buff(stat, value)
         return buffed, buffed - value
 
-    def buff_stats(
-        self, stats: StatsMapping, /, *, buff_health: bool = False
-    ) -> StatsMapping:
+    def buff_stats(self, stats: StatsMapping, /, *, buff_health: bool = False) -> StatsMapping:
         """Returns the buffed stats."""
         buffed: MutableStatsMapping = {}
 

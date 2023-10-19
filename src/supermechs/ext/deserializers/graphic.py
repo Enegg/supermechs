@@ -1,10 +1,10 @@
 import typing as t
 
-from .typedefs.graphics import AnyRawAttachment, RawPlane2D, RawPoint2D, RawTorsoAttachments
-from .typedefs.packs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
+from .errors import MalformedData, UnknownDataVersion
+from .typedefs import AnyItemPack, ItemPackVer1, ItemPackVer2, ItemPackVer3
+from .typedefs.graphics import AnyRawAttachment, RawBox2D, RawPoint2D, RawTorsoAttachments
 from .utils import js_format
 
-from supermechs.errors import MalformedData, UnknownDataVersion
 from supermechs.models.item import Type
 from supermechs.rendering import (
     AnyAttachment,
@@ -14,20 +14,14 @@ from supermechs.rendering import (
     Metadata,
     PackRenderer,
     Point2D,
-    SingleResolver,
+    SpriteResolver,
     SpritesheetResolver,
     create_synthetic_attachments,
     is_attachable,
 )
+from supermechs.rendering.sprites import Loader
+from supermechs.typeshed import ID
 from supermechs.utils import assert_type
-
-if t.TYPE_CHECKING:
-    from PIL.Image import Image
-
-    from supermechs.typedefs import ID
-
-ImageFetcher = t.Callable[[Metadata], t.Awaitable["Image"]]
-
 
 KEY_TO_ENUM = {
     "leg1": Attachment.LEG_1,
@@ -70,15 +64,18 @@ def to_attachments(data: AnyRawAttachment, /) -> AnyAttachment:
             return None
 
         case unknown:
-            raise MalformedData("Invalid attachment", unknown)
+            raise MalformedData("Invalid attachment", unknown)  # noqa: EM101
 
 
-def bounding_box(pos: RawPlane2D, /) -> tuple[int, int, int, int]:
-    x, y, w, h = pos["x"], pos["y"], pos["width"], pos["height"]
+def bounding_box(pos: RawBox2D, /) -> tuple[int, int, int, int]:
+    x = assert_type(int, pos["x"])
+    y = assert_type(int, pos["y"])
+    w = assert_type(int, pos["width"])
+    h = assert_type(int, pos["height"])
     return (x, y, x + w, y + h)
 
 
-def to_pack_renderer(data: AnyItemPack, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer(data: AnyItemPack, /, fetch: Loader) -> PackRenderer:
     """Parse data into an instance primed with item sprites."""
 
     if "version" not in data or data["version"] == "1":
@@ -112,7 +109,7 @@ def make_converter(width: int, height: int, type: Type) -> t.Callable[[ItemSprit
     return converter
 
 
-def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: Loader) -> PackRenderer:
     key = assert_type(str, data["config"]["key"])
     base_url = assert_type(str, data["config"]["base_url"])
     sprites: dict[ID, ItemSprite] = {}
@@ -126,18 +123,18 @@ def to_pack_renderer_v1(data: ItemPackVer1, /, fetch: ImageFetcher) -> PackRende
             Type.of_name(item_dict["type"]),
         )
         meta = Metadata("url", "single", img_url)
-        sprite = SingleResolver(fetch, meta, attachment, converter)
+        sprite = SpriteResolver(fetch, meta, attachment, converter)
         sprites[item_dict["id"]] = sprite
 
     return PackRenderer(key, sprites)
 
 
-def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: ImageFetcher) -> PackRenderer:
+def to_pack_renderer_v2(data: ItemPackVer2 | ItemPackVer3, /, fetch: Loader) -> PackRenderer:
     key = assert_type(str, data["key"])
     spritesheet_url = assert_type(str, data["spritesSheet"])
     spritesheet_map = data["spritesMap"]
     sheet_meta = Metadata("url", "single", spritesheet_url)
-    spritesheet = SingleResolver(fetch, sheet_meta, None)
+    spritesheet = SpriteResolver(fetch, sheet_meta, None)
     sprites: dict[ID, ItemSprite] = {}
 
     for item_dict in data["items"]:
