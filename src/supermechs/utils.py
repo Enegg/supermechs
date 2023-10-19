@@ -37,7 +37,7 @@ def _is_pascal(string: str, /) -> bool:
     """Returns True if the string is pascal-cased, False otherwise.
 
     A string is pascal-cased if it contains no whitespace, begins with an uppercase letter,
-    and all following uppercase letters are separated by least a single lowercase letter.
+    and all following uppercase letters are separated by at least a single lowercase letter.
         >>> is_pascal("fooBar")
         False
         >>> is_pascal("FooBar")
@@ -55,14 +55,10 @@ def _is_pascal(string: str, /) -> bool:
         if char.isspace():
             return False
 
-        if char.isupper():
-            if prev_is_upper:
-                return False
+        if prev_is_upper and char.isupper():
+            return False
 
-            prev_is_upper = True
-
-        else:
-            prev_is_upper = False
+        prev_is_upper = char.isupper()
 
     return True
 
@@ -85,7 +81,8 @@ def acronym_of(name: str, /) -> str | None:
 
 
 class cached_slot_property(t.Generic[T]):
-    """Descriptor similar to functools.cached_property, but designed for slotted classes.
+    """Descriptor similar to functools.cached_property, but for slotted classes.
+
     Caches the value to an attribute of the same name as the decorated function, prepended with _.
     """
     __slots__ = ("func", "slot")
@@ -135,7 +132,7 @@ def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
 
 def has_all_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
     """Returns True if a mapping contains all of the specified keys."""
-    return bool(mapping.keys() & keys)
+    return set(keys).issubset(mapping.keys())
 
 
 def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
@@ -151,7 +148,8 @@ def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
         with suppress(Exception):
             return type_(value)
 
-    raise TypeError(f"Expected {type_.__name__}, got {type(value).__name__}") from None
+    msg = f"Expected {type_.__name__}, got {type(value).__name__}"
+    raise TypeError(msg) from None
 
 
 def large_sequence_repr(
