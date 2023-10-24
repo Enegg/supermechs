@@ -3,6 +3,5 @@ from .arena_buffs import *
 from .enums import *
 from .item import *
 from .item_pack import *
-from .item_stats import *
 from .mech import *
 from .rendering import *

@@ -5,8 +5,8 @@ from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
 from .utils import NaN
 
 from supermechs.item import Element, ItemData, Tags, Tier, Type
+from supermechs.item.stats import Stat, StatsMapping, TransformStage, ValueRange
 from supermechs.item_pack import ItemPack
-from supermechs.item_stats import Stat, StatsMapping, TransformStage, ValueRange
 from supermechs.utils import assert_type, has_any_of
 
 ErrorCallbackType = t.Callable[[Exception], None]

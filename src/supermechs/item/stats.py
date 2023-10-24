@@ -1,64 +1,12 @@
 import typing as t
 import typing_extensions as tex
-from enum import auto
 
 from attrs import define, field
 
-from .enums import PartialEnum
-from .item import Tier
-from .typeshed import dict_items_as
+from ..typeshed import dict_items_as
+from .enums import Stat, Tier
 
-__all__ = ("ValueRange", "TransformStage", "Stat", "StatsMapping", "MutableStatsMapping")
-
-
-class Stat(int, PartialEnum):
-    """Enumeration of item stats."""
-
-    # fmt: off
-    # summary stats
-    weight                      = auto()
-    hit_points                  = auto()
-    energy_capacity             = auto()
-    regeneration                = auto()
-    heat_capacity               = auto()
-    cooling                     = auto()
-    bullets_capacity            = auto()
-    rockets_capacity            = auto()
-    physical_resistance         = auto()
-    explosive_resistance        = auto()
-    electric_resistance         = auto()
-    # physical weapons
-    physical_damage             = auto()
-    physical_resistance_damage  = auto()
-    # energy weapons
-    electric_damage             = auto()
-    energy_damage               = auto()
-    energy_capacity_damage      = auto()
-    regeneration_damage         = auto()
-    electric_resistance_damage  = auto()
-    # heat weapons
-    explosive_damage            = auto()
-    heat_damage                 = auto()
-    heat_capacity_damage        = auto()
-    cooling_damage              = auto()
-    explosive_resistance_damage = auto()
-    # mobility
-    walk                        = auto()
-    jump                        = auto()
-    range                       = auto()
-    push                        = auto()
-    pull                        = auto()
-    recoil                      = auto()
-    advance                     = auto()
-    retreat                     = auto()
-    # costs
-    uses                        = auto()
-    backfire                    = auto()
-    heat_generation             = auto()
-    energy_cost                 = auto()
-    bullets_cost                = auto()
-    rockets_cost                = auto()
-    # fmt: on
+__all__ = ("ValueRange", "TransformStage", "StatsMapping", "MutableStatsMapping")
 
 
 class ValueRange(t.NamedTuple):
@@ -143,9 +91,7 @@ class TransformStage:
     max_level_stats: StatsMapping = field()
     """Stats of the item that change as it levels up, at max level."""
     next: tex.Self | None = field(default=None)
-    """The next stage the item can transform into."""
-
-    _last: tuple[int, StatsMapping] = field(default=(-1, {}), init=False, repr=False)
+    """The next stage of transformation."""
 
     @property
     def max_level(self) -> int:
@@ -154,9 +100,6 @@ class TransformStage:
 
     def at(self, level: int, /) -> StatsMapping:
         """Returns the stats at given level."""
-
-        if level == self._last[0]:
-            return self._last[1]
 
         max_level = self.max_level
 

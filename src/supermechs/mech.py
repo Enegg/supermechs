@@ -9,7 +9,7 @@ from attrs import define, field
 
 from .enums import PartialEnum
 from .item import Element, Item, Type
-from .item_stats import SUMMARY_STATS, Stat
+from .item.stats import SUMMARY_STATS, Stat
 from .utils import cached_slot_property, has_any_of
 
 if t.TYPE_CHECKING:

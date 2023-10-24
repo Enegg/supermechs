@@ -4,7 +4,7 @@ from typing_extensions import Self
 from attrs import Factory, define
 
 from ._internal import BASE_LVL_INCREASES, BUFFABLE_STATS, HIT_POINT_INCREASES, STATS
-from .item_stats import MutableStatsMapping, Stat, StatsMapping, ValueRange
+from .item.stats import MutableStatsMapping, Stat, StatsMapping, ValueRange
 
 __all__ = ("MAX_BUFFS", "ArenaBuffs", "max_out")
 
