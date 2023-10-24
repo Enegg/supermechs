@@ -28,7 +28,9 @@ OVERLOADED_MAX_WEIGHT: int = MAX_WEIGHT + OVERLOAD
 HP_PENALTY_PER_KG: int = 15
 """The ratio at which mech hit points drop for each kg of overload."""
 EXCLUSIVE_STAT_KEYS: t.AbstractSet[Stat] = {
-    Stat.physical_resistance, Stat.explosive_resistance, Stat.electric_resistance
+    Stat.physical_resistance,
+    Stat.explosive_resistance,
+    Stat.electric_resistance,
 }
 """A set of stats of which each can be found at most on one module per mech."""
 
@@ -54,9 +56,7 @@ def no_duplicate_stats(mech: Mech, module: Item) -> bool:
 
 
 def get_constraints_of_item(item: Item, /) -> t.Callable[[Mech], bool] | None:
-    if item.data.type is Type.MODULE and has_any_of(
-        item.current_stats, *EXCLUSIVE_STAT_KEYS
-    ):
+    if item.data.type is Type.MODULE and has_any_of(item.current_stats, *EXCLUSIVE_STAT_KEYS):
         return partial(no_duplicate_stats, module=item)
 
     if item.data.tags.require_jump:
@@ -90,6 +90,7 @@ def validate(mech: Mech, /) -> bool:
 
 def _format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
     from collections import Counter
+
     return (
         f'{item}{f" x{count}" * (count > 1)}' for item, count in Counter(filter(None, it)).items()
     )
@@ -101,7 +102,7 @@ def _flatten_slots(args: t.Iterable[SlotSelectorType], /) -> t.Iterator[Mech.Slo
             yield arg
 
         elif isinstance(arg, Type):
-            yield from _type_to_slots.get(arg) or (Mech.Slot.of_name(arg.name), )
+            yield from _type_to_slots.get(arg) or (Mech.Slot.of_name(arg.name),)
 
         elif arg == "body":
             yield from (Mech.Slot.TORSO, Mech.Slot.LEGS, Mech.Slot.DRONE)
@@ -127,28 +128,29 @@ class Mech:
 
     class Slot(_SlotData, PartialEnum):
         """Enumeration of mech slots."""
-        TORSO = (Type.TORSO, )
-        LEGS = (Type.LEGS, )
-        DRONE = (Type.DRONE, )
-        TELEPORTER = (Type.TELEPORTER, )
-        CHARGE = (Type.CHARGE, )
-        HOOK = (Type.HOOK, )
-        SHIELD = (Type.SHIELD, )
-        SIDE_WEAPON_1 = (Type.SIDE_WEAPON, )
-        SIDE_WEAPON_2 = (Type.SIDE_WEAPON, )
-        SIDE_WEAPON_3 = (Type.SIDE_WEAPON, )
-        SIDE_WEAPON_4 = (Type.SIDE_WEAPON, )
-        TOP_WEAPON_1 = (Type.TOP_WEAPON, )
-        TOP_WEAPON_2 = (Type.TOP_WEAPON, )
-        MODULE_1 = (Type.MODULE, )
-        MODULE_2 = (Type.MODULE, )
-        MODULE_3 = (Type.MODULE, )
-        MODULE_4 = (Type.MODULE, )
-        MODULE_5 = (Type.MODULE, )
-        MODULE_6 = (Type.MODULE, )
-        MODULE_7 = (Type.MODULE, )
-        MODULE_8 = (Type.MODULE, )
-        PERK = (Type.PERK, )
+
+        TORSO = (Type.TORSO,)
+        LEGS = (Type.LEGS,)
+        DRONE = (Type.DRONE,)
+        TELEPORTER = (Type.TELEPORTER,)
+        CHARGE = (Type.CHARGE,)
+        HOOK = (Type.HOOK,)
+        SHIELD = (Type.SHIELD,)
+        SIDE_WEAPON_1 = (Type.SIDE_WEAPON,)
+        SIDE_WEAPON_2 = (Type.SIDE_WEAPON,)
+        SIDE_WEAPON_3 = (Type.SIDE_WEAPON,)
+        SIDE_WEAPON_4 = (Type.SIDE_WEAPON,)
+        TOP_WEAPON_1 = (Type.TOP_WEAPON,)
+        TOP_WEAPON_2 = (Type.TOP_WEAPON,)
+        MODULE_1 = (Type.MODULE,)
+        MODULE_2 = (Type.MODULE,)
+        MODULE_3 = (Type.MODULE,)
+        MODULE_4 = (Type.MODULE,)
+        MODULE_5 = (Type.MODULE,)
+        MODULE_6 = (Type.MODULE,)
+        MODULE_7 = (Type.MODULE,)
+        MODULE_8 = (Type.MODULE,)
+        PERK = (Type.PERK,)
 
     name: str = field()
     custom: t.Final[bool] = False
@@ -356,5 +358,5 @@ SlotSelectorType = Mech.Slot | Type | t.Literal["body", "weapons", "specials"]
 _type_to_slots: t.Mapping[Type, t.Sequence[Mech.Slot]] = {
     Type.SIDE_WEAPON: tuple(Mech.Slot.of_name(f"SIDE_WEAPON_{n}") for n in range(1, 4)),
     Type.TOP_WEAPON: (Mech.Slot.TOP_WEAPON_1, Mech.Slot.TOP_WEAPON_2),
-    Type.MODULE: tuple(Mech.Slot.of_name(f"MODULE_{n}") for n in range(1, 9))
+    Type.MODULE: tuple(Mech.Slot.of_name(f"MODULE_{n}") for n in range(1, 9)),
 }
