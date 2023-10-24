@@ -175,7 +175,7 @@ class InvItem:
             raise ValueError(msg)
 
         if self.item.stage.next is None:
-            raise MaxTierError(self)
+            raise MaxTierError
 
         self.item.stage = self.item.stage.next
         self.power = 0

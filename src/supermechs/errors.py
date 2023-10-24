@@ -1,8 +1,5 @@
 import typing as t
 
-if t.TYPE_CHECKING:
-    from .item import InvItem
-
 
 class SMException(Exception):
     """Base class for library exceptions."""
@@ -32,5 +29,5 @@ class MaxPowerError(SMException):
 class MaxTierError(SMException):
     """Attempted to transform an item at its maximum tier."""
 
-    def __init__(self, inv_item: "InvItem", /) -> None:
-        super().__init__(f"Maximum tier for item {inv_item.item.data.name!r} already reached")
+    def __init__(self, /) -> None:
+        super().__init__("Maximum item tier already reached")
