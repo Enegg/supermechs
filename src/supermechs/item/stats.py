@@ -76,10 +76,6 @@ def lerp_vector(minor: ValueRange, major: ValueRange, weight: float) -> ValueRan
     return ValueRange(*map(lerp, minor, major, (weight, weight)))
 
 
-MAX_LVL_FOR_TIER: t.Mapping[Tier, int] = dict(zip(Tier, range(9, 50, 10)))
-MAX_LVL_FOR_TIER[Tier.DIVINE] = MAX_LVL_FOR_TIER[Tier.PERK] = 0
-
-
 @define(kw_only=True)
 class TransformStage:
     """Dataclass collecting transformation tier dependent item data."""
@@ -87,16 +83,18 @@ class TransformStage:
     tier: Tier = field()
     """The tier of the transform stage."""
     base_stats: StatsMapping = field()
-    """Stats of the item at level 1."""
+    """Stats of the item at level 0."""
     max_level_stats: StatsMapping = field()
     """Stats of the item that change as it levels up, at max level."""
+    level_progression: t.Sequence[int] = field()
+    """Sequence of exp thresholds consecutive levels require to reach."""
     next: tex.Self | None = field(default=None)
     """The next stage of transformation."""
 
     @property
     def max_level(self) -> int:
         """The maximum level this stage can reach, starting from 0."""
-        return MAX_LVL_FOR_TIER[self.tier]
+        return len(self.level_progression)
 
     def at(self, level: int, /) -> StatsMapping:
         """Returns the stats at given level."""
@@ -126,7 +124,6 @@ class TransformStage:
                 assert not isinstance(base_value, ValueRange)
                 stats[key] = lerp(base_value, value, weight)
 
-        self._last = (level, stats)
         return stats
 
 
