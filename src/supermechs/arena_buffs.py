@@ -1,49 +1,12 @@
 import typing as t
-from enum import auto
 from typing_extensions import Self
 
 from attrs import Factory, define
 
 from ._internal import BASE_LVL_INCREASES, BUFFABLE_STATS, HIT_POINT_INCREASES, STATS
-from .enums import PartialEnum
 from .item.stats import MutableStatsMapping, Stat, StatsMapping, ValueRange
 
 __all__ = ("MAX_BUFFS", "ArenaBuffs", "max_out")
-
-
-class ArenaShopCategory(int, PartialEnum):
-    """Enumeration of arena shop categories."""
-
-    energy_capacity = auto()
-    energy_regeneration = auto()
-    energy_damage = auto()
-    heat_capacity = auto()
-    heat_cooling = auto()
-    heat_damage = auto()
-    physical_damage = auto()
-    explosive_damage = auto()
-    electric_damage = auto()
-    physical_resistance = auto()
-    explosive_resistance = auto()
-    electric_resistance = auto()
-    fuel_capacity = auto()
-    fuel_regeneration = auto()
-    total_hp = auto()
-    arena_gold_increase = auto()
-    campaign_gold_increase = auto()
-    titan_damage = auto()
-    base_crafting_cost = auto()
-    base_crafting_speed = auto()
-    base_upgrade_speed = auto()
-    fortune_boxes = auto()
-    backfire_reduction = auto()
-    titan_reward = auto()
-
-
-class CategoryData(t.NamedTuple):
-    max_level: int
-    progression: t.Sequence[float]
-    is_absolute: bool
 
 
 def max_level_of(stat: Stat, /) -> int:
@@ -169,7 +132,7 @@ class ArenaBuffs:
         buffed: MutableStatsMapping = {}
 
         for key, value in stats.items():
-            if key == "health" and not buff_health:
+            if key is Stat.hit_points and not buff_health:
                 buffed[key] = value
 
             elif isinstance(value, ValueRange):
