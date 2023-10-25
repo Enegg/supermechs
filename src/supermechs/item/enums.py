@@ -2,7 +2,7 @@ import typing as t
 import typing_extensions as tex
 from enum import auto
 
-from ..enums import PartialEnum
+from ..utils import PartialEnum
 
 __all__ = ("Tier", "Element", "Type", "Stat")
 

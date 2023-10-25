@@ -1,6 +1,7 @@
 import typing as t
 import typing_extensions as tex
 from contextlib import suppress
+from enum import Enum
 
 from .typeshed import T
 
@@ -188,3 +189,18 @@ def large_mapping_repr(mapping: t.Mapping[t.Any, t.Any], /, threshold: int = 20)
 
     items = ", ".join(f"{k!r}: {v!r}" for k, v in itertools.islice(mapping.items(), threshold))
     return f"{left}{items}, +{len(mapping) - threshold} more{right}"
+
+
+class PartialEnum(Enum):
+    def __repr__(self) -> str:
+        return str(self)
+
+    @classmethod
+    def of_name(cls, name: str, /) -> tex.Self:
+        """Get enum member by name."""
+        return cls[name]
+
+    @classmethod
+    def of_value(cls, value: t.Any, /) -> tex.Self:
+        """Get enum member by value."""
+        return cls.__call__(value)

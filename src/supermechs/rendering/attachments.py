@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing as t
 from enum import auto
 
-from ..enums import PartialEnum
+from ..utils import PartialEnum
 from ..item import Type
 
 __all__ = (
