@@ -3,7 +3,6 @@ import typing_extensions as tex
 
 from attrs import define, field
 
-from ..typeshed import dict_items_as
 from .enums import Stat, Tier
 
 __all__ = ("ValueRange", "TransformStage", "StatsMapping", "MutableStatsMapping")
@@ -113,7 +112,7 @@ class TransformStage:
         weight = level / max_level
         stats = dict(self.base_stats)
 
-        for key, value in dict_items_as(int | ValueRange, self.max_level_stats):
+        for key, value in self.max_level_stats.items():
             base_value: int | ValueRange = stats[key]
 
             if isinstance(value, ValueRange):
