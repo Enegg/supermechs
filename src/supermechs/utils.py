@@ -85,6 +85,7 @@ class cached_slot_property(t.Generic[T]):
 
     Caches the value to an attribute of the same name as the decorated function, prepended with _.
     """
+
     __slots__ = ("func", "slot")
 
     def __init__(self, func: t.Callable[[t.Any], T]) -> None:
@@ -152,23 +153,24 @@ def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
     raise TypeError(msg) from None
 
 
-def large_sequence_repr(
-    obj: t.Sequence[t.Any] | t.AbstractSet[t.Any], /, threshold: int = 20
-) -> str:
+def _get_brackets(cls: type, /) -> tuple[str, str]:
+    if cls is tuple:
+        return "(", ")"
+
+    if cls is list:
+        return "[", "]"
+
+    if cls is set or cls is dict:
+        return "{", "}"
+
+    return f"{cls.__name__}<", ">"
+
+
+def large_collection_repr(obj: t.Collection[t.Any], /, threshold: int = 20) -> str:
     if len(obj) <= threshold:
         return repr(obj)
 
-    if type(obj) is tuple:
-        left, right = "()"
-
-    elif type(obj) is list:
-        left, right = "[]"
-
-    elif type(obj) is set:
-        left, right = "{}"
-
-    else:
-        left, right = f"{type(obj).__name__}<", ">"
+    left, right = _get_brackets(type(obj))
 
     import itertools
 
@@ -180,11 +182,7 @@ def large_mapping_repr(mapping: t.Mapping[t.Any, t.Any], /, threshold: int = 20)
     if len(mapping) <= threshold:
         return repr(mapping)
 
-    if type(mapping) is dict:
-        left, right = "{}"
-
-    else:
-        left, right = f"{type(mapping).__name__}<", ">"
+    left, right = _get_brackets(type(mapping))
 
     import itertools
 
