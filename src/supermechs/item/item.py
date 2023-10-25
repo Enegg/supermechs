@@ -5,10 +5,9 @@ from bisect import bisect_left
 
 from attrs import Factory, define, field, validators
 
-from .. import _internal
 from ..errors import CantBeNegative, MaxPowerError, MaxTierError
 from ..typeshed import ID, Name
-from .enums import Element, Tier, Type
+from .enums import Element, Type
 from .stats import StatsMapping, TransformStage, get_final_stage
 
 __all__ = ("Tags", "ItemData", "Item", "InvItem", "BattleItem")
@@ -103,28 +102,6 @@ class Item:
         return cls(data=data, stage=stage, level=level)
 
 
-def _get_power_bank(item: ItemData, /) -> t.Mapping[Tier, t.Sequence[int]]:
-    """Returns the power per level bank for the item."""
-    # TODO: legacy and sub epic items
-    if item.tags.legacy:
-        pass
-
-    if item.name in _internal.SPECIAL_ITEMS:
-        return _internal.REDUCED_POWERS
-
-    if item.start_stage.tier >= Tier.LEGENDARY:
-        return _internal.PREMIUM_POWERS
-
-    if get_final_stage(item.start_stage).tier <= Tier.EPIC:
-        pass
-
-    return _internal.DEFAULT_POWERS
-
-
-def _get_power_levels_of_item(item: Item, /) -> t.Sequence[int]:
-    return _get_power_bank(item.data).get(item.stage.tier, (0,))
-
-
 @define(kw_only=True)
 class InvItem:
     """Represents an inventory bound item."""
@@ -142,7 +119,7 @@ class InvItem:
     @property
     def max_power(self) -> int:
         """The total power necessary to max the item at current tier."""
-        return _get_power_levels_of_item(self.item)[-1]
+        return self.item.stage.level_progression[-1]
 
     @property
     def transform_ready(self) -> bool:
@@ -161,8 +138,7 @@ class InvItem:
         if self.is_max_power:
             raise MaxPowerError
 
-        levels = _get_power_levels_of_item(self.item)
-        self.item.level = bisect_left(levels, self.power) + 1
+        self.item.level = bisect_left(self.item.stage.level_progression, self.power) + 1
         self._power = min(power, self.max_power)
 
     def __str__(self) -> str:
