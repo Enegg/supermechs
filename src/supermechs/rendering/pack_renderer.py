@@ -4,18 +4,17 @@ from bisect import insort_left
 import anyio
 from attrs import define, field
 
-from ..item import Item, ItemData, Tier
+from ..item import Item
 from ..mech import Mech
-from ..typeshed import ID, twotuple
-from ..utils import large_mapping_repr
+from ..typeshed import twotuple
 from .attachments import Attachment, assert_attachment
+from .sprites import ItemSprite
 
 if t.TYPE_CHECKING:
     from PIL.Image import Image
 
-    from .sprites import ItemSprite
 
-__all__ = ("Rectangular", "PackRenderer")
+__all__ = ("Rectangular", "create_mech_image", "load_mech_images")
 
 LAYER_ORDER = (
     Attachment.SIDE_WEAPON_2,
@@ -101,70 +100,49 @@ class Canvas:
         return canvas
 
 
-@define
-class PackRenderer:
-    pack_key: str = field()
-    sprites: t.Mapping["ID", "ItemSprite"] = field(repr=large_mapping_repr)
+SpriteGetter = t.Callable[[Item], ItemSprite]
 
-    @t.overload
-    def get_item_sprite(self, item: "ItemData", /, tier: Tier) -> "ItemSprite":
-        ...
 
-    @t.overload
-    def get_item_sprite(self, item: Item, /) -> "ItemSprite":
-        ...
+async def load_mech_images(get_sprite: SpriteGetter, mech: Mech, /) -> None:
+    async with anyio.create_task_group() as tg:
+        for item in filter(None, mech.iter_items(Mech.Slot.TORSO, Mech.Slot.LEGS, "weapons")):
+            sprite = get_sprite(item)
+            tg.start_soon(sprite.load)
 
-    def get_item_sprite(self, item: "ItemData | Item", /, tier: Tier | None = None) -> "ItemSprite":
-        if isinstance(item, Item):
-            tier = item.stage.tier
-            item = item.data
-        del tier  # TODO: implement when storing TieredSprite
 
-        if item.pack_key != self.pack_key:
-            msg = "Item of different pack key passed"
-            raise ValueError(msg)
+def create_mech_image(get_sprite: SpriteGetter, mech: Mech, /) -> "Image":
+    if mech.torso is None:
+        msg = "Cannot create mech image without torso set"
+        raise RuntimeError(msg)
 
-        return self.sprites[item.id]
+    torso_sprite = get_sprite(mech.torso)
+    attachments = assert_attachment(torso_sprite.attachment)
+    canvas = Canvas(torso_sprite.image)
 
-    async def load_mech_images(self, mech: Mech, /) -> None:
-        async with anyio.create_task_group() as tg:
-            for item in filter(None, mech.iter_items(Mech.Slot.TORSO, Mech.Slot.LEGS, "weapons")):
-                sprite = self.get_item_sprite(item)
-                tg.start_soon(sprite.load)
+    if mech.legs is not None:
+        legs_sprite = get_sprite(mech.legs)
+        leg_attachment = assert_attachment(legs_sprite.attachment)[Attachment.TORSO]
 
-    def create_mech_image(self, mech: Mech, /) -> "Image":
-        if mech.torso is None:
-            msg = "Cannot create mech image without torso set"
-            raise RuntimeError(msg)
+        for layer in (Attachment.LEG_1, Attachment.LEG_2):
+            x, y = combine_attachments(leg_attachment, attachments[layer])
+            canvas[LAYER_ORDER.index(layer), x, y] = legs_sprite.image
 
-        torso_sprite = self.get_item_sprite(mech.torso)
-        attachments = assert_attachment(torso_sprite.attachment)
-        canvas = Canvas(torso_sprite.image)
+    for item, slot in mech.iter_items("weapons", yield_slots=True):
+        if item is None:
+            continue
 
-        if mech.legs is not None:
-            legs_sprite = self.get_item_sprite(mech.legs)
-            leg_attachment = assert_attachment(legs_sprite.attachment)[Attachment.TORSO]
+        layer = Attachment.of_name(slot.name)
 
-            for layer in (Attachment.LEG_1, Attachment.LEG_2):
-                x, y = combine_attachments(leg_attachment, attachments[layer])
-                canvas[LAYER_ORDER.index(layer), x, y] = legs_sprite.image
+        item_sprite = get_sprite(item)
+        item_attachment = assert_attachment(item_sprite.attachment)[Attachment.TORSO]
+        x, y = combine_attachments(item_attachment, attachments[layer])
+        canvas[LAYER_ORDER.index(layer), x, y] = item_sprite.image
 
-        for item, slot in mech.iter_items("weapons", yield_slots=True):
-            if item is None:
-                continue
+    if mech.drone is not None:
+        drone_sprite = get_sprite(mech.drone)
+        drone_image = drone_sprite.image
+        x = drone_image.width // 2 + canvas.offsets.left
+        y = drone_image.height + 25 + canvas.offsets.above
+        canvas[-1, -x, -y] = drone_image
 
-            layer = Attachment.of_name(slot.name)
-
-            item_sprite = self.get_item_sprite(item)
-            item_attachment = assert_attachment(item_sprite.attachment)[Attachment.TORSO]
-            x, y = combine_attachments(item_attachment, attachments[layer])
-            canvas[LAYER_ORDER.index(layer), x, y] = item_sprite.image
-
-        if mech.drone is not None:
-            drone_sprite = self.get_item_sprite(mech.drone)
-            drone_image = drone_sprite.image
-            x = drone_image.width // 2 + canvas.offsets.left
-            y = drone_image.height + 25 + canvas.offsets.above
-            canvas[-1, -x, -y] = drone_image
-
-        return canvas.merge(LAYER_ORDER.index("torso"))
+    return canvas.merge(LAYER_ORDER.index("torso"))

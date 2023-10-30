@@ -5,8 +5,10 @@ import typing as t
 
 from attrs import define, field
 
-from .item import ItemData
-from .typeshed import ID, Name
+from .errors import IDLookupError, PackKeyError
+from .item import Item, ItemData, Tier
+from .rendering.sprites import ItemSprite
+from .typeshed import ID, T
 from .utils import large_mapping_repr
 
 __all__ = ("ItemPack",)
@@ -14,32 +16,20 @@ __all__ = ("ItemPack",)
 LOGGER = logging.getLogger(__name__)
 
 
-@define
-class ItemPack:
-    """Object representing an item pack."""
+@define(kw_only=True)
+class ItemPack(t.Generic[T]):
+    """Mapping-like container of items and their GFX."""
 
     key: str = field()
-    items: t.Mapping[ID, ItemData] = field(repr=large_mapping_repr)
     name: str = field(default="<no name>")
     description: str = field(default="<no description>")
+
+    items: t.Mapping[ID, ItemData] = field(repr=large_mapping_repr)
+    sprites: t.Mapping[tuple[ID, Tier], ItemSprite[T]] = field(repr=large_mapping_repr)
     # personal packs
     custom: bool = field(default=False)
 
-    # Item name to item ID
-    names_to_ids: t.Mapping[Name, ID] = field(init=False, repr=False)
-
-    @property
-    def item_names(self) -> t.KeysView[Name]:
-        """Set-like view on items' names."""
-        return self.names_to_ids.keys()
-
-    def __attrs_post_init__(self) -> None:
-        self.names_to_ids = {item.name: item.id for item in self.items.values()}
-
-    def __contains__(self, value: Name | ID | ItemData, /) -> bool:
-        if isinstance(value, Name):
-            return value in self.names_to_ids
-
+    def __contains__(self, value: ID | ItemData, /) -> bool:
         if isinstance(value, ID):
             return value in self.items
 
@@ -48,32 +38,48 @@ class ItemPack:
 
         return False
 
-    def get_item_by_name(self, name: Name, /) -> ItemData:
-        """Lookup an item by its name.
-
-        Raises
-        ------
-        LookupError: item not found.
-        """
-        try:
-            id = self.names_to_ids[name]
-
-        except KeyError as err:
-            msg = f"No item named {name!r} in the pack"
-            raise LookupError(msg) from err
-
-        return self.items[id]
-
-    def get_item_by_id(self, item_id: ID, /) -> ItemData:
+    def get_item(self, item_id: ID, /) -> ItemData:
         """Lookup an item by its ID.
 
         Raises
         ------
-        LookupError: item not found.
+        IDLookupError: item not found.
         """
         try:
             return self.items[item_id]
 
         except KeyError as err:
-            msg = f"No item with ID {item_id} in the pack"
-            raise LookupError(msg) from err
+            raise IDLookupError(item_id) from err
+
+    @t.overload
+    def get_sprite(self, item: Item, /) -> ItemSprite[T]:
+        ...
+
+    @t.overload
+    def get_sprite(self, item: ItemData, /, tier: Tier) -> ItemSprite[T]:
+        ...
+
+    def get_sprite(self, item: ItemData | Item, /, tier: Tier | None = None) -> ItemSprite[T]:
+        """Lookup item's sprite.
+
+        Raises
+        ------
+        PackKeyError: item comes from different pack.
+        """
+        if isinstance(item, ItemData):
+            if tier is None:
+                msg = "Tier not provided with ItemData"
+                raise ValueError(msg)
+
+        elif tier is not None:
+            msg = "Tier provided for Item"
+            raise ValueError(msg)
+
+        else:
+            tier = item.stage.tier
+            item = item.data
+
+        if item.pack_key != self.key:
+            raise PackKeyError(item.pack_key)
+
+        return self.sprites[(item.id, tier)]

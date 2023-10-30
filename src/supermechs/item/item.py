@@ -5,7 +5,7 @@ from bisect import bisect_left
 
 from attrs import Factory, define, field, validators
 
-from ..errors import CantBeNegative, MaxPowerError, MaxTierError
+from ..errors import MaxPowerError, MaxTierError, NegativeValueError
 from ..typeshed import ID, Name
 from .enums import Element, Type
 from .stats import StatsMapping, TransformStage, get_final_stage
@@ -28,6 +28,8 @@ class Tags(t.NamedTuple):
     """Whether the item is considered legacy."""
     require_jump: bool = False
     """Whether the item requires the ability to jump to be equipped."""
+    reduced_power_cost: bool = False
+    """Whether the item uses reduced power cost progression."""
     custom: bool = False
     """Whether the item is not from the default item pack."""
 
@@ -56,6 +58,14 @@ class ItemData:
     start_stage: TransformStage = field()
     """The first transformation stage of this item."""
 
+    def iter_stages(self) -> t.Iterator[TransformStage]:
+        """Iterator over the transform stages of this item."""
+        stage = self.start_stage
+        yield stage
+
+        while stage := stage.next:
+            yield stage
+
 
 Paint: t.TypeAlias = str
 """The name of the paint, or a #-prefixed hex string as a color."""
@@ -69,11 +79,6 @@ class Item:
     stage: TransformStage = field()
     level: int = field(default=0)
     paint: Paint | None = field(default=None)
-
-    @property
-    def current_stats(self) -> StatsMapping:
-        """The stats of this item at its particular tier and level."""
-        return self.stage.at(self.level)
 
     @property
     def is_maxed(self) -> bool:
@@ -133,7 +138,7 @@ class InvItem:
     @power.setter
     def power(self, power: int) -> None:
         if power < 0:
-            raise CantBeNegative(power)
+            raise NegativeValueError(power)
 
         if self.is_max_power:
             raise MaxPowerError
@@ -173,7 +178,3 @@ class BattleItem:
     stats: StatsMapping
     multipliers: t.Mapping[str, float] = field(factory=dict)
     # already_used: bool? XXX prolly better to store elsewhere
-
-    @classmethod
-    def from_item(cls, item: Item, /) -> tex.Self:
-        return cls(item=item, stats=item.current_stats)

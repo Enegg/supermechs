@@ -1,44 +1,15 @@
-import array
 import typing as t
 import typing_extensions as tex
 
 import anyio
 
-from .item import Stat, Tier
+from .item import Stat
 from .platform import toml_decoder
 
-DEFAULT_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
-PREMIUM_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
-REDUCED_POWERS: t.Mapping[Tier, t.Sequence[int]] = {}
 STATS: t.Mapping[Stat, "BuffData"] = {}
 BUFFABLE_STATS: t.Sequence[Stat] = []
 BASE_LVL_INCREASES: t.Sequence[int] = []
 HIT_POINT_INCREASES: t.Sequence[int] = []
-
-
-# this could very well be by IDs, but names are easier to read
-SPECIAL_ITEMS = frozenset(("Archimonde", "Armor Annihilator", "BigDaddy", "Chaos Bringer"))
-
-
-async def load_power_data() -> None:
-    path = anyio.Path(__file__).parent / "static"
-    file_names = ("default_powers.csv", "premium_powers.csv", "reduced_powers.csv")
-    iterables = (Tier, (Tier.LEGENDARY, Tier.MYTHICAL), (Tier.LEGENDARY, Tier.MYTHICAL))
-    mappings = (DEFAULT_POWERS, PREMIUM_POWERS, REDUCED_POWERS)
-
-    import csv
-
-    async def worker(
-        file_name: str, rarities: t.Iterable[Tier], mapping: dict[Tier, t.Sequence[int]]
-    ) -> None:
-        async with await (path / file_name).open(newline="") as file:
-            rows = csv.reader(await file.readlines(), skipinitialspace=True)
-            for rarity, row in zip(rarities, rows):
-                mapping[rarity] = array.array("i", map(int, row))
-
-    async with anyio.create_task_group() as tg:
-        for file_name, rarities, mapping in zip(file_names, iterables, mappings, strict=True):
-            tg.start_soon(worker, file_name, rarities, mapping)
 
 
 class RawBuffData(t.TypedDict):

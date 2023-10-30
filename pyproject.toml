@@ -51,9 +51,6 @@ target-version = "py310"
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F403"]
 "api.py" = ["F403", "PLC0414"]
-"utils.py" = [
-    "E721" # we check for types constructible via [] {} ()
-]
 
 [tool.ruff.isort]
 combine-as-imports = true
@@ -78,17 +75,14 @@ typeCheckingMode = "strict"
 
 reportUnnecessaryTypeIgnoreComment = "information"
 reportUnnecessaryCast = true
-reportMatchNotExhaustive = "warning"
 reportUnusedImport = false # handled by ruff
+reportImportCycles = true
 
+reportMatchNotExhaustive = "warning"
 reportOverlappingOverload = "information"
 reportPrivateUsage = false
 reportUnnecessaryIsInstance = false
-reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 
-reportUnknownMemberType = false
-reportUnknownArgumentType = false
-reportUnknownVariableType = false
 reportMissingTypeStubs = false

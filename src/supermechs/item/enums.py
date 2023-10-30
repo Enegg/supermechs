@@ -82,15 +82,18 @@ class Stat(int, PartialEnum):
     electric_resistance         = auto()
     # physical weapons
     physical_damage             = auto()
+    physical_damage_addon       = auto()
     physical_resistance_damage  = auto()
     # energy weapons
     electric_damage             = auto()
+    electric_damage_addon       = auto()
     energy_damage               = auto()
     energy_capacity_damage      = auto()
     regeneration_damage         = auto()
     electric_resistance_damage  = auto()
     # heat weapons
     explosive_damage            = auto()
+    explosive_damage_addon      = auto()
     heat_damage                 = auto()
     heat_capacity_damage        = auto()
     cooling_damage              = auto()
@@ -99,6 +102,7 @@ class Stat(int, PartialEnum):
     walk                        = auto()
     jump                        = auto()
     range                       = auto()
+    range_addon                 = auto()
     push                        = auto()
     pull                        = auto()
     recoil                      = auto()

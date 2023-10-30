@@ -5,18 +5,32 @@ class SMException(Exception):
     """Base class for library exceptions."""
 
 
-class CantBeNegative(SMException):
-    """{number} is negative"""
+class OutOfRangeError(SMException):
+    """Value X = {number} out of range {min} <= X <= {max}"""
 
-    def __init__(self, number: t.SupportsFloat, /) -> None:
-        super().__init__(t.cast(str, self.__doc__).format(number=number))
+    def __init__(self, number: float, lower: float, upper: float, /) -> None:
+        super().__init__(t.cast(str, self.__doc__).format(number=number, min=lower, max=upper))
 
 
-class UnknownID(SMException):
-    """Unknown item ID"""
+class NegativeValueError(OutOfRangeError):
+    """Value cannot be negative, got {number}"""
 
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+    def __init__(self, number: float, /) -> None:
+        super().__init__(number, 0, 0)
+
+
+class IDLookupError(SMException):
+    """Unknown item ID: {ID}"""
+
+    def __init__(self, id: int, /) -> None:
+        super().__init__(t.cast(str, self.__doc__).format(id=id))
+
+
+class PackKeyError(SMException):
+    """Unknown pack key: {key}"""
+
+    def __init__(self, key: str, /) -> None:
+        super().__init__(t.cast(str, self.__doc__).format(key=key))
 
 
 class MaxPowerError(SMException):

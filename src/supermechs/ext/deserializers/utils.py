@@ -1,5 +1,8 @@
 import typing as t
 import typing_extensions as tex
+from contextlib import suppress
+
+from .errors import DataTypeError
 
 from supermechs.typeshed import T
 
@@ -50,3 +53,23 @@ class Nan(int, metaclass=NanMeta):
 
 
 NaN: t.Final = Nan()
+
+
+def none_to_nan(value: int | None, /) -> int:
+    return NaN if value is None else value
+
+
+def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
+    """Assert value is of given type.
+
+    If cast is `True`, will attempt to cast to `type_` before failing.
+    """
+    if isinstance(value, type_):
+        return value
+
+    if cast and not issubclass(type_, str):
+        # we exclude string casting since anything can be casted to string
+        with suppress(Exception):
+            return type_(value)
+
+    raise DataTypeError(type(value), type_)

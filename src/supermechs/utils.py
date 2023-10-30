@@ -1,9 +1,6 @@
 import typing as t
 import typing_extensions as tex
-from contextlib import suppress
 from enum import Enum
-
-from .typeshed import T
 
 
 def search_for(
@@ -81,52 +78,6 @@ def acronym_of(name: str, /) -> str | None:
     return "".join(filter(str.isupper, name)).lower()
 
 
-class cached_slot_property(t.Generic[T]):
-    """Descriptor similar to functools.cached_property, but for slotted classes.
-
-    Caches the value to an attribute of the same name as the decorated function, prepended with _.
-    """
-
-    __slots__ = ("func", "slot")
-
-    def __init__(self, func: t.Callable[[t.Any], T]) -> None:
-        self.func: t.Final = func
-        self.slot: t.Final[str] = "_" + func.__name__
-
-    def __repr__(self) -> str:
-        return f"<{type(self).__name__} of slot {self.slot!r}>"
-
-    @t.overload
-    def __get__(self, obj: None, cls: t.Any, /) -> tex.Self:
-        ...
-
-    @t.overload
-    def __get__(self, obj: t.Any, cls: t.Any, /) -> T:
-        ...
-
-    def __get__(self, obj: t.Any | None, cls: t.Any, /) -> T | tex.Self:
-        del cls
-
-        if obj is None:
-            return self
-
-        try:
-            return getattr(obj, self.slot)
-
-        except AttributeError:
-            value = self.func(obj)
-            setattr(obj, self.slot, value)
-            return value
-
-    def __delete__(self, obj: t.Any) -> None:
-        """Deletes the cached value."""
-        try:  # noqa: SIM105
-            delattr(obj, self.slot)
-
-        except AttributeError:
-            pass
-
-
 def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
     """Returns True if a mapping contains any of the specified keys."""
     return not mapping.keys().isdisjoint(keys)
@@ -135,23 +86,6 @@ def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
 def has_all_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
     """Returns True if a mapping contains all of the specified keys."""
     return set(keys).issubset(mapping.keys())
-
-
-def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
-    """Assert value is of given type.
-
-    If cast is `True`, will attempt to cast to `type_` before failing.
-    """
-    if isinstance(value, type_):
-        return value
-
-    if cast and not issubclass(type_, str):
-        # we exclude string casting since anything can be casted to string
-        with suppress(Exception):
-            return type_(value)
-
-    msg = f"Expected {type_.__name__}, got {type(value).__name__}"
-    raise TypeError(msg) from None
 
 
 def _get_brackets(cls: type, /) -> tuple[str, str]:
@@ -171,11 +105,10 @@ def large_collection_repr(obj: t.Collection[t.Any], /, threshold: int = 20) -> s
     if len(obj) <= threshold:
         return repr(obj)
 
-    left, right = _get_brackets(type(obj))
-
     import itertools
 
     items = ", ".join(map(repr, itertools.islice(obj, threshold)))
+    left, right = _get_brackets(type(obj))
     return f"{left}{items}, +{len(obj) - threshold} more{right}"
 
 
@@ -183,11 +116,10 @@ def large_mapping_repr(mapping: t.Mapping[t.Any, t.Any], /, threshold: int = 20)
     if len(mapping) <= threshold:
         return repr(mapping)
 
-    left, right = _get_brackets(type(mapping))
-
     import itertools
 
     items = ", ".join(f"{k!r}: {v!r}" for k, v in itertools.islice(mapping.items(), threshold))
+    left, right = _get_brackets(type(mapping))
     return f"{left}{items}, +{len(mapping) - threshold} more{right}"
 
 

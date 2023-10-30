@@ -4,63 +4,66 @@ import typing_extensions as tex
 from attrs import asdict
 
 from supermechs.arena_buffs import MAX_BUFFS
-from supermechs.item import Item, ItemData, Type
-from supermechs.item.stats import Stat, max_stats
+from supermechs.item import Item, ItemData, Stat, Type
 from supermechs.mech import Mech, SlotType
-from supermechs.platform import json_decoder, json_encoder
+from supermechs.platform import _set_in_use, json_decoder, json_encoder
+from supermechs.stats import max_stats
 from supermechs.typeshed import ID, Name
-from supermechs.utils import assert_type
 
 from supermechs.ext.deserializers.errors import (
-    MalformedData,
-    MissingRequiredKey,
-    UnknownDataVersion,
+    DataError,
+    DataKeyError,
+    DataTypeAtKeyError,
+    DataVersionError,
 )
+from supermechs.ext.deserializers.utils import assert_type
 
 if t.TYPE_CHECKING:
     from supermechs.item_pack import ItemPack
 
 __all__ = ("load_mechs", "dump_mechs")
 
+_set_in_use(__name__)
+
 # fmt: off
 _STAT_TO_WU_STAT: dict[Stat, tex.LiteralString] = {
-    Stat.weight: "weight",
-    Stat.hit_points: "health",
-    Stat.energy_capacity: "eneCap",
-    Stat.regeneration: "eneReg",
-    Stat.heat_capacity: "heaCap",
-    Stat.cooling: "heaCol",
-    Stat.bullets_capacity: "bulletsCap",
-    Stat.rockets_capacity: "rocketsCap",
-    Stat.physical_resistance: "phyRes",
-    Stat.explosive_resistance: "expRes",
-    Stat.electric_resistance: "eleRes",
-    Stat.physical_damage: "phyDmg",
-    Stat.physical_resistance_damage: "phyResDmg",
-    Stat.electric_damage: "eleDmg",
-    Stat.energy_damage: "eneDmg",
-    Stat.energy_capacity_damage: "eneCapDmg",
-    Stat.regeneration_damage: "eneRegDmg",
-    Stat.electric_resistance_damage: "eleResDmg",
-    Stat.explosive_damage: "expDmg",
-    Stat.heat_damage: "heaDmg",
-    Stat.heat_capacity_damage: "heaCapDmg",
-    Stat.cooling_damage: "heaColDmg",
+    Stat.weight:                      "weight",
+    Stat.hit_points:                  "health",
+    Stat.energy_capacity:             "eneCap",
+    Stat.regeneration:                "eneReg",
+    Stat.heat_capacity:               "heaCap",
+    Stat.cooling:                     "heaCol",
+    Stat.bullets_capacity:            "bulletsCap",
+    Stat.rockets_capacity:            "rocketsCap",
+    Stat.physical_resistance:         "phyRes",
+    Stat.explosive_resistance:        "expRes",
+    Stat.electric_resistance:         "eleRes",
+    Stat.physical_damage:             "phyDmg",
+    Stat.physical_resistance_damage:  "phyResDmg",
+    Stat.electric_damage:             "eleDmg",
+    Stat.energy_damage:               "eneDmg",
+    Stat.energy_capacity_damage:      "eneCapDmg",
+    Stat.regeneration_damage:         "eneRegDmg",
+    Stat.electric_resistance_damage:  "eleResDmg",
+    Stat.explosive_damage:            "expDmg",
+    Stat.heat_damage:                 "heaDmg",
+    Stat.heat_capacity_damage:        "heaCapDmg",
+    Stat.cooling_damage:              "heaColDmg",
     Stat.explosive_resistance_damage: "expResDmg",
-    Stat.walk: "walk",
-    Stat.jump: "jump",
-    Stat.range: "range",
-    Stat.push: "push",
-    Stat.pull: "pull",
-    Stat.recoil: "recoil",
-    Stat.advance: "advance",
-    Stat.retreat: "retreat",
-    Stat.uses: "uses",
-    Stat.backfire: "backfire",
-    Stat.heat_generation: "heaCost",
-    Stat.energy_cost: "eneCost",
-    Stat.bullets_cost: "bulletsCost",
-    Stat.rockets_cost: "rocketsCost",
+    Stat.walk:                        "walk",
+    Stat.jump:                        "jump",
+    Stat.range:                       "range",
+    Stat.push:                        "push",
+    Stat.pull:                        "pull",
+    Stat.recoil:                      "recoil",
+    Stat.advance:                     "advance",
+    Stat.retreat:                     "retreat",
+    Stat.uses:                        "uses",
+    Stat.backfire:                    "backfire",
+    Stat.heat_generation:             "heaCost",
+    Stat.energy_cost:                 "eneCost",
+    Stat.bullets_cost:                "bulletsCost",
+    Stat.rockets_cost:                "rocketsCost",
 }
 _WU_SLOT_TO_SLOT: dict[tex.LiteralString, Mech.Slot] = {
     "torso":         Mech.Slot.TORSO,
@@ -132,12 +135,12 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
 
     if unknown:
         msg = f"Mech setup contains unknown item IDs: {', '.join(map(str, sorted(unknown)))}"
-        raise MalformedData(msg, setup)
+        raise DataError(msg)
 
     for item_id, wu_slot in zip(setup, _WU_SLOT_NAMES):
         slot = _WU_SLOT_TO_SLOT[wu_slot]
         if item_id != 0:
-            item_data = pack.get_item_by_id(item_id)
+            item_data = pack.get_item(item_id)
             mech[slot] = Item.from_data(item_data, maxed=True)
 
         else:
@@ -157,14 +160,13 @@ def import_mechs(
         # TODO: file can contain mechs from different pack than default
 
     except KeyError as err:
-        raise MissingRequiredKey(str(err)) from err
+        raise DataKeyError(err) from None
 
     if version != "1":
-        raise UnknownDataVersion("mech data", version, "1")  # noqa: EM101
+        raise DataVersionError(version, "1")
 
     if not isinstance(mech_list, list):
-        msg = 'Expected a list under "mechs" key'
-        raise MalformedData(msg, mech_list)
+        raise DataTypeAtKeyError(type(mech_list), list, "mechs")
 
     mechs: list[Mech] = []
     failed: list[tuple[int, Exception]] = []
@@ -192,11 +194,12 @@ def load_mechs(
 _WU_SLOT_NAMES = tuple(_WU_SLOT_TO_SLOT)
 
 
-def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
+def _mech_items_in_wu_order(mech: Mech, /) -> t.Iterator[SlotType]:
     """Yields mech items in the order expected by WU."""
     yield mech.torso
     yield mech.legs
-    yield from mech.iter_items("weapons")
+    yield from mech.iter_items(Type.SIDE_WEAPON)
+    yield from mech.iter_items(Type.TOP_WEAPON)
     yield mech.drone
     yield mech.charge
     yield mech.teleporter
@@ -204,29 +207,25 @@ def _mech_items_in_wu_order(mech: Mech) -> t.Iterator[SlotType]:
     yield from mech.iter_items(Type.MODULE)
 
 
-def _mech_item_ids_in_wu_order(mech: Mech) -> t.Iterator[int]:
+def _mech_item_ids_in_wu_order(mech: Mech, /) -> t.Iterator[int]:
     """Yields mech item IDs in WU compatible order."""
     return (0 if item is None else item.data.id for item in _mech_items_in_wu_order(mech))
 
 
-def is_exportable(mech: Mech) -> bool:
+def is_exportable(mech: Mech, /) -> bool:
     """Whether mech's items come from at most one pack."""
 
-    if not mech.custom:
+    items = filter(None, mech.iter_items())
+    try:
+        first_key = next(items).data.pack_key
+
+    except StopIteration:
         return True
 
-    packs = set[str]()
-
-    for item in mech.iter_items():
-        if item is None:
-            continue
-
-        packs.add(item.data.pack_key)
-
-    return len(packs) < 2  # noqa: PLR2004
+    return all(item.data.pack_key == first_key for item in items)
 
 
-def export_mech(mech: Mech) -> WUMech:
+def export_mech(mech: Mech, /) -> WUMech:
     """Exports a mech to WU mech."""
     return {"name": mech.name, "setup": list(_mech_item_ids_in_wu_order(mech))}
 
@@ -262,10 +261,6 @@ def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleIte
 
 
 def get_player(mech: Mech, player_name: str) -> WUPlayer:
-    if mech.custom:
-        msg = "Cannot serialize a custom mech into WU format"
-        raise TypeError(msg)
-
     serialized_items_without_modules = [
         None if item is None else get_battle_item(item.data, slot)
         for slot, item in zip(_WU_SLOT_NAMES[:-8], _mech_items_in_wu_order(mech))

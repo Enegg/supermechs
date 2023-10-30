@@ -11,7 +11,7 @@ __all__ = (
     "ItemDictVer1", "ItemPackVer1",
     "ItemDictVer2", "ItemPackVer2",
     "ItemDictVer3", "ItemPackVer3",
-    "AnyItemDict", "AnyItemPack"
+    "AnyItemDict", "AnyItemPack", "PackMetadata"
 )
 # fmt: on
 
@@ -102,6 +102,12 @@ class ItemDictBase(ItemImageParams):
     tags: NotRequired[list[LiteralTag]]
 
 
+class PackMetadata(t.TypedDict):
+    key: str
+    name: str
+    description: str
+
+
 # -------------------------------------- v1 --------------------------------------
 # - "config" with "base_url"
 # - "image" per item (usually name without spaces + .png)
@@ -112,10 +118,7 @@ class ItemDictVer1(ItemDictBase):
     image: str
 
 
-class ConfigVer1(t.TypedDict):
-    key: str
-    name: str
-    description: str
+class ConfigVer1(PackMetadata):
     base_url: LiteralURL
 
 
@@ -134,11 +137,8 @@ class ItemDictVer2(ItemDictBase):
     stats: RawStatsMapping
 
 
-class ItemPackVer2(SpritesSheetMixin):
+class ItemPackVer2(PackMetadata, SpritesSheetMixin):
     version: t.Literal["2"]
-    key: str
-    name: str
-    description: str
     items: list[ItemDictVer2]
 
 
@@ -149,11 +149,8 @@ class ItemDictVer3(ItemDictBase, TiersMixin):
     pass
 
 
-class ItemPackVer3(SpritesSheetMixin):
+class ItemPackVer3(PackMetadata, SpritesSheetMixin):
     version: t.Literal["3"]
-    key: str
-    name: str
-    description: str
     items: list[ItemDictVer3]
 
 
