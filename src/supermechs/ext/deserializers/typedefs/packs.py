@@ -11,7 +11,7 @@ __all__ = (
     "ItemDictVer1", "ItemPackVer1",
     "ItemDictVer2", "ItemPackVer2",
     "ItemDictVer3", "ItemPackVer3",
-    "AnyItemDict", "AnyItemPack", "PackMetadata"
+    "AnyItemDict", "AnyItemPack", "PackMetadata",
 )
 # fmt: on
 
@@ -108,9 +108,7 @@ class PackMetadata(t.TypedDict):
     description: str
 
 
-# -------------------------------------- v1 --------------------------------------
-# - "config" with "base_url"
-# - "image" per item (usually name without spaces + .png)
+# ----------------------------------------------- v1 -----------------------------------------------
 
 
 class ItemDictVer1(ItemDictBase):
@@ -128,9 +126,7 @@ class ItemPackVer1(t.TypedDict):
     items: list[ItemDictVer1]
 
 
-# -------------------------------------- v2 --------------------------------------
-# no "config"
-# spritesheets
+# ----------------------------------------------- v2 -----------------------------------------------
 
 
 class ItemDictVer2(ItemDictBase):
@@ -142,7 +138,7 @@ class ItemPackVer2(PackMetadata, SpritesSheetMixin):
     items: list[ItemDictVer2]
 
 
-# -------------------------------------- v3 --------------------------------------
+# ----------------------------------------------- v3 -----------------------------------------------
 
 
 class ItemDictVer3(ItemDictBase, TiersMixin):

@@ -103,9 +103,7 @@ def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
         if origin is int:  # noqa: SIM114
             yield stat_key, int
 
-        elif origin in (types.UnionType, t.Union) and set(t.get_args(data_type)).issubset(
-            (int, type(None))
-        ):
+        elif origin is types.UnionType and set(t.get_args(data_type)).issubset((int, type(None))):
             yield stat_key, int
 
         elif origin is list:
@@ -148,23 +146,22 @@ def to_transform_stages(
     data: AnyItemDict, /, *, on_error: ErrorCallbackType = raises
 ) -> TransformStage:
     range_str = assert_type(str, data["transform_range"])
+    final_tier = Tier.of_initial(range_str[-1])
 
     if "stats" in data:
-        tier = Tier.of_initial(range_str[-1])
         base_stats = to_stats_mapping(data["stats"], on_error=on_error)
-        return TransformStage(tier=tier, base_stats=base_stats, max_level_stats={})
+        return TransformStage(tier=final_tier, base_stats=base_stats, max_level_stats={})
 
-    rolling_stats: StatsMapping = {}
-
-    computed: list[tuple[Tier, StatsMapping, StatsMapping]] = []
     start_tier = Tier.of_initial(range_str[0])
-    final_tier = Tier.of_initial(range_str[-1])
 
     if start_tier > final_tier:
         msg = "Starting tier higher than final tier"
         raise DataError(msg)
 
-    for tier in map(Tier.of_value, range(start_tier.value, final_tier.value + 1)):
+    rolling_stats: StatsMapping = {}
+    computed: list[tuple[Tier, StatsMapping, StatsMapping]] = []
+
+    for tier in map(Tier.of_value, range(start_tier, final_tier + 1)):
         key = t.cast(str, tier.name.lower())
 
         try:
@@ -183,7 +180,7 @@ def to_transform_stages(
             if tier < Tier.DIVINE:
                 on_error(DataKeyError(err))
 
-            upper_stats = StatsMapping()
+            upper_stats = dict[Stat, t.Any]()
 
         else:
             upper_stats = to_stats_mapping(max_level_data, on_error=on_error)
@@ -223,10 +220,10 @@ def to_item_data(
     )
     item_data = ItemData(
         id=assert_type(int, data["id"]),
-        pack_key=assert_type(str, pack_key),
+        pack_key=pack_key,
         name=assert_type(str, data["name"]),
-        type=Type[data["type"].upper()],
-        element=Element[data["element"].upper()],
+        type=Type[assert_type(str, data["type"]).upper()],
+        element=Element[assert_type(str, data["element"]).upper()],
         tags=tags,
         start_stage=start_stage,
     )
@@ -252,7 +249,7 @@ def to_item_pack(
         else:
             items[item.id] = item
 
-    sprites = to_sprite_mapping(data, fetch)
+    sprites = to_sprite_mapping(data)
 
     # what TODO with the issues?
 

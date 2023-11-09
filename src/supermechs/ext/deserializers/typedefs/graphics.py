@@ -26,4 +26,5 @@ class RawBox2D(RawPoint2D):
 class ItemImageParams(t.TypedDict, total=False):
     width: int
     height: int
+    image: str
     attachment: RawPoint2D | RawTorsoAttachments

@@ -8,7 +8,7 @@ from supermechs.typeshed import T
 
 
 def js_format(string: str, /, **kwargs: t.Any) -> str:
-    """Format a JavaScript style string using given keys and values."""
+    """Format a JavaScript style string %template% using given keys and values."""
     # XXX: this will do as many passes as there are kwargs, maybe concatenate the pattern?
     import re
 
@@ -20,7 +20,7 @@ def js_format(string: str, /, **kwargs: t.Any) -> str:
 
 class NanMeta(type):
     def __new__(cls, name: str, bases: tuple[type, ...], namespace: dict[str, t.Any]) -> tex.Self:
-        def func(self: T, __value: int) -> T:
+        def func(self: T, _: int) -> T:
             return self
 
         for dunder in ("add", "sub", "mul", "truediv", "floordiv", "mod", "pow"):
@@ -30,7 +30,9 @@ class NanMeta(type):
         return super().__new__(cls, name, bases, namespace)
 
 
-class Nan(int, metaclass=NanMeta):
+class Nan(int if t.TYPE_CHECKING else object, metaclass=NanMeta):
+    __slots__ = ()
+
     def __str__(self) -> str:
         return "?"
 

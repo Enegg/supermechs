@@ -64,7 +64,6 @@ class SpriteResolver(ItemSprite[T]):
         self._image = image
 
     @image.deleter
-    @tex.override
     def image(self) -> None:
         self._image = None
 
@@ -107,7 +106,6 @@ class SpritesheetResolver(ItemSprite[T]):
         self._image = image
 
     @image.deleter
-    @tex.override
     def image(self) -> None:
         self._image = None
 
@@ -209,16 +207,16 @@ def convert(width: int, height: int, type: Type, sprite: ItemSprite["Image"], /)
     if image.mode != "RGBA":
         image = image.convert("RGBA")
 
-    w = width or image.width
-    h = height or image.height
+    size = (width or image.width, height or image.height)
 
-    if image.size != (w, h):
-        image = image.resize((w, h))
+    if image.size != size:
+        image = image.resize(size)
 
     sprite.image = image
 
     if sprite.attachment is None and is_attachable(type):
-        sprite.attachment = create_synthetic_attachments(w, h, type)
+        sprite.attachment = create_synthetic_attachments(*size, type)
+
 
 
 def parse_individual_sprites(
