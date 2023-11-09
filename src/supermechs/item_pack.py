@@ -69,11 +69,11 @@ class ItemPack(t.Generic[T]):
         if isinstance(item, ItemData):
             if tier is None:
                 msg = "Tier not provided with ItemData"
-                raise ValueError(msg)
+                raise TypeError(msg)
 
         elif tier is not None:
             msg = "Tier provided for Item"
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         else:
             tier = item.stage.tier
@@ -82,4 +82,4 @@ class ItemPack(t.Generic[T]):
         if item.pack_key != self.key:
             raise PackKeyError(item.pack_key)
 
-        return self.sprites[(item.id, tier)]
+        return self.sprites[item.id, tier]
