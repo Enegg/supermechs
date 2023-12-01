@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-import logging
 import typing as t
 
 from attrs import define, field
@@ -13,12 +10,10 @@ from .utils import large_mapping_repr
 
 __all__ = ("ItemPack",)
 
-LOGGER = logging.getLogger(__name__)
-
 
 @define(kw_only=True)
 class ItemPack(t.Generic[T]):
-    """Mapping-like container of items and their GFX."""
+    """Mapping-like container of items and their graphics."""
 
     key: str = field()
     name: str = field(default="<no name>")
@@ -33,7 +28,7 @@ class ItemPack(t.Generic[T]):
         if isinstance(value, ID):
             return value in self.items
 
-        if isinstance(value, ItemData):
+        if isinstance(value, ItemData):  # pyright: ignore[reportUnnecessaryIsInstance]
             return value.pack_key == self.key and value.id in self.items
 
         return False
@@ -76,7 +71,7 @@ class ItemPack(t.Generic[T]):
             raise TypeError(msg)
 
         else:
-            tier = item.stage.tier
+            tier = item.tier
             item = item.data
 
         if item.pack_key != self.key:

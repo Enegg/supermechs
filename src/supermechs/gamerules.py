@@ -18,7 +18,7 @@ class MechGameRules:
         Stat.explosive_resistance,
         Stat.electric_resistance,
     }
-    """A set of stats of which each can be found at most on one module per mech."""
+    """A set of stats of which each can be found on at most one module per mech."""
 
     @property
     def OVERLOADED_MAX_WEIGHT(self) -> int:
@@ -28,7 +28,7 @@ class MechGameRules:
 
 @define
 class GameRules:
-    mech: MechGameRules = field(factory=MechGameRules)
+    mech: t.Final[MechGameRules] = field(factory=MechGameRules)
 
 
 DEFAULT_GAME_RULES: t.Final[GameRules] = GameRules()

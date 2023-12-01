@@ -3,17 +3,17 @@ import typing_extensions as tex
 
 T = tex.TypeVar("T", infer_variance=True)
 T2 = tex.TypeVar("T2", infer_variance=True)
-KT = t.TypeVar("KT", bound=t.Hashable)
+KT = tex.TypeVar("KT", bound=t.Hashable, infer_variance=True)
 """Key-type of a mapping."""
-VT = t.TypeVar("VT")
+VT = tex.TypeVar("VT", infer_variance=True)
 """Value-type of a mapping."""
 P = t.ParamSpec("P")
 
-twotuple = tuple[T, T]
+twotuple: t.TypeAlias = tuple[T, T]
 """Tuple of two elements of same type."""
-XOrTupleXY = T | tuple[T, T2]
+XOrTupleXY: t.TypeAlias = T | tuple[T, T2]
 """Type or tuple of two types."""
-Factory = t.Callable[[], T]
+Factory: t.TypeAlias = t.Callable[[], T]
 """0-argument callable returning an object of given type."""
 LiteralURL: t.TypeAlias = str
 """String representing a URL."""

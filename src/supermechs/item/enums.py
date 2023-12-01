@@ -28,7 +28,7 @@ class Tier(int, PartialEnum):
         return cls._initials2members[letter.upper()]
 
 
-Tier._initials2members = {tier.name[0]: tier for tier in Tier}
+Tier._initials2members = {tier.name[0]: tier for tier in Tier}  # pyright: ignore[reportPrivateUsage]
 
 
 class Element(PartialEnum):

@@ -9,10 +9,10 @@ from .enums import Stat, Tier
 __all__ = ("TransformStage", "StatsMapping", "MutableStatsMapping")
 
 
-StatsMapping = t.Mapping[Stat, t.Any]
-"""Mapping of item stats to values."""
-MutableStatsMapping = t.MutableMapping[Stat, t.Any]
-"""Mutable mapping of item stats to values."""
+StatsMapping: t.TypeAlias = t.Mapping[Stat, t.Any]
+"""Generic mapping of item stats to values."""
+MutableStatsMapping: t.TypeAlias = t.MutableMapping[Stat, t.Any]
+"""Generic mutable mapping of item stats to values."""
 
 
 def lerp(lower: int, upper: int, weight: float) -> int:

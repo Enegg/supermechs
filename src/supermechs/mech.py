@@ -1,26 +1,24 @@
-from __future__ import annotations
-
 import typing as t
 from enum import auto
 
 from attrs import define, field
 
 from .item import Element, Item, Type
-from .utils import PartialEnum
-
-if t.TYPE_CHECKING:
-    from .typeshed import XOrTupleXY
+from .typeshed import XOrTupleXY
+from .utils import KeyAccessor, PartialEnum
 
 __all__ = ("Mech", "SlotType", "dominant_element")
 
 SlotType: t.TypeAlias = Item | None
+SlotAccessor: t.TypeAlias = KeyAccessor["Mech.Slot", SlotType]
 
 
 def _format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
     from collections import Counter
 
     return (
-        f'{item}{f" x{count}" * (count > 1)}' for item, count in Counter(filter(None, it)).items()
+        f"{item} x{count}" if count > 1 else str(item)
+        for item, count in Counter(filter(None, it)).items()
     )
 
 
@@ -29,7 +27,7 @@ class Mech:
     """Represents a mech build."""
 
     class Slot(PartialEnum):
-        """Enumeration of mech slots."""
+        """Enumeration of mech item slots."""
 
         TORSO = auto()
         LEGS = auto()
@@ -55,54 +53,31 @@ class Mech:
         PERK = auto()
 
     name: str = field()
-    _items: t.Final[t.MutableMapping[Slot, Item]] = field(factory=dict)
+    _setup: t.Final[t.MutableMapping[Slot, Item]] = field(factory=dict)
+
+    torso = SlotAccessor(Slot.TORSO)
+    legs = SlotAccessor(Slot.LEGS)
+    drone = SlotAccessor(Slot.DRONE)
+    teleporter = SlotAccessor(Slot.TELEPORTER)
+    charge = SlotAccessor(Slot.CHARGE)
+    hook = SlotAccessor(Slot.HOOK)
+    shield = SlotAccessor(Slot.SHIELD)
+    perk = SlotAccessor(Slot.PERK)
 
     @property
-    def torso(self) -> SlotType:
-        return self._items.get(self.Slot.TORSO)
+    def side_weapons(self) -> list[SlotType]:
+        return [self._setup.get(slot) for slot in _type_to_slots[Type.SIDE_WEAPON]]
 
     @property
-    def legs(self) -> SlotType:
-        return self._items.get(self.Slot.LEGS)
-
-    @property
-    def drone(self) -> SlotType:
-        return self._items.get(self.Slot.DRONE)
-
-    @property
-    def teleporter(self) -> SlotType:
-        return self._items.get(self.Slot.TELEPORTER)
-
-    @property
-    def charge(self) -> SlotType:
-        return self._items.get(self.Slot.CHARGE)
-
-    @property
-    def hook(self) -> SlotType:
-        return self._items.get(self.Slot.HOOK)
-
-    @property
-    def shield(self) -> SlotType:
-        return self._items.get(self.Slot.SHIELD)
-
-    @property
-    def perk(self) -> SlotType:
-        return self._items.get(self.Slot.PERK)
-
-    @property
-    def side_weapons(self) -> t.Sequence[SlotType]:
-        return [self._items[slot] for slot in _type_to_slots[Type.SIDE_WEAPON]]
-
-    @property
-    def top_weapons(self) -> t.Sequence[SlotType]:
+    def top_weapons(self) -> list[SlotType]:
         return [
-            self._items.get(self.Slot.TOP_WEAPON_1),
-            self._items.get(self.Slot.TOP_WEAPON_2),
+            self._setup.get(self.Slot.TOP_WEAPON_1),
+            self._setup.get(self.Slot.TOP_WEAPON_2),
         ]
 
     @property
-    def modules(self) -> t.Sequence[SlotType]:
-        return [self._items[slot] for slot in _type_to_slots[Type.MODULE]]
+    def modules(self) -> list[SlotType]:
+        return [self._setup[slot] for slot in _type_to_slots[Type.MODULE]]
 
     def __setitem__(self, slot: Slot, item: SlotType, /) -> None:
         if not isinstance(item, SlotType):
@@ -110,13 +85,16 @@ class Mech:
             raise TypeError(msg)
 
         if item is None:
-            self._items.pop(slot, None)
+            del self[slot]
 
         else:
-            self._items[slot] = item
+            self._setup[slot] = item
 
     def __getitem__(self, slot: Slot, /) -> SlotType:
-        return self._items.get(slot)
+        return self._setup.get(slot)
+
+    def __delitem__(self, slot: Slot, /) -> None:
+        self._setup.pop(slot, None)
 
     def __str__(self) -> str:
         string_parts = [
@@ -128,7 +106,7 @@ class Mech:
             string_parts.append("Weapons: " + weapon_string)
 
         string_parts.extend(
-            f"{item.data.type.name.capitalize()}: {item}"
+            f"{item.type.name.capitalize()}: {item}"
             for item in self.iter_items("specials")
             if item is not None
         )
@@ -144,7 +122,7 @@ class Mech:
     @t.overload
     def iter_items(
         self,
-        *slots: SlotSelectorType,
+        *slots: "SlotSelectorType",
         yield_slots: t.Literal[False] = False,
     ) -> t.Iterator[SlotType]:
         ...
@@ -152,17 +130,17 @@ class Mech:
     @t.overload
     def iter_items(
         self,
-        *slots: SlotSelectorType,
+        *slots: "SlotSelectorType",
         yield_slots: t.Literal[True],
     ) -> t.Iterator[tuple[SlotType, Slot]]:
         ...
 
     def iter_items(
         self,
-        *slots: SlotSelectorType,
+        *slots: "SlotSelectorType",
         yield_slots: bool = False,
     ) -> t.Iterator[XOrTupleXY[SlotType, Slot]]:
-        """Iterator over mech's selected items.
+        """Iterator over selected mech's items.
 
         Parameters
         ----------
@@ -176,21 +154,14 @@ class Mech:
         yield_slots: If `True`, yields tuples of both the item and its slot.\
          Otherwise, yields just the items.
         """
-        if yield_slots:
+        slots_ = self.Slot if not slots else _selectors_to_slots(slots)
 
-            def factory(item: SlotType, slot: Mech.Slot, /) -> XOrTupleXY[SlotType, Mech.Slot]:
-                return item, slot
+        if yield_slots:
+            for slot in slots_:
+                yield self._setup.get(slot), slot
 
         else:
-
-            def factory(item: SlotType, slot: Mech.Slot, /) -> XOrTupleXY[SlotType, Mech.Slot]:
-                del slot
-                return item
-
-        slots_ = self.Slot if not slots else _flatten_slots(slots)
-
-        for slot in slots_:
-            yield factory(self._items.get(slot), slot)
+            yield from map(self._setup.get, slots_)
 
 
 SlotSelectorType: t.TypeAlias = Mech.Slot | Type | t.Literal["body", "weapons", "specials"]
@@ -202,7 +173,7 @@ _type_to_slots: t.Mapping[Type, t.Sequence[Mech.Slot]] = {
 }
 
 
-def _flatten_slots(args: t.Iterable[SlotSelectorType], /) -> t.Iterator[Mech.Slot]:
+def _selectors_to_slots(args: t.Iterable[SlotSelectorType], /) -> t.Iterator[Mech.Slot]:
     for arg in args:
         if isinstance(arg, Mech.Slot):
             yield arg
@@ -235,8 +206,8 @@ def dominant_element(mech: Mech, /, threshold: int = 2) -> Element | None:
     from collections import Counter
 
     elements = Counter(
-        item.data.element
-        for item in mech.iter_items("body", "weapons", mech.Slot.HOOK)
+        item.element
+        for item in mech.iter_items("body", "weapons", Mech.Slot.HOOK)
         if item is not None
     ).most_common(2)
     # return None when there are no elements

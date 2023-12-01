@@ -2,6 +2,10 @@ import typing as t
 import typing_extensions as tex
 from enum import Enum
 
+from attrs import define
+
+from .typeshed import KT, VT
+
 
 def search_for(
     phrase: str, iterable: t.Iterable[str], *, case_sensitive: bool = False
@@ -78,12 +82,12 @@ def acronym_of(name: str, /) -> str | None:
     return "".join(filter(str.isupper, name)).lower()
 
 
-def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
+def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Hashable) -> bool:
     """Returns True if a mapping contains any of the specified keys."""
     return not mapping.keys().isdisjoint(keys)
 
 
-def has_all_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Any) -> bool:
+def has_all_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Hashable) -> bool:
     """Returns True if a mapping contains all of the specified keys."""
     return set(keys).issubset(mapping.keys())
 
@@ -136,3 +140,39 @@ class PartialEnum(Enum):
     def of_value(cls, value: t.Any, /) -> tex.Self:
         """Get enum member by value."""
         return cls.__call__(value)
+
+
+class _SupportsGetSetItem(t.Protocol[KT, VT]):
+    # this sort of exists within _typeshed as SupportsItemAccess,
+    # but it also expects class to define __contains__
+
+    def __getitem__(self, key: KT, /) -> VT:
+        ...
+
+    def __setitem__(self, key: KT, value: VT, /) -> None:
+        ...
+
+
+@define
+class KeyAccessor(t.Generic[KT, VT]):
+    key: t.Final[KT]
+
+    @t.overload
+    def __get__(self, obj: None, cls: type | None, /) -> tex.Self:
+        ...
+
+    @t.overload
+    def __get__(self, obj: _SupportsGetSetItem[KT, VT], cls: type | None, /) -> VT:
+        ...
+
+    def __get__(
+        self, obj: _SupportsGetSetItem[KT, VT] | None, cls: type | None, /
+    ) -> VT | tex.Self:
+        del cls
+        if obj is None:
+            return self
+
+        return obj[self.key]
+
+    def __set__(self, obj: _SupportsGetSetItem[KT, VT], value: VT, /) -> None:
+        obj[self.key] = value
