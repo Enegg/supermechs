@@ -1,11 +1,12 @@
 import typing as t
-from enum import auto
+from enum import auto, unique
 
 from .utils import PartialEnum
 
 __all__ = ("MAX_SHOP", "ArenaShop", "Category", "is_shop_empty", "max_shop")
 
 
+@unique
 class Category(PartialEnum):
     """Enumeration of arena shop categories."""
 

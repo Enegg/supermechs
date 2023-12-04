@@ -1,5 +1,5 @@
 import typing as t
-from enum import auto
+from enum import auto, unique
 
 from attrs import define, field
 
@@ -26,6 +26,7 @@ def _format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
 class Mech:
     """Represents a mech build."""
 
+    @unique
     class Slot(PartialEnum):
         """Enumeration of mech item slots."""
 

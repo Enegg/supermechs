@@ -1,12 +1,13 @@
 import typing as t
 import typing_extensions as tex
-from enum import auto
+from enum import auto, unique
 
 from ..utils import PartialEnum
 
 __all__ = ("Tier", "Element", "Type", "Stat")
 
 
+@unique
 class Tier(int, PartialEnum):
     """Enumeration of item tiers."""
 
@@ -31,6 +32,7 @@ class Tier(int, PartialEnum):
 Tier._initials2members = {tier.name[0]: tier for tier in Tier}  # pyright: ignore[reportPrivateUsage]
 
 
+@unique
 class Element(PartialEnum):
     """Enumeration of item elements."""
 
@@ -64,6 +66,7 @@ class Type(PartialEnum):
     # fmt: on
 
 
+@unique
 class Stat(int, PartialEnum):
     """Enumeration of item stats."""
 
