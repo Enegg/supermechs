@@ -1,26 +1,26 @@
-import typing as t
+from collections import abc
+from typing import Any, overload
 
 from attrs import define, field
 
 from .errors import IDLookupError, PackKeyError
 from .item import Item, ItemData, Tier
-from .rendering.sprites import ItemSprite
-from .typeshed import ID, T
+from .typeshed import ID
 from .utils import large_mapping_repr
 
 __all__ = ("ItemPack",)
 
 
 @define(kw_only=True)
-class ItemPack(t.Generic[T]):
+class ItemPack:
     """Mapping-like container of items and their graphics."""
 
     key: str = field()
     name: str = field(default="<no name>")
     description: str = field(default="<no description>")
 
-    items: t.Mapping[ID, ItemData] = field(repr=large_mapping_repr)
-    sprites: t.Mapping[tuple[ID, Tier], ItemSprite[T]] = field(repr=large_mapping_repr)
+    items: abc.Mapping[ID, ItemData] = field(repr=large_mapping_repr)
+    sprites: abc.Mapping[tuple[ID, Tier], Any] = field(repr=large_mapping_repr)
     # personal packs
     custom: bool = field(default=False)
 
@@ -46,15 +46,15 @@ class ItemPack(t.Generic[T]):
         except KeyError as err:
             raise IDLookupError(item_id) from err
 
-    @t.overload
-    def get_sprite(self, item: Item, /) -> ItemSprite[T]:
+    @overload
+    def get_sprite(self, item: Item, /) -> Any:
         ...
 
-    @t.overload
-    def get_sprite(self, item: ItemData, /, tier: Tier) -> ItemSprite[T]:
+    @overload
+    def get_sprite(self, item: ItemData, /, tier: Tier) -> Any:
         ...
 
-    def get_sprite(self, item: ItemData | Item, /, tier: Tier | None = None) -> ItemSprite[T]:
+    def get_sprite(self, item: ItemData | Item, /, tier: Tier | None = None) -> Any:
         """Lookup item's sprite.
 
         Raises

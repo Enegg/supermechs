@@ -1,5 +1,6 @@
-import typing as t
+from collections import abc
 from enum import auto, unique
+from typing import Final, NamedTuple, TypeAlias
 
 from .utils import PartialEnum
 
@@ -36,10 +37,10 @@ class Category(PartialEnum):
     titan_reward = auto()
 
 
-ArenaShop: t.TypeAlias = dict[Category, int]
+ArenaShop: TypeAlias = dict[Category, int]
 """Collection of arena shop upgrades."""
-ArenaShopMapping: t.TypeAlias = t.Mapping[Category, int]
-MutableArenaShopMapping: t.TypeAlias = t.MutableMapping[Category, int]
+ArenaShopMapping: TypeAlias = abc.Mapping[Category, int]
+MutableArenaShopMapping: TypeAlias = abc.MutableMapping[Category, int]
 
 
 def arena_shop() -> ArenaShop:
@@ -58,8 +59,8 @@ def max_shop(shop: MutableArenaShopMapping, /) -> None:
         shop[category] = get_data(category).max_level
 
 
-class CategoryData(t.NamedTuple):
-    progression: t.Sequence[float]
+class CategoryData(NamedTuple):
+    progression: abc.Sequence[float]
     is_absolute: bool
 
     @property
@@ -70,7 +71,7 @@ class CategoryData(t.NamedTuple):
 _typical = (0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 20)
 _doubled = tuple(x * 2 for x in _typical)
 _negative = tuple(-x for x in _typical)
-_categories_data: t.Mapping[Category, CategoryData] = {
+_categories_data: abc.Mapping[Category, CategoryData] = {
     Category.energy_capacity: CategoryData(_typical, False),
     Category.energy_regeneration: CategoryData(_typical, False),
     Category.energy_damage: CategoryData(_typical, False),
@@ -97,8 +98,8 @@ _categories_data: t.Mapping[Category, CategoryData] = {
     Category.titan_reward: CategoryData((), False),
 }
 
-get_data: t.Final = _categories_data.__getitem__
+get_data: Final = _categories_data.__getitem__
 """Get data about a category."""
 
-MAX_SHOP: t.Final[ArenaShopMapping] = arena_shop()
+MAX_SHOP: Final[ArenaShopMapping] = arena_shop()
 max_shop(MAX_SHOP)

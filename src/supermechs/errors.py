@@ -1,6 +1,3 @@
-import typing as t
-
-
 class SMException(Exception):
     """Base class for library exceptions."""
 
@@ -9,7 +6,8 @@ class OutOfRangeError(SMException):
     """Value X = {number} out of range {min} <= X <= {max}"""
 
     def __init__(self, number: float, lower: float, upper: float, /) -> None:
-        super().__init__(t.cast(str, self.__doc__).format(number=number, min=lower, max=upper))
+        assert self.__doc__ is not None
+        super().__init__(self.__doc__.format(number=number, min=lower, max=upper))
 
 
 class NegativeValueError(OutOfRangeError):
@@ -23,14 +21,16 @@ class IDLookupError(SMException):
     """Unknown item ID: {ID}"""
 
     def __init__(self, id: int, /) -> None:
-        super().__init__(t.cast(str, self.__doc__).format(id=id))
+        assert self.__doc__ is not None
+        super().__init__(self.__doc__.format(id=id))
 
 
 class PackKeyError(SMException):
     """Unknown pack key: {key}"""
 
     def __init__(self, key: str, /) -> None:
-        super().__init__(t.cast(str, self.__doc__).format(key=key))
+        assert self.__doc__ is not None
+        super().__init__(self.__doc__.format(key=key))
 
 
 class MaxPowerError(SMException):

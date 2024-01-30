@@ -1,5 +1,6 @@
-import typing as t
+from collections import abc
 from enum import auto, unique
+from typing import Any, Final, Literal, TypeAlias, overload
 
 from attrs import define, field
 
@@ -9,11 +10,11 @@ from .utils import KeyAccessor, PartialEnum
 
 __all__ = ("Mech", "SlotType", "dominant_element")
 
-SlotType: t.TypeAlias = Item | None
-SlotAccessor: t.TypeAlias = KeyAccessor["Mech.Slot", SlotType]
+SlotType: TypeAlias = Item | None
+SlotAccessor: TypeAlias = KeyAccessor["Mech.Slot", SlotType]
 
 
-def _format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
+def _format_count(it: abc.Iterable[Any], /) -> abc.Iterator[str]:
     from collections import Counter
 
     return (
@@ -54,7 +55,7 @@ class Mech:
         PERK = auto()
 
     name: str = field()
-    _setup: t.Final[t.MutableMapping[Slot, Item]] = field(factory=dict)
+    _setup: Final[abc.MutableMapping[Slot, Item]] = field(factory=dict)
 
     torso = SlotAccessor(Slot.TORSO)
     legs = SlotAccessor(Slot.LEGS)
@@ -120,27 +121,27 @@ class Mech:
 
         return "\n".join(string_parts)
 
-    @t.overload
+    @overload
     def iter_items(
         self,
         *slots: "SlotSelectorType",
-        yield_slots: t.Literal[False] = False,
-    ) -> t.Iterator[SlotType]:
+        yield_slots: Literal[False] = False,
+    ) -> abc.Iterator[SlotType]:
         ...
 
-    @t.overload
+    @overload
     def iter_items(
         self,
         *slots: "SlotSelectorType",
-        yield_slots: t.Literal[True],
-    ) -> t.Iterator[tuple[SlotType, Slot]]:
+        yield_slots: Literal[True],
+    ) -> abc.Iterator[tuple[SlotType, Slot]]:
         ...
 
     def iter_items(
         self,
         *slots: "SlotSelectorType",
         yield_slots: bool = False,
-    ) -> t.Iterator[XOrTupleXY[SlotType, Slot]]:
+    ) -> abc.Iterator[XOrTupleXY[SlotType, Slot]]:
         """Iterator over selected mech's items.
 
         Parameters
@@ -165,22 +166,22 @@ class Mech:
             yield from map(self._setup.get, slots_)
 
 
-SlotSelectorType: t.TypeAlias = Mech.Slot | Type | t.Literal["body", "weapons", "specials"]
+SlotSelectorType: TypeAlias = Mech.Slot | Type | Literal["body", "weapons", "specials"]
 
-_type_to_slots: t.Mapping[Type, t.Sequence[Mech.Slot]] = {
+_slots_of_type: abc.Mapping[Type, abc.Sequence[Mech.Slot]] = {
     Type.SIDE_WEAPON: tuple(Mech.Slot.of_name(f"SIDE_WEAPON_{n}") for n in range(1, 4)),
     Type.TOP_WEAPON: (Mech.Slot.TOP_WEAPON_1, Mech.Slot.TOP_WEAPON_2),
     Type.MODULE: tuple(Mech.Slot.of_name(f"MODULE_{n}") for n in range(1, 9)),
 }
 
 
-def _selectors_to_slots(args: t.Iterable[SlotSelectorType], /) -> t.Iterator[Mech.Slot]:
+def _selectors_to_slots(args: abc.Iterable[SlotSelectorType], /) -> abc.Iterator[Mech.Slot]:
     for arg in args:
         if isinstance(arg, Mech.Slot):
             yield arg
 
         elif isinstance(arg, Type):
-            yield from _type_to_slots.get(arg) or (Mech.Slot.of_name(arg.name),)
+            yield from _slots_of_type.get(arg) or (Mech.Slot.of_name(arg.name),)
 
         elif arg == "body":
             yield from (Mech.Slot.TORSO, Mech.Slot.LEGS)
@@ -189,8 +190,8 @@ def _selectors_to_slots(args: t.Iterable[SlotSelectorType], /) -> t.Iterator[Mec
             yield from (Mech.Slot.TELEPORTER, Mech.Slot.CHARGE, Mech.Slot.HOOK, Mech.Slot.SHIELD)
 
         elif arg == "weapons":
-            yield from _type_to_slots[Type.SIDE_WEAPON]
-            yield from _type_to_slots[Type.TOP_WEAPON]
+            yield from _slots_of_type[Type.SIDE_WEAPON]
+            yield from _slots_of_type[Type.TOP_WEAPON]
             yield Mech.Slot.DRONE
 
         else:

@@ -1,7 +1,8 @@
-import typing as t
-import typing_extensions as tex
 import uuid
 from bisect import bisect_left
+from collections import abc
+from typing import Final, NamedTuple, TypeAlias
+from typing_extensions import Self
 
 from attrs import Factory, define, field, validators
 
@@ -13,7 +14,7 @@ from .stats import StatsMapping, TransformStage, get_final_stage
 __all__ = ("Tags", "ItemData", "Item", "InvItem", "BattleItem")
 
 
-class Tags(t.NamedTuple):
+class Tags(NamedTuple):
     """Lightweight class for storing a set of boolean tags about an item."""
 
     premium: bool = False
@@ -32,7 +33,7 @@ class Tags(t.NamedTuple):
     """Whether the item is not from the default item pack."""
 
     @classmethod
-    def from_keywords(cls, it: t.Iterable[str], /) -> tex.Self:
+    def from_keywords(cls, it: abc.Iterable[str], /) -> Self:
         """Create Tags object from an iterable of string attributes."""
         return cls(**dict.fromkeys(it, True))
 
@@ -41,22 +42,22 @@ class Tags(t.NamedTuple):
 class ItemData:
     """Dataclass storing item data independent of its tier and level."""
 
-    id: t.Final[ID] = field(validator=validators.ge(1))
+    id: Final[ID] = field(validator=validators.ge(1))
     """The ID of the item, unique within its pack."""
-    pack_key: t.Final[str] = field()
+    pack_key: Final[str] = field()
     """The key of the pack this item comes from."""
-    name: t.Final[Name] = field(validator=validators.min_len(1))
+    name: Final[Name] = field(validator=validators.min_len(1))
     """The display name of the item."""
-    type: t.Final[Type] = field(validator=validators.in_(Type), repr=str)
+    type: Final[Type] = field(validator=validators.in_(Type), repr=str)
     """Member of Type enum denoting the function of the item."""
-    element: t.Final[Element] = field(validator=validators.in_(Element), repr=str)
+    element: Final[Element] = field(validator=validators.in_(Element), repr=str)
     """Member of Element enum denoting the element of the item."""
-    tags: t.Final[Tags] = field()
+    tags: Final[Tags] = field()
     """A set of boolean tags which alter item's behavior/appearance."""
-    start_stage: t.Final[TransformStage] = field()
+    start_stage: Final[TransformStage] = field()
     """The first transformation stage of this item."""
 
-    def iter_stages(self) -> t.Iterator[TransformStage]:
+    def iter_stages(self) -> abc.Iterator[TransformStage]:
         """Iterator over the transform stages of this item."""
         stage = self.start_stage
         yield stage
@@ -65,7 +66,7 @@ class ItemData:
             yield stage
 
 
-Paint: t.TypeAlias = str
+Paint: TypeAlias = str
 """The name of the paint, or a #-prefixed hex string as a color."""
 
 
@@ -73,7 +74,7 @@ Paint: t.TypeAlias = str
 class Item:
     """Represents unique properties of an item."""
 
-    data: t.Final[ItemData] = field()
+    data: Final[ItemData] = field()
     stage: TransformStage = field()
     level: int = field(default=0)
     paint: Paint | None = field(default=None)
@@ -140,7 +141,7 @@ class Item:
     @classmethod
     def from_data(
         cls, data: ItemData, stage: TransformStage | None = None, /, *, maxed: bool = False
-    ) -> tex.Self:
+    ) -> Self:
         if stage is None:
             stage = data.start_stage
 
@@ -210,5 +211,5 @@ class BattleItem:
 
     item: Item
     stats: StatsMapping
-    multipliers: t.Mapping[str, float] = field(factory=dict)
+    multipliers: abc.Mapping[str, float] = field(factory=dict)
     # already_used: bool? XXX prolly better to store elsewhere

@@ -1,5 +1,6 @@
-import typing as t
-from enum import auto
+from collections import abc
+from enum import auto, unique
+from typing import NamedTuple, TypeAlias
 
 from ..item import Type
 from ..utils import PartialEnum
@@ -7,6 +8,7 @@ from ..utils import PartialEnum
 __all__ = ("Joints", "JointLayer", "Point2D", "allign_joints", "create_synthetic_joints")
 
 
+@unique
 class JointLayer(int, PartialEnum):
     """Enumeration of joint layers."""
 
@@ -25,12 +27,12 @@ class JointLayer(int, PartialEnum):
     SIDE_WEAPON_3 = auto()
 
 
-class Point2D(t.NamedTuple):
+class Point2D(NamedTuple):
     x: float = 0
     y: float = 0
 
 
-Joints: t.TypeAlias = t.Mapping[JointLayer, Point2D]
+Joints: TypeAlias = abc.Mapping[JointLayer, Point2D]
 
 
 def create_synthetic_joints(width: int, height: int, type: Type) -> Joints:

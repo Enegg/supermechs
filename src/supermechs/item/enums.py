@@ -1,6 +1,7 @@
-import typing as t
-import typing_extensions as tex
+from collections import abc
 from enum import auto, unique
+from typing import ClassVar
+from typing_extensions import Self
 
 from ..utils import PartialEnum
 
@@ -21,10 +22,10 @@ class Tier(int, PartialEnum):
     PERK      = auto()
     # fmt: on
 
-    _initials2members: t.ClassVar[t.Mapping[str, tex.Self]]
+    _initials2members: ClassVar[abc.Mapping[str, Self]]
 
     @classmethod
-    def of_initial(cls, letter: str, /) -> tex.Self:
+    def of_initial(cls, letter: str, /) -> Self:
         """Get enum member by the first letter of its name."""
         return cls._initials2members[letter.upper()]
 

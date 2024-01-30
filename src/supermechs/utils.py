@@ -1,6 +1,7 @@
-import typing as t
-import typing_extensions as tex
+from collections import abc
 from enum import Enum
+from typing import Any, Final, Generic, Protocol, overload
+from typing_extensions import Self
 
 from attrs import define
 
@@ -8,8 +9,8 @@ from .typeshed import KT, VT
 
 
 def search_for(
-    phrase: str, iterable: t.Iterable[str], *, case_sensitive: bool = False
-) -> t.Iterator[str]:
+    phrase: str, iterable: abc.Iterable[str], *, case_sensitive: bool = False
+) -> abc.Iterator[str]:
     """
     Helper func capable of finding a specific string(s) in iterable.
     It is considered a match if every word in phrase appears in the name
@@ -82,12 +83,12 @@ def acronym_of(name: str, /) -> str | None:
     return "".join(filter(str.isupper, name)).lower()
 
 
-def has_any_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Hashable) -> bool:
+def has_any_of(mapping: abc.Mapping[Any, Any], /, *keys: abc.Hashable) -> bool:
     """Returns True if a mapping contains any of the specified keys."""
     return not mapping.keys().isdisjoint(keys)
 
 
-def has_all_of(mapping: t.Mapping[t.Any, t.Any], /, *keys: t.Hashable) -> bool:
+def has_all_of(mapping: abc.Mapping[Any, Any], /, *keys: abc.Hashable) -> bool:
     """Returns True if a mapping contains all of the specified keys."""
     return set(keys).issubset(mapping.keys())
 
@@ -105,7 +106,7 @@ def _get_brackets(cls: type, /) -> tuple[str, str]:
     return f"{cls.__name__}<", ">"
 
 
-def large_collection_repr(obj: t.Collection[t.Any], /, threshold: int = 20) -> str:
+def large_collection_repr(obj: abc.Collection[Any], /, threshold: int = 20) -> str:
     if len(obj) <= threshold:
         return repr(obj)
 
@@ -116,7 +117,7 @@ def large_collection_repr(obj: t.Collection[t.Any], /, threshold: int = 20) -> s
     return f"{left}{items}, +{len(obj) - threshold} more{right}"
 
 
-def large_mapping_repr(mapping: t.Mapping[t.Any, t.Any], /, threshold: int = 20) -> str:
+def large_mapping_repr(mapping: abc.Mapping[Any, Any], /, threshold: int = 20) -> str:
     if len(mapping) <= threshold:
         return repr(mapping)
 
@@ -132,17 +133,17 @@ class PartialEnum(Enum):
         return str(self)
 
     @classmethod
-    def of_name(cls, name: str, /) -> tex.Self:
+    def of_name(cls, name: str, /) -> Self:
         """Get enum member by name."""
         return cls[name]
 
     @classmethod
-    def of_value(cls, value: t.Any, /) -> tex.Self:
+    def of_value(cls, value: Any, /) -> Self:
         """Get enum member by value."""
         return cls.__call__(value)
 
 
-class _SupportsGetSetItem(t.Protocol[KT, VT]):
+class _SupportsGetSetItem(Protocol[KT, VT]):
     # this sort of exists within _typeshed as SupportsItemAccess,
     # but it also expects class to define __contains__
 
@@ -154,20 +155,18 @@ class _SupportsGetSetItem(t.Protocol[KT, VT]):
 
 
 @define
-class KeyAccessor(t.Generic[KT, VT]):
-    key: t.Final[KT]
+class KeyAccessor(Generic[KT, VT]):
+    key: Final[KT]
 
-    @t.overload
-    def __get__(self, obj: None, cls: type | None, /) -> tex.Self:
+    @overload
+    def __get__(self, obj: None, cls: type | None, /) -> Self:
         ...
 
-    @t.overload
+    @overload
     def __get__(self, obj: _SupportsGetSetItem[KT, VT], cls: type | None, /) -> VT:
         ...
 
-    def __get__(
-        self, obj: _SupportsGetSetItem[KT, VT] | None, cls: type | None, /
-    ) -> VT | tex.Self:
+    def __get__(self, obj: _SupportsGetSetItem[KT, VT] | None, cls: type | None, /) -> VT | Self:
         del cls
         if obj is None:
             return self

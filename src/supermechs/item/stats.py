@@ -1,5 +1,6 @@
-import typing as t
-import typing_extensions as tex
+from collections import abc
+from typing import Any, TypeAlias
+from typing_extensions import Self
 
 from attrs import define, field
 
@@ -9,9 +10,9 @@ from .enums import Stat, Tier
 __all__ = ("TransformStage", "StatsMapping", "MutableStatsMapping")
 
 
-StatsMapping: t.TypeAlias = t.Mapping[Stat, t.Any]
+StatsMapping: TypeAlias = abc.Mapping[Stat, Any]
 """Generic mapping of item stats to values."""
-MutableStatsMapping: t.TypeAlias = t.MutableMapping[Stat, t.Any]
+MutableStatsMapping: TypeAlias = abc.MutableMapping[Stat, Any]
 """Generic mutable mapping of item stats to values."""
 
 
@@ -30,9 +31,9 @@ class TransformStage:
     """Stats of the item at level 0."""
     max_level_stats: StatsMapping = field()
     """Stats of the item that change as it levels up, at max level."""
-    level_progression: t.Sequence[int] = field()
+    level_progression: abc.Sequence[int] = field()
     """Sequence of exp thresholds consecutive levels require to reach."""
-    next: tex.Self | None = field(default=None)
+    next: Self | None = field(default=None)
     """The next stage of transformation."""
 
     @property

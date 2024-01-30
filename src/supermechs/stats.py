@@ -1,4 +1,5 @@
-import typing as t
+from collections import abc
+from typing import Any, TypeAlias
 
 from .arenashop import ArenaShopMapping, Category, get_data
 from .gamerules import DEFAULT_GAME_RULES, MechGameRules
@@ -6,10 +7,10 @@ from .item import Item, MutableStatsMapping, Stat, StatsMapping, TransformStage
 from .item.stats import get_final_stage
 from .mech import Mech
 
-StatsDict: t.TypeAlias = dict[Stat, t.Any]
+StatsDict: TypeAlias = dict[Stat, Any]
 """Concrete mapping type of item stats to values."""
 # fmt: off
-STAT_TO_CATEGORY: t.Mapping[Stat, Category] = {
+STAT_TO_CATEGORY: abc.Mapping[Stat, Category] = {
     Stat.energy_capacity:      Category.energy_capacity,
     Stat.regeneration:         Category.energy_regeneration,
     Stat.energy_damage:        Category.energy_damage,
@@ -26,7 +27,7 @@ STAT_TO_CATEGORY: t.Mapping[Stat, Category] = {
     Stat.backfire:             Category.backfire_reduction,
 }
 # fmt: on
-MECH_SUMMARY_STATS: t.Sequence[Stat] = (
+MECH_SUMMARY_STATS: abc.Sequence[Stat] = (
     Stat.weight,
     Stat.hit_points,
     Stat.energy_capacity,
@@ -71,11 +72,11 @@ def apply_overload_penalties(
             stats[stat] -= overload * penalty
 
 
-def _apply_absolute(value: t.Any, addon: t.Any) -> t.Any:
+def _apply_absolute(value: Any, addon: Any) -> Any:
     return value + addon
 
 
-def _apply_percent(value: t.Any, percent: t.Any) -> t.Any:
+def _apply_percent(value: Any, percent: Any) -> Any:
     return round(value * (1 + percent / 100))
 
 
