@@ -90,7 +90,7 @@ def has_any_of(mapping: abc.Mapping[Any, Any], /, *keys: abc.Hashable) -> bool:
 
 def has_all_of(mapping: abc.Mapping[Any, Any], /, *keys: abc.Hashable) -> bool:
     """Returns True if a mapping contains all of the specified keys."""
-    return set(keys).issubset(mapping.keys())
+    return frozenset(keys).issubset(mapping.keys())
 
 
 def _get_brackets(cls: type, /) -> tuple[str, str]:

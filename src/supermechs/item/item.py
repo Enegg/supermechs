@@ -156,9 +156,8 @@ class Item:
 class InvItem:
     """Represents an inventory bound item."""
 
-    item: Item = field()
-
-    UUID: uuid.UUID = Factory(uuid.uuid4)
+    item: Final[Item] = field()
+    UUID: Final[uuid.UUID] = Factory(uuid.uuid4)
     _power: int = field(default=0, init=False)
 
     @property
@@ -209,7 +208,7 @@ class InvItem:
 class BattleItem:
     """Represents the state of an item during a battle."""
 
-    item: Item
-    stats: StatsMapping
+    item: Final[Item]
+    stats: Final[StatsMapping]
     multipliers: abc.Mapping[str, float] = field(factory=dict)
     # already_used: bool? XXX prolly better to store elsewhere

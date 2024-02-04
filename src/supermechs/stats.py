@@ -2,7 +2,7 @@ from collections import abc
 from typing import Any, TypeAlias
 
 from .arenashop import ArenaShopMapping, Category, get_data
-from .gamerules import DEFAULT_GAME_RULES, MechGameRules
+from .gamerules import DEFAULT_GAME_RULES, BuildRules
 from .item import Item, MutableStatsMapping, Stat, StatsMapping, TransformStage
 from .item.stats import get_final_stage
 from .mech import Mech
@@ -65,7 +65,7 @@ def mech_summary(mech: Mech, /) -> StatsDict:
 
 
 def apply_overload_penalties(
-    stats: MutableStatsMapping, /, ruleset: MechGameRules = DEFAULT_GAME_RULES.mech
+    stats: MutableStatsMapping, /, ruleset: BuildRules = DEFAULT_GAME_RULES.builds
 ) -> None:
     if (overload := stats[Stat.weight] - ruleset.MAX_WEIGHT) > 0:
         for stat, penalty in ruleset.STAT_PENALTIES_PER_KG.items():

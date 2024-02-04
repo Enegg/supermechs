@@ -10,7 +10,7 @@ from .enums import Stat, Tier
 __all__ = ("TransformStage", "StatsMapping", "MutableStatsMapping")
 
 
-StatsMapping: TypeAlias = abc.Mapping[Stat, Any]
+StatsMapping: TypeAlias = abc.Mapping[Stat, Any]  # TODO: concrete stat type
 """Generic mapping of item stats to values."""
 MutableStatsMapping: TypeAlias = abc.MutableMapping[Stat, Any]
 """Generic mutable mapping of item stats to values."""
@@ -23,13 +23,13 @@ def lerp(lower: int, upper: int, weight: float) -> int:
 
 @define(kw_only=True)
 class TransformStage:
-    """Dataclass collecting transformation tier dependent item data."""
+    """Stores item tier-dependent data."""
 
     tier: Tier = field()
     """The tier of the transform stage."""
     base_stats: StatsMapping = field()
     """Stats of the item at level 0."""
-    max_level_stats: StatsMapping = field()
+    max_changing_stats: StatsMapping = field()
     """Stats of the item that change as it levels up, at max level."""
     level_progression: abc.Sequence[int] = field()
     """Sequence of exp thresholds consecutive levels require to reach."""
@@ -53,12 +53,12 @@ class TransformStage:
             return self.base_stats
 
         if level == max_level:
-            return {**self.base_stats, **self.max_level_stats}
+            return {**self.base_stats, **self.max_changing_stats}
 
         weight = level / max_level
         stats = dict(self.base_stats)
 
-        for key, value in self.max_level_stats.items():
+        for key, value in self.max_changing_stats.items():
             stats[key] = lerp(stats[key], value, weight)
 
         return stats
