@@ -1,32 +1,26 @@
-import typing as t
-import typing_extensions as tex
+from collections import abc
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
+from typing_extensions import LiteralString, TypedDict
 
 from attrs import asdict
 
-from supermechs.arena_buffs import MAX_BUFFS
+from .. import platform
+from ..deserializers.errors import DataError, DataVersionError
+from ..deserializers.utils import assert_key, wrap_unsafe
+
+from supermechs.arenashop import MAX_SHOP
 from supermechs.item import Item, ItemData, Stat, Type
 from supermechs.mech import Mech, SlotType
-from supermechs.platform import _set_in_use, json_decoder, json_encoder
-from supermechs.stats import max_stats
-from supermechs.typeshed import ID, Name
+from supermechs.stats import buff_stats, max_stats
+from supermechs.typeshed import ItemID, Name
 
-from supermechs.ext.deserializers.errors import (
-    DataError,
-    DataKeyError,
-    DataTypeAtKeyError,
-    DataVersionError,
-)
-from supermechs.ext.deserializers.utils import assert_type
-
-if t.TYPE_CHECKING:
+if TYPE_CHECKING:
     from supermechs.item_pack import ItemPack
 
 __all__ = ("load_mechs", "dump_mechs")
 
-_set_in_use(__name__)
-
 # fmt: off
-_STAT_TO_WU_STAT: dict[Stat, tex.LiteralString] = {
+_STAT_TO_WU_STAT: abc.Mapping[Stat,  LiteralString] = {
     Stat.weight:                      "weight",
     Stat.hit_points:                  "health",
     Stat.energy_capacity:             "eneCap",
@@ -65,7 +59,7 @@ _STAT_TO_WU_STAT: dict[Stat, tex.LiteralString] = {
     Stat.bullets_cost:                "bulletsCost",
     Stat.rockets_cost:                "rocketsCost",
 }
-_WU_SLOT_TO_SLOT: dict[tex.LiteralString, Mech.Slot] = {
+_WU_SLOT_TO_SLOT: abc.Mapping[ LiteralString, Mech.Slot] = {
     "torso":         Mech.Slot.TORSO,
     "legs":          Mech.Slot.LEGS,
     "sideWeapon1":   Mech.Slot.SIDE_WEAPON_1,
@@ -88,38 +82,39 @@ _WU_SLOT_TO_SLOT: dict[tex.LiteralString, Mech.Slot] = {
     "module8":       Mech.Slot.MODULE_8,
 }
 # fmt: on
-_TYPE_TO_WU_TYPE: dict[Type, tex.LiteralString] = {type: type.name for type in Type}
+_TYPE_TO_WU_TYPE: abc.Mapping[Type, LiteralString] = {type: type.name for type in Type}
 _TYPE_TO_WU_TYPE[Type.CHARGE] = "CHARGE_ENGINE"
 _TYPE_TO_WU_TYPE[Type.HOOK] = "GRAPPLING_HOOK"
 
 # ------------------------------------------ typed dicts -------------------------------------------
+SetupID: TypeAlias = ItemID | Literal[0]
 
 
-class WUBattleItem(t.TypedDict):
-    slotName: tex.LiteralString
-    id: ID
+class WUBattleItem(TypedDict):
+    slotName: LiteralString
+    id: ItemID
     name: Name
-    type: tex.LiteralString
+    type: LiteralString
     stats: dict[str, int | list[int]]
-    tags: t.Mapping[str, bool]
-    element: tex.LiteralString
-    timesUsed: t.Literal[0]
+    tags: abc.Mapping[str, bool]
+    element: LiteralString
+    timesUsed: Literal[0]
 
 
-class WUMech(t.TypedDict):
+class WUMech(TypedDict):
     name: str
-    setup: t.Sequence[ID]
+    setup: abc.Sequence[SetupID]
 
 
-class WUPlayer(t.TypedDict):
+class WUPlayer(TypedDict):
     name: str
     itemsHash: str
     mech: WUMech
 
 
-class ExportedMechsJSON(t.TypedDict):
-    version: t.Literal[1]
-    mechs: t.Mapping[str, t.Sequence[WUMech]]
+class ExportedMechsJSON(TypedDict):
+    version: Literal[1]
+    mechs: abc.Mapping[str, abc.Sequence[WUMech]]
 
 
 # --------------------------------------------- WU2lib ---------------------------------------------
@@ -127,8 +122,16 @@ class ExportedMechsJSON(t.TypedDict):
 
 def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
     """Imports a mech from WU mech."""
-    setup = assert_type(list, data["setup"], cast=False)
-    mech = Mech(name=assert_type(str, data["name"]))
+    # we accept a concrete type for external type safety, but cast it to Any
+    # as we cannot rely on the data being complete
+    unsafe = wrap_unsafe(data)
+
+    setup = assert_key(abc.Sequence[SetupID], unsafe, "setup", cast=False)
+    mech = Mech(name=assert_key(str, unsafe, "name"))
+
+    if any(not isinstance(o, int) for o in setup):
+        msg = 'Found non-integer value in "setup"'
+        raise DataError(msg)
 
     unknown = setup - pack.items.keys()
     unknown.discard(0)
@@ -151,22 +154,17 @@ def import_mech(data: WUMech, pack: "ItemPack") -> Mech:
 
 def import_mechs(
     data: ExportedMechsJSON, pack: "ItemPack"
-) -> tuple[t.Sequence[Mech], t.Sequence[tuple[int, Exception]]]:
+) -> tuple[abc.Sequence[Mech], abc.Sequence[tuple[int, Exception]]]:
     """Imports mechs from parsed .JSON file."""
 
-    try:
-        version = str(data["version"])
-        mech_list = assert_type(list, data["mechs"][pack.key])
-        # TODO: file can contain mechs from different pack than default
-
-    except KeyError as err:
-        raise DataKeyError(err) from None
+    version = assert_key(str, data, "version")
 
     if version != "1":
         raise DataVersionError(version, "1")
 
-    if not isinstance(mech_list, list):
-        raise DataTypeAtKeyError(type(mech_list), list, "mechs")
+    all_mechs = assert_key(abc.Mapping[object, Any], data, "mechs", cast=False)
+    mech_list = assert_key(abc.Sequence[Any], all_mechs, pack.data.key, cast=False)
+    # TODO: file can contain mechs from different pack than default
 
     mechs: list[Mech] = []
     failed: list[tuple[int, Exception]] = []
@@ -175,7 +173,7 @@ def import_mechs(
         try:
             mechs.append(import_mech(wu_mech, pack))
 
-        except Exception as err:
+        except DataError as err:
             failed.append((i, err))
 
     return mechs, failed
@@ -183,9 +181,9 @@ def import_mechs(
 
 def load_mechs(
     data: bytes, pack: "ItemPack"
-) -> tuple[t.Sequence[Mech], t.Sequence[tuple[int, Exception]]]:
+) -> tuple[abc.Sequence[Mech], abc.Sequence[tuple[int, Exception]]]:
     """Loads mechs from bytes object, representing a .JSON file."""
-    return import_mechs(json_decoder(data), pack)
+    return import_mechs(platform.json_decoder(data), pack)
 
 
 # --------------------------------------------- lib2WU ---------------------------------------------
@@ -194,7 +192,7 @@ def load_mechs(
 _WU_SLOT_NAMES = tuple(_WU_SLOT_TO_SLOT)
 
 
-def _mech_items_in_wu_order(mech: Mech, /) -> t.Iterator[SlotType]:
+def _mech_items_in_wu_order(mech: Mech, /) -> abc.Iterator[SlotType]:
     """Yields mech items in the order expected by WU."""
     yield mech.torso
     yield mech.legs
@@ -207,7 +205,7 @@ def _mech_items_in_wu_order(mech: Mech, /) -> t.Iterator[SlotType]:
     yield from mech.iter_items(Type.MODULE)
 
 
-def _mech_item_ids_in_wu_order(mech: Mech, /) -> t.Iterator[int]:
+def _mech_item_ids_in_wu_order(mech: Mech, /) -> abc.Iterator[SetupID]:
     """Yields mech item IDs in WU compatible order."""
     return (0 if item is None else item.data.id for item in _mech_items_in_wu_order(mech))
 
@@ -230,23 +228,24 @@ def export_mech(mech: Mech, /) -> WUMech:
     return {"name": mech.name, "setup": list(_mech_item_ids_in_wu_order(mech))}
 
 
-def export_mechs(mechs: t.Iterable[Mech], pack_key: str) -> ExportedMechsJSON:
+def export_mechs(mechs: abc.Iterable[Mech], pack_key: str) -> ExportedMechsJSON:
     """Exports mechs to WU compatible format."""
     wu_mechs = list(map(export_mech, mechs))
     return {"version": 1, "mechs": {pack_key: wu_mechs}}
 
 
-def dump_mechs(mechs: t.Iterable[Mech], pack_key: str) -> bytes:
+def dump_mechs(mechs: abc.Iterable[Mech], pack_key: str) -> bytes:
     """Dumps mechs into bytes representing a .JSON file."""
-    return json_encoder(export_mechs(mechs, pack_key), True)
+    return platform.json_encoder(export_mechs(mechs, pack_key), True)
 
 
-def get_battle_item(item: ItemData, slot_name: tex.LiteralString) -> WUBattleItem:
+def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
     # the keys here are ordered in same fashion as in WU, to maximize
     # chances that the hashes will be same
+    # FIXME: stats no longer contain lists
     stats = {
         _STAT_TO_WU_STAT[key]: value if isinstance(value, int) else list(value)
-        for key, value in MAX_BUFFS.buff_stats(max_stats(item.start_stage)).items()
+        for key, value in buff_stats(max_stats(item.start_stage), MAX_SHOP).items()
     }
     return {
         "slotName": slot_name,
@@ -268,7 +267,7 @@ def get_player(mech: Mech, player_name: str) -> WUPlayer:
     # lazy import
     import hashlib
 
-    data = json_encoder(serialized_items_without_modules)
+    data = platform.json_encoder(serialized_items_without_modules)
     hash = hashlib.sha256(data).hexdigest()
 
     return {"name": str(player_name), "itemsHash": hash, "mech": export_mech(mech)}

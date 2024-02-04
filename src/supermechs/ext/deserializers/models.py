@@ -1,21 +1,21 @@
-import typing as t
+import types
+import typing
+from collections import abc
+from typing import Any, NoReturn, TypeAlias
 
-from .errors import DataError, DataKeyError, DataTypeAtKeyError, DataVersionError
+from exceptiongroup import ExceptionGroup
+
+from .errors import DataError, DataKeyError, DataTypeAtKeyError, DataTypeError, DataVersionError
 from .graphic import to_sprite_mapping
-from .typedefs import AnyItemDict, AnyItemPack, PackMetadata, RawStatsMapping
-from .utils import none_to_nan
+from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
+from .utils import assert_key, assert_type, maybe_null, wrap_unsafe
 
-from supermechs.item import Element, ItemData, Tags, Tier, Type
-from supermechs.item.stats import Stat, StatsMapping, TransformStage
-from supermechs.item_pack import ItemPack
+from supermechs.item import Element, ItemData, Stat, StatsMapping, Tags, Tier, TransformStage, Type
+from supermechs.item_pack import ItemPack, PackData
+from supermechs.typeshed import ItemID, PackKey
 from supermechs.utils import has_any_of
 
-from supermechs.ext.deserializers.utils import assert_type
-
-if t.TYPE_CHECKING:
-    from PIL.Image import Image
-
-ErrorCallbackType: t.TypeAlias = t.Callable[[Exception], None]
+ErrorCallbackType: TypeAlias = abc.Callable[[Exception], None]
 
 # fmt: off
 _WU_STAT_TO_STAT = {
@@ -62,17 +62,22 @@ _WU_STAT_LIST_TO_STATS = {
 # fmt: on
 
 
-def raises(exc: BaseException, /) -> t.NoReturn:
+def raises(exc: BaseException, /) -> NoReturn:
     """Simply raises passed exception."""
     raise exc from None
 
 
 def to_tags(
-    tags: t.Iterable[str],
+    tags: abc.Iterable[str],
     start_stage: TransformStage,
-    custom: bool,
 ) -> Tags:
-    literal_tags = set(tags)
+    literal_tags = set[str]()
+
+    for element in tags:
+        if not isinstance(element, str):
+            raise DataTypeError(type(element), str) from None
+
+        literal_tags.add(element)
 
     if "legacy" in literal_tags:
         if start_stage.tier is Tier.MYTHICAL:
@@ -84,9 +89,6 @@ def to_tags(
     if has_any_of(start_stage.base_stats, Stat.advance, Stat.retreat):
         literal_tags.add("require_jump")
 
-    if custom:
-        literal_tags.add("custom")
-
     try:
         return Tags.from_keywords(literal_tags)
 
@@ -94,16 +96,14 @@ def to_tags(
         raise DataError from err
 
 
-def _iter_stat_keys_and_types() -> t.Iterator[tuple[str, type]]:
-    import types
-
-    for stat_key, data_type in t.get_type_hints(RawStatsMapping).items():
-        origin = t.get_origin(data_type)
+def _iter_stat_keys_and_types() -> abc.Iterator[tuple[str, type]]:
+    for stat_key, data_type in typing.get_type_hints(RawStatsMapping).items():
+        origin = typing.get_origin(data_type)
 
         if origin is int:  # noqa: SIM114
             yield stat_key, int
 
-        elif origin is types.UnionType and set(t.get_args(data_type)).issubset((int, type(None))):
+        elif origin is types.UnionType and {int, type(None)}.issuperset(typing.get_args(data_type)):
             yield stat_key, int
 
         elif origin is list:
@@ -128,16 +128,17 @@ def to_stats_mapping(
         match data[key]:
             case int() | None as value if data_type is int:
                 stat = _WU_STAT_TO_STAT[key]
-                final_stats[stat] = none_to_nan(value)
+                final_stats[stat] = maybe_null(value)
 
             case [int() | None, int() | None] as values if data_type is list:
                 stats = _WU_STAT_LIST_TO_STATS[key]
 
                 for stat, value in zip(stats, values):
-                    final_stats[stat] = none_to_nan(value)
+                    final_stats[stat] = maybe_null(value)
 
             case unknown:  # pyright: ignore[reportUnknownVariableType]
-                on_error(DataTypeAtKeyError(unknown, data_type, key))  # pyright: ignore[reportUnknownArgumentType]
+                parent = DataTypeError(type(unknown), data_type)  # pyright: ignore[reportUnknownArgumentType]
+                on_error(DataTypeAtKeyError(parent, key))
 
     return final_stats
 
@@ -145,12 +146,19 @@ def to_stats_mapping(
 def to_transform_stages(
     data: AnyItemDict, /, *, on_error: ErrorCallbackType = raises
 ) -> TransformStage:
-    range_str = assert_type(str, data["transform_range"])
+    unsafe = wrap_unsafe(data)
+    del data
+
+    range_str = assert_key(str, unsafe, "transform_range")
     final_tier = Tier.of_initial(range_str[-1])
 
-    if "stats" in data:
-        base_stats = to_stats_mapping(data["stats"], on_error=on_error)
-        return TransformStage(tier=final_tier, base_stats=base_stats, max_level_stats={})
+    if "stats" in unsafe:
+        return TransformStage(
+            tier=final_tier,
+            base_stats=to_stats_mapping(unsafe["stats"], on_error=on_error),
+            max_changing_stats={},
+            level_progression=[],  # TODO: level_progression source
+        )
 
     start_tier = Tier.of_initial(range_str[0])
 
@@ -162,25 +170,27 @@ def to_transform_stages(
     computed: list[tuple[Tier, StatsMapping, StatsMapping]] = []
 
     for tier in map(Tier.of_value, range(start_tier, final_tier + 1)):
-        key = t.cast(str, tier.name.lower())
+        # this inferred as LiteralString doesn't play well further down
+        key = str(tier.name.lower())
+        max_key = "max_" + key
 
         try:
-            base_tier_data = t.cast(RawStatsMapping, data[key])
+            base_tier_data = unsafe[key]
 
-        except KeyError as err:
-            on_error(DataKeyError(err))
+        except KeyError:
+            on_error(DataKeyError(key))
 
         else:
             rolling_stats |= to_stats_mapping(base_tier_data, on_error=on_error)
 
         try:
-            max_level_data = t.cast(RawStatsMapping, data["max_" + key])
+            max_level_data = unsafe[max_key]
 
-        except KeyError as err:
+        except KeyError:
             if tier < Tier.DIVINE:
-                on_error(DataKeyError(err))
+                on_error(DataKeyError(max_key))
 
-            upper_stats = dict[Stat, t.Any]()
+            upper_stats = dict[Stat, Any]()
 
         else:
             upper_stats = to_stats_mapping(max_level_data, on_error=on_error)
@@ -191,7 +201,11 @@ def to_transform_stages(
 
     for tier, base, addon in reversed(computed):
         current_stage = TransformStage(
-            tier=tier, base_stats=base, max_level_stats=addon, next=current_stage
+            tier=tier,
+            base_stats=base,
+            max_changing_stats=addon,
+            level_progression=[],  # TODO: level_progression source
+            next=current_stage,
         )
 
     if current_stage is None:
@@ -202,7 +216,7 @@ def to_transform_stages(
 
 
 def to_item_data(
-    data: AnyItemDict, pack_key: str, custom: bool, *, on_error: ErrorCallbackType = raises
+    data: AnyItemDict, pack_key: PackKey, *, on_error: ErrorCallbackType = raises
 ) -> ItemData:
     """Construct ItemData from its serialized form.
 
@@ -212,72 +226,79 @@ def to_item_data(
     pack_key: The key of a pack this item comes from.
     custom: Whether the item comes from arbitrary or official source.
     """
+    unsafe = wrap_unsafe(data)
     start_stage = to_transform_stages(data, on_error=on_error)
-    tags = to_tags(
-        data.get("tags", ()),
-        start_stage,
-        custom,
-    )
+    del data
+    tags = to_tags(unsafe.get("tags", ()), start_stage)
     item_data = ItemData(
-        id=assert_type(int, data["id"]),
+        id=ItemID(assert_key(int, unsafe, "id")),
         pack_key=pack_key,
-        name=assert_type(str, data["name"]),
-        type=Type[assert_type(str, data["type"]).upper()],
-        element=Element[assert_type(str, data["element"]).upper()],
+        name=assert_key(str, unsafe, "name"),
+        type=Type[assert_key(str, unsafe, "type").upper()],
+        element=Element[assert_key(str, unsafe, "element").upper()],
         tags=tags,
         start_stage=start_stage,
     )
     return item_data
 
 
-def to_item_pack(
-    data: AnyItemPack, /, *, custom: bool = False, on_error: ErrorCallbackType = raises
-) -> ItemPack["Image"]:
+def to_item_pack(data: AnyItemPack, /, *, on_error: ErrorCallbackType = raises) -> ItemPack:
+    unsafe = wrap_unsafe(data)
     metadata = extract_metadata(data)
-    key = assert_type(str, metadata["key"])
+    key = metadata.key
 
-    items: dict[int, ItemData] = {}
-    issues: list[Exception] = []
+    items: dict[ItemID, ItemData] = {}
+    issues: list[DataError] = []
 
-    for item_data in data["items"]:
+    for item_data in assert_key(abc.Sequence[Any], unsafe, "items", cast=False):
         try:
-            item = to_item_data(item_data, key, custom, on_error=on_error)
+            item = to_item_data(item_data, key, on_error=on_error)
 
-        except Exception as err:
+        except DataError as err:
             issues.append(err)
 
         else:
             items[item.id] = item
 
-    sprites = to_sprite_mapping(data)
+    if issues:
+        msg = "Encountered issues while creating item pack"
+        on_error(ExceptionGroup[DataError](msg, issues))
 
-    # what TODO with the issues?
-
-    return ItemPack(
-        key=key,
-        name=assert_type(str, metadata.get("name", "<no name>")),
-        description=assert_type(str, metadata.get("description", "<no description>")),
-        items=items,
-        sprites=sprites,
-        custom=custom,
-    )
+    sprites = to_sprite_mapping(data)  # FIXME
+    return ItemPack(data=metadata, items=items, sprites=sprites)
 
 
-def extract_metadata(pack: AnyItemPack, /) -> PackMetadata:
-    if "version" not in pack or pack["version"] == "1":
+def extract_metadata(pack: AnyItemPack, /) -> PackData:
+    """Extracts key, name and description from item pack data."""
+
+    unsafe = wrap_unsafe(pack)
+    del pack
+    version = assert_type(str, unsafe.get("version", "1"))
+
+    if version == "1":
+        key = "config"
         try:
-            return pack["config"]
+            cfg = unsafe[key]
 
-        except KeyError as err:
-            raise DataKeyError(err) from None
+        except KeyError:
+            raise DataKeyError(key) from None
 
-    if pack["version"] not in ("2", "3"):
-        raise DataVersionError(pack["version"], "3")
+    elif version not in ("2", "3"):
+        raise DataVersionError(version, "3")
 
-    return pack
+    else:
+        cfg = unsafe
+
+    params: dict[str, str] = {}
+    pack_key = PackKey(assert_key(str, cfg, "key"))
+    for extra in ("name", "description"):
+        if extra in cfg:
+            # not using assert_key as we don't treat those as mandatory
+            params[extra] = assert_type(str, cfg[extra])
+
+    return PackData(key=pack_key, **params)
 
 
-def extract_key(pack: AnyItemPack, /) -> str:
+def extract_key(pack: AnyItemPack, /) -> PackKey:
     """Extract the key of an item pack."""
-    metadata = extract_metadata(pack)
-    return assert_type(str, metadata["key"])
+    return extract_metadata(pack).key

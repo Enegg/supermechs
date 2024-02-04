@@ -76,3 +76,26 @@ def assert_type(type_: type[T], value: object, /, *, cast: bool = True) -> T:
             return type_(value)
 
     raise DataTypeError(type(value), type_)
+
+
+def assert_key(
+    type_: type[T], mapping: abc.Mapping[KT, object], key: KT, *, cast: bool = True
+) -> T:
+    """Assert key exists in mapping and is of given type."""
+    try:
+        value = mapping[key]
+
+    except KeyError:
+        raise DataKeyError(key) from None
+
+    try:
+        return assert_type(type_, value, cast=cast)
+
+    except DataTypeError as err:
+        raise DataTypeAtKeyError(err, key) from None
+
+
+def wrap_unsafe(data: Any, /) -> abc.Mapping[str, Any]:
+    # I type function's accepted data type properly, but want the type within its body
+    # to be treated as unknown - various assertions should produce the concrete types
+    return data
