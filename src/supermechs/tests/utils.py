@@ -1,4 +1,4 @@
-from supermechs.utils import _is_pascal, acronym_of
+from supermechs.utils import _is_pascal, acronym_of  # pyright: ignore[reportPrivateUsage]
 
 strings: list[tuple[str, bool]] = [
     ("FooBar", True),
