@@ -47,7 +47,7 @@ class TransformStage:
         max_level = self.max_level
 
         if not 0 <= level <= max_level:
-            raise OutOfRangeError(level, 0, max_level)
+            raise OutOfRangeError(0, level, max_level)
 
         if level == 0:
             return self.base_stats
