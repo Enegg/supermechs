@@ -54,6 +54,10 @@ class Mech:
         MODULE_8 = auto()
         PERK = auto()
 
+        @property
+        def type(self) -> Type:
+            return _SLOT_TO_TYPE[self]
+
     name: str = field()
     _setup: Final[abc.MutableMapping[Slot, Item]] = field(factory=dict)
 
@@ -68,7 +72,7 @@ class Mech:
 
     @property
     def side_weapons(self) -> list[SlotType]:
-        return [self._setup.get(slot) for slot in _type_to_slots[Type.SIDE_WEAPON]]
+        return [self._setup.get(slot) for slot in _slots_of_type[Type.SIDE_WEAPON]]
 
     @property
     def top_weapons(self) -> list[SlotType]:
@@ -79,7 +83,7 @@ class Mech:
 
     @property
     def modules(self) -> list[SlotType]:
-        return [self._setup[slot] for slot in _type_to_slots[Type.MODULE]]
+        return [self._setup[slot] for slot in _slots_of_type[Type.MODULE]]
 
     def __setitem__(self, slot: Slot, item: SlotType, /) -> None:
         if not isinstance(item, SlotType):
@@ -219,3 +223,31 @@ def dominant_element(mech: Mech, /, threshold: int = 2) -> Element | None:
 
     # otherwise just return the most common one
     return elements[0][0]
+
+
+# fmt: off
+_SLOT_TO_TYPE: abc.Mapping[Mech.Slot, Type] = {
+    Mech.Slot.TORSO:         Type.TORSO,
+    Mech.Slot.LEGS:          Type.LEGS,
+    Mech.Slot.DRONE:         Type.DRONE,
+    Mech.Slot.TELEPORTER:    Type.TELEPORTER,
+    Mech.Slot.CHARGE:        Type.CHARGE,
+    Mech.Slot.HOOK:          Type.HOOK,
+    Mech.Slot.SHIELD:        Type.SHIELD,
+    Mech.Slot.SIDE_WEAPON_1: Type.SIDE_WEAPON,
+    Mech.Slot.SIDE_WEAPON_2: Type.SIDE_WEAPON,
+    Mech.Slot.SIDE_WEAPON_3: Type.SIDE_WEAPON,
+    Mech.Slot.SIDE_WEAPON_4: Type.SIDE_WEAPON,
+    Mech.Slot.TOP_WEAPON_1:  Type.TOP_WEAPON,
+    Mech.Slot.TOP_WEAPON_2:  Type.TOP_WEAPON,
+    Mech.Slot.MODULE_1:      Type.MODULE,
+    Mech.Slot.MODULE_2:      Type.MODULE,
+    Mech.Slot.MODULE_3:      Type.MODULE,
+    Mech.Slot.MODULE_4:      Type.MODULE,
+    Mech.Slot.MODULE_5:      Type.MODULE,
+    Mech.Slot.MODULE_6:      Type.MODULE,
+    Mech.Slot.MODULE_7:      Type.MODULE,
+    Mech.Slot.MODULE_8:      Type.MODULE,
+    Mech.Slot.PERK:          Type.PERK,
+}
+# fmt: on
