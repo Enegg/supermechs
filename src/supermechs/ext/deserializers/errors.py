@@ -1,6 +1,29 @@
-import typing as t
+import typing
+from collections import abc
+from typing import Final, TypeAlias
+
+from attrs import define
 
 from supermechs.errors import SMException
+
+Typeish: TypeAlias = type[object] | None | tuple[type[object] | None, ...]
+
+_TYPE_TO_NAME: Final[abc.Mapping[type | None, str]] = {
+    int: "an integer",
+    float: "a number",
+    str: "a string",
+    list: "an array",
+    bool: "true/false",
+    dict: "an object",
+    None: "null",
+}
+
+
+def jsonify_type(type_: Typeish, /) -> str:
+    if isinstance(type_, tuple):
+        return " | ".join(map(jsonify_type, typing.get_args(type_)))
+
+    return _TYPE_TO_NAME.get(type_, type_.__name__)
 
 
 class DataError(SMException):
@@ -11,58 +34,49 @@ class DataValueError(DataError):
     """Invalid value."""
 
 
+@define
 class DataTypeError(DataError):
     """Value of incorrect type."""
 
-    type_to_name: t.Final[t.Mapping[type, str]] = {
-        int: "an integer",
-        float: "a number",
-        str: "a string",
-        list: "an array",
-        bool: "a boolean",
-    }
+    received: Typeish
+    expected: Typeish
 
-    def __init__(self, value: type, expected: type, /, *args: t.Any) -> None:
-        super().__init__(self.format_value(value, expected, *args))
-
-    @classmethod
-    def format_value(cls, *args: t.Any) -> str:
-        expected, value, *_ = args
-        return f"Expected {cls.name_of(expected)}, got {cls.name_of(type(value))}"
-
-    @classmethod
-    def name_of(cls, type_: type, /) -> str:
-        return cls.type_to_name.get(type_, type_.__name__)
+    def __str__(self) -> str:
+        return f"Expected {jsonify_type(self.expected)}, got {jsonify_type(self.received)}"
 
 
-class DataTypeAtKeyError(DataTypeError):
+@define
+class DataTypeAtKeyError(DataError):
     """Value in mapping of incorrect type."""
 
-    if t.TYPE_CHECKING:
-        def __init__(self, value: type, expected: type, key: str, /, *args: t.Any) -> None:
-            ...
+    parent: DataTypeError
+    key: object
 
-    @classmethod
-    def format_value(cls, *args: t.Any) -> str:
-        return super().format_value(args) + f" at key {args[2]!r}"
+    def __str__(self) -> str:
+        return f"{self.parent} at key {self.key!r}"
 
 
+@define
 class DataKeyError(DataError):
-    """Mapping is missing a required key: {key!r}."""
+    """Mapping missing a required key."""
 
-    def __init__(self, key_err: KeyError, /) -> None:
-        """Mapping is missing a required key: {key!r}."""
-        super().__init__(t.cast(str, self.__doc__).format(key=str(key_err)))
+    key: object
+
+    def __str__(self) -> str:
+        return f"Mapping is missing a required key: {self.key!r}"
 
 
+@define
 class DataVersionError(DataValueError):
-    """Data of unknown version: {ver!r}"""
+    """Data of unknown version."""
 
-    def __init__(self, version: t.Any, expected: t.Any | None = None) -> None:
-        """Data of unknown version: {ver!r}"""
-        msg = t.cast(str, self.__doc__).format(ver=version)
+    received: object
+    expected: object | None = None
 
-        if expected is not None:
-            msg += f"; expected at most {expected!r}"
+    def __str__(self) -> str:
+        msg = f"Data of unknown version: {self.received!r}"
 
-        super().__init__(msg)
+        if self.expected is not None:
+            msg += f"; expected at most {self.expected!r}"
+
+        return msg

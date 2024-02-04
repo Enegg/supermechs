@@ -1,40 +1,56 @@
+from attrs import define
+
+from .typeshed import ItemID, PackKey
+
+
 class SMException(Exception):
     """Base class for library exceptions."""
 
 
-class OutOfRangeError(SMException):
-    """Value X = {number} out of range {min} <= X <= {max}"""
+@define
+class OutOfRangeError(SMException, ValueError):
+    """Value outside allowed range."""
 
-    def __init__(self, number: float, lower: float, upper: float, /) -> None:
-        assert self.__doc__ is not None
-        super().__init__(self.__doc__.format(number=number, min=lower, max=upper))
+    lower: float
+    number: float
+    upper: float
 
-
-class NegativeValueError(OutOfRangeError):
-    """Value cannot be negative, got {number}"""
-
-    def __init__(self, number: float, /) -> None:
-        super().__init__(number, 0, 0)
+    def __str__(self) -> str:
+        return f"Value {self.number} out of range; {self.lower} ≤ X ≤ {self.upper}"
 
 
-class IDLookupError(SMException):
-    """Unknown item ID: {ID}"""
+@define
+class NegativeValueError(SMException, ValueError):
+    """Number cannot be negative."""
 
-    def __init__(self, id: int, /) -> None:
-        assert self.__doc__ is not None
-        super().__init__(self.__doc__.format(id=id))
+    number: float
+
+    def __str__(self) -> str:
+        return f"Number cannot be negative, got {self.number}"
 
 
-class PackKeyError(SMException):
-    """Unknown pack key: {key}"""
+@define
+class IDLookupError(SMException, KeyError):
+    """Unknown item ID."""
 
-    def __init__(self, key: str, /) -> None:
-        assert self.__doc__ is not None
-        super().__init__(self.__doc__.format(key=key))
+    id: ItemID
+
+    def __str__(self) -> str:
+        return f"Unknown item ID: {self.id}"
+
+
+@define
+class PackKeyError(SMException, KeyError):
+    """Unknown pack key."""
+
+    key: PackKey
+
+    def __str__(self) -> str:
+        return f"Unknown pack key: {self.key}"
 
 
 class MaxPowerError(SMException):
-    """Item at maximum power"""
+    """Item at maximum power."""
 
     def __init__(self, arg: object = __doc__, *args: object) -> None:
         super().__init__(arg, *args)
