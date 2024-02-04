@@ -1,5 +1,5 @@
 from collections import abc
-from typing import Any, overload
+from typing import Any, Final, overload
 
 from attrs import define, field
 
@@ -8,21 +8,23 @@ from .item import Item, ItemData, Tier
 from .typeshed import ItemID, PackKey
 from .utils import large_mapping_repr
 
-__all__ = ("ItemPack",)
+__all__ = ("ItemPack", "PackData")
+
+
+@define
+class PackData:
+    key: Final[PackKey] = field()
+    name: str = field(default="<no name>")
+    description: str = field(default="<no description>")
 
 
 @define(kw_only=True)
 class ItemPack:
     """Mapping-like container of items and their graphics."""
 
-    key: PackKey = field()
-    name: str = field(default="<no name>")
-    description: str = field(default="<no description>")
-
-    items: abc.Mapping[ItemID, ItemData] = field(repr=large_mapping_repr)
-    sprites: abc.Mapping[tuple[ItemID, Tier], Any] = field(repr=large_mapping_repr)
-    # personal packs
-    custom: bool = field(default=False)
+    data: Final[PackData] = field()
+    items: Final[abc.Mapping[ItemID, ItemData]] = field(repr=large_mapping_repr)
+    sprites: Final[abc.Mapping[tuple[ItemID, Tier], Any]] = field(repr=large_mapping_repr)
 
     def __contains__(self, value: ItemID | ItemData, /) -> bool:
         if isinstance(value, int):
@@ -43,8 +45,8 @@ class ItemPack:
         try:
             return self.items[item_id]
 
-        except KeyError as err:
-            raise IDLookupError(item_id) from err
+        except KeyError:
+            raise IDLookupError(item_id) from None
 
     @overload
     def get_sprite(self, item: Item, /) -> Any:
@@ -74,7 +76,7 @@ class ItemPack:
             tier = item.tier
             item = item.data
 
-        if item.pack_key != self.key:
+        if item.pack_key != self.data.key:
             raise PackKeyError(item.pack_key)
 
         return self.sprites[item.id, tier]
