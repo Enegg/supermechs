@@ -7,7 +7,7 @@ from typing_extensions import Self
 from attrs import Factory, define, field, validators
 
 from ..errors import MaxTierError, NegativeValueError
-from ..typeshed import ID, Name
+from ..typeshed import ItemID, Name, PackKey
 from .enums import Element, Tier, Type
 from .stats import StatsMapping, TransformStage, get_final_stage
 
@@ -42,9 +42,9 @@ class Tags(NamedTuple):
 class ItemData:
     """Dataclass storing item data independent of its tier and level."""
 
-    id: Final[ID] = field(validator=validators.ge(1))
+    id: Final[ItemID] = field(validator=validators.ge(1))
     """The ID of the item, unique within its pack."""
-    pack_key: Final[str] = field()
+    pack_key: Final[PackKey] = field()
     """The key of the pack this item comes from."""
     name: Final[Name] = field(validator=validators.min_len(1))
     """The display name of the item."""
@@ -80,11 +80,11 @@ class Item:
     paint: Paint | None = field(default=None)
 
     @property
-    def id(self) -> ID:
+    def id(self) -> ItemID:
         return self.data.id
 
     @property
-    def pack_key(self) -> str:
+    def pack_key(self) -> PackKey:
         return self.data.pack_key
 
     @property

@@ -1,5 +1,5 @@
 from collections import abc
-from typing import TypeAlias
+from typing import Final, NewType, TypeAlias
 from typing_extensions import ParamSpec, TypeVar
 
 T = TypeVar("T", infer_variance=True)
@@ -21,5 +21,7 @@ LiteralURL: TypeAlias = str
 
 Name: TypeAlias = str
 """String representing item name."""
-ID: TypeAlias = int
+ItemID: Final = NewType("ItemID", int)
 """Positive integer representing an item's ID."""
+PackKey: Final = NewType("PackKey", str)
+"""String representing item pack key."""

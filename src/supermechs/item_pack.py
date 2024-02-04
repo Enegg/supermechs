@@ -5,7 +5,7 @@ from attrs import define, field
 
 from .errors import IDLookupError, PackKeyError
 from .item import Item, ItemData, Tier
-from .typeshed import ID
+from .typeshed import ItemID, PackKey
 from .utils import large_mapping_repr
 
 __all__ = ("ItemPack",)
@@ -15,25 +15,25 @@ __all__ = ("ItemPack",)
 class ItemPack:
     """Mapping-like container of items and their graphics."""
 
-    key: str = field()
+    key: PackKey = field()
     name: str = field(default="<no name>")
     description: str = field(default="<no description>")
 
-    items: abc.Mapping[ID, ItemData] = field(repr=large_mapping_repr)
-    sprites: abc.Mapping[tuple[ID, Tier], Any] = field(repr=large_mapping_repr)
+    items: abc.Mapping[ItemID, ItemData] = field(repr=large_mapping_repr)
+    sprites: abc.Mapping[tuple[ItemID, Tier], Any] = field(repr=large_mapping_repr)
     # personal packs
     custom: bool = field(default=False)
 
-    def __contains__(self, value: ID | ItemData, /) -> bool:
-        if isinstance(value, ID):
+    def __contains__(self, value: ItemID | ItemData, /) -> bool:
+        if isinstance(value, int):
             return value in self.items
 
-        if isinstance(value, ItemData):  # pyright: ignore[reportUnnecessaryIsInstance]
-            return value.pack_key == self.key and value.id in self.items
+        if isinstance(value, ItemData):
+            return value.pack_key == self.data.key and value.id in self.items
 
         return False
 
-    def get_item(self, item_id: ID, /) -> ItemData:
+    def get_item(self, item_id: ItemID, /) -> ItemData:
         """Lookup an item by its ID.
 
         Raises
