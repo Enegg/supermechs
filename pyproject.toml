@@ -1,3 +1,8 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
 [tool.poetry]
 name = "supermechs"
 version = "0.1.0"
@@ -8,55 +13,55 @@ packages = [{ include = "supermechs", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-typing-extensions = "^4.4.1" # override
-attrs = ">= 22.1.0"          # min_len
-Pillow = "^9.0.0"
-rtoml = "*"
+typing-extensions = ">= 4.4.1" # override
+attrs = ">= 22.1.0"            # min_len
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.0.291" # > .291 replaces black (alpha)
+ruff = ">= 0.1.0" # > .291 replaces black (alpha)
 pre-commit = "*"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 
 [tool.ruff]
 select = [
-    "E",     # general errors
-    "F",
-    "RUF",
+    "E",   # general errors
+    "F",   # flake
+    "RUF", # ruff specific
+    "PL",  # pylint
 
-    "G",     # avoid formatting in logging
-    "Q",     # consistent string quotes
-    "FLY",   # static joins
-    "ISC",   # string concatenation
+    "G",   # avoid formatting in logging
+    "Q",   # consistent string quotes
+    "FLY", # static joins
+    "ISC", # string concatenation
 
-    "SIM",   # simplifiable logic
-    "C4",    # simplifiable comprehensions
+    "SIM", # simplifiable logic
+    "C4",  # simplifiable comprehensions
+
     "ASYNC", # blocking calls in async context
     "TCH",   # type-checking-only imports
     "PTH",   # use pathlib for path manipulation
-    "PL",    # pylint
     "TRY",   # try - except pitfalls
     "EM",    # don't inline exception messages
     "ERA",   # commented out code
 ]
-ignore = ["TRY003"]
 line-length = 100
 target-version = "py310"
 
 [tool.ruff.per-file-ignores]
-"__init__.py" = ["F403"]
-"api.py" = ["F403", "PLC0414"]
+"__init__.py" = ["F403"] # import *
 
 [tool.ruff.isort]
 combine-as-imports = true
 split-on-trailing-comma = false
 extra-standard-library = ["typing_extensions"]
-section-order = ["future", "standard-library", "third-party", "first-party", "local-folder", "supermechs", "supermechs-ext"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+    "supermechs",
+    "supermechs-ext",
+]
 
 [tool.ruff.isort.sections]
 "supermechs" = ["supermechs"]
@@ -73,16 +78,10 @@ pythonVersion = "3.10"
 
 typeCheckingMode = "strict"
 
+reportMissingTypeStubs = false
+
 reportUnnecessaryTypeIgnoreComment = "information"
-reportUnnecessaryCast = true
-reportUnusedImport = false # handled by ruff
-reportImportCycles = true
+reportUnnecessaryIsInstance = "information"
 
 reportMatchNotExhaustive = "warning"
 reportOverlappingOverload = "information"
-reportPrivateUsage = false
-reportUnnecessaryIsInstance = false
-reportIncompatibleMethodOverride = false
-reportIncompatibleVariableOverride = false
-
-reportMissingTypeStubs = false
