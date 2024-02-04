@@ -1,25 +1,26 @@
-import typing as t
-import typing_extensions as tex
+from collections import abc
 from contextlib import suppress
+from typing import TYPE_CHECKING, Any, Final, SupportsIndex
+from typing_extensions import Self
 
-from .errors import DataTypeError
+from .errors import DataKeyError, DataTypeAtKeyError, DataTypeError
 
-from supermechs.typeshed import T
+from supermechs.typeshed import KT, T
 
 
-def js_format(string: str, /, **kwargs: t.Any) -> str:
+def js_format(string: str, /, **keys: object) -> str:
     """Format a JavaScript style string %template% using given keys and values."""
     # XXX: this will do as many passes as there are kwargs, maybe concatenate the pattern?
     import re
 
-    for key, value in kwargs.items():
+    for key, value in keys.items():
         string = re.sub(rf"%{re.escape(key)}%", str(value), string)
 
     return string
 
 
-class NanMeta(type):
-    def __new__(cls, name: str, bases: tuple[type, ...], namespace: dict[str, t.Any]) -> tex.Self:
+class _NullMeta(type):
+    def __new__(cls, name: str, bases: tuple[type, ...], namespace: dict[str, Any]):
         def func(self: T, _: int) -> T:
             return self
 
@@ -30,7 +31,7 @@ class NanMeta(type):
         return super().__new__(cls, name, bases, namespace)
 
 
-class Nan(int if t.TYPE_CHECKING else object, metaclass=NanMeta):
+class Null(int if TYPE_CHECKING else object, metaclass=_NullMeta):
     __slots__ = ()
 
     def __str__(self) -> str:
@@ -42,26 +43,26 @@ class Nan(int if t.TYPE_CHECKING else object, metaclass=NanMeta):
     def __format__(self, _: str, /) -> str:
         return "?"
 
-    def __eq__(self, _: t.Any) -> bool:
+    def __eq__(self, _: Any) -> bool:
         return False
 
-    def __lt__(self, _: t.Any) -> bool:
+    def __lt__(self, _: Any) -> bool:
         return False
 
-    def __round__(self, ndigits: int = 0, /) -> tex.Self:
+    def __round__(self, _: SupportsIndex, /) -> Self:
         # round() on float("nan") raises ValueError and probably has a good reason to do so,
         # but for my purposes it is essential round() returns this object too
         return self
 
 
-NaN: t.Final = Nan()
+NULL: Final = Null()
 
 
-def none_to_nan(value: int | None, /) -> int:
-    return NaN if value is None else value
+def maybe_null(value: int | None, /) -> int:
+    return NULL if value is None else value
 
 
-def assert_type(type_: type[T], value: T, /, *, cast: bool = True) -> T:
+def assert_type(type_: type[T], value: object, /, *, cast: bool = True) -> T:
     """Assert value is of given type.
 
     If cast is `True`, will attempt to cast to `type_` before failing.
