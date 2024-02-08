@@ -1,6 +1,6 @@
 from collections import abc
 from enum import auto, unique
-from typing import Any, Final, Literal, TypeAlias, overload
+from typing import Any, Literal, TypeAlias, overload
 
 from attrs import define, field
 
@@ -8,10 +8,10 @@ from .item import Element, Item, Type
 from .typeshed import XOrTupleXY
 from .utils import KeyAccessor, PartialEnum
 
-__all__ = ("Mech", "SlotType", "dominant_element")
+__all__ = ("Mech", "SlotMemberType", "dominant_element")
 
-SlotType: TypeAlias = Item | None
-SlotAccessor: TypeAlias = KeyAccessor["Mech.Slot", SlotType]
+SlotMemberType: TypeAlias = Item | None
+SlotAccessor: TypeAlias = KeyAccessor["Mech.Slot", SlotMemberType]
 
 
 def _format_count(it: abc.Iterable[Any], /) -> abc.Iterator[str]:
@@ -59,35 +59,38 @@ class Mech:
             return _SLOT_TO_TYPE[self]
 
     name: str = field()
-    _setup: Final[abc.MutableMapping[Slot, Item]] = field(factory=dict)
-
-    torso = SlotAccessor(Slot.TORSO)
-    legs = SlotAccessor(Slot.LEGS)
-    drone = SlotAccessor(Slot.DRONE)
+    _setup: abc.MutableMapping[Slot, Item] = field(factory=dict, init=False)
+    # fmt: off
+    torso      = SlotAccessor(Slot.TORSO)
+    legs       = SlotAccessor(Slot.LEGS)
+    drone      = SlotAccessor(Slot.DRONE)
     teleporter = SlotAccessor(Slot.TELEPORTER)
-    charge = SlotAccessor(Slot.CHARGE)
-    hook = SlotAccessor(Slot.HOOK)
-    shield = SlotAccessor(Slot.SHIELD)
-    perk = SlotAccessor(Slot.PERK)
+    charge     = SlotAccessor(Slot.CHARGE)
+    hook       = SlotAccessor(Slot.HOOK)
+    shield     = SlotAccessor(Slot.SHIELD)
+    perk       = SlotAccessor(Slot.PERK)
+    # fmt: on
 
     @property
-    def side_weapons(self) -> list[SlotType]:
-        return [self._setup.get(slot) for slot in _slots_of_type[Type.SIDE_WEAPON]]
+    def side_weapons(self) -> tuple[SlotMemberType, SlotMemberType, SlotMemberType, SlotMemberType]:
+        tup = tuple(self._setup.get(slot) for slot in _slots_of_type[Type.SIDE_WEAPON])
+        assert len(tup) == 4  # noqa: PLR2004
+        return tup
 
     @property
-    def top_weapons(self) -> list[SlotType]:
-        return [
+    def top_weapons(self) -> tuple[SlotMemberType, SlotMemberType]:
+        return (
             self._setup.get(self.Slot.TOP_WEAPON_1),
             self._setup.get(self.Slot.TOP_WEAPON_2),
-        ]
+        )
 
     @property
-    def modules(self) -> list[SlotType]:
+    def modules(self) -> list[SlotMemberType]:
         return [self._setup[slot] for slot in _slots_of_type[Type.MODULE]]
 
-    def __setitem__(self, slot: Slot, item: SlotType, /) -> None:
-        if not isinstance(item, SlotType):
-            msg = f"Expected {SlotType}, got {type(item).__name__}"
+    def __setitem__(self, slot: Slot, item: SlotMemberType, /) -> None:
+        if not isinstance(item, SlotMemberType):
+            msg = f"Expected {SlotMemberType}, got {type(item).__name__}"
             raise TypeError(msg)
 
         if item is None:
@@ -96,7 +99,7 @@ class Mech:
         else:
             self._setup[slot] = item
 
-    def __getitem__(self, slot: Slot, /) -> SlotType:
+    def __getitem__(self, slot: Slot, /) -> SlotMemberType:
         return self._setup.get(slot)
 
     def __delitem__(self, slot: Slot, /) -> None:
@@ -130,7 +133,7 @@ class Mech:
         self,
         *slots: "SlotSelectorType",
         yield_slots: Literal[False] = False,
-    ) -> abc.Iterator[SlotType]:
+    ) -> abc.Iterator[SlotMemberType]:
         ...
 
     @overload
@@ -138,14 +141,14 @@ class Mech:
         self,
         *slots: "SlotSelectorType",
         yield_slots: Literal[True],
-    ) -> abc.Iterator[tuple[SlotType, Slot]]:
+    ) -> abc.Iterator[tuple[SlotMemberType, Slot]]:
         ...
 
     def iter_items(
         self,
         *slots: "SlotSelectorType",
         yield_slots: bool = False,
-    ) -> abc.Iterator[XOrTupleXY[SlotType, Slot]]:
+    ) -> abc.Iterator[XOrTupleXY[SlotMemberType, Slot]]:
         """Iterator over selected mech's items.
 
         Parameters
