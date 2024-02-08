@@ -5,7 +5,7 @@ from typing_extensions import Self
 
 from ..utils import PartialEnum
 
-__all__ = ("Tier", "Element", "Type", "Stat")
+__all__ = ("Element", "Stat", "Tier", "Type")
 
 
 @unique

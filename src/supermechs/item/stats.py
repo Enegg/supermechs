@@ -7,7 +7,7 @@ from attrs import define, field
 from ..errors import OutOfRangeError
 from .enums import Stat, Tier
 
-__all__ = ("TransformStage", "StatsMapping", "MutableStatsMapping")
+__all__ = ("MutableStatsMapping", "StatsMapping", "TransformStage")
 
 
 StatsMapping: TypeAlias = abc.Mapping[Stat, Any]  # TODO: concrete stat type

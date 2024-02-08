@@ -11,7 +11,7 @@ from ..typeshed import ItemID, Name, PackKey
 from .enums import Element, Tier, Type
 from .stats import StatsMapping, TransformStage, get_final_stage
 
-__all__ = ("Tags", "ItemData", "Item", "InvItem", "BattleItem")
+__all__ = ("BattleItem", "InvItem", "Item", "ItemData", "Tags")
 
 
 class Tags(NamedTuple):

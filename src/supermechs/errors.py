@@ -2,6 +2,16 @@ from attrs import define
 
 from .typeshed import ItemID, PackKey
 
+__all__ = (
+    "IDLookupError",
+    "MaxPowerError",
+    "MaxTierError",
+    "NegativeValueError",
+    "OutOfRangeError",
+    "PackKeyError",
+    "SMException",
+)
+
 
 class SMException(Exception):
     """Base class for library exceptions."""
