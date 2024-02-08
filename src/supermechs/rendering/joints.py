@@ -5,7 +5,7 @@ from typing import NamedTuple, TypeAlias
 from ..item import Type
 from ..utils import PartialEnum
 
-__all__ = ("Joints", "JointLayer", "Point2D", "allign_joints", "create_synthetic_joints")
+__all__ = ("JointLayer", "Joints", "Point2D", "align_joints")
 
 
 @unique
@@ -76,5 +76,5 @@ def create_synthetic_joints(width: int, height: int, type: Type) -> Joints:
     return {}
 
 
-def allign_joints(torso_joint: Point2D, item_joint: Point2D) -> Point2D:
+def align_joints(torso_joint: Point2D, item_joint: Point2D) -> Point2D:
     return Point2D(item_joint.x - torso_joint.x, item_joint.y - torso_joint.y)
