@@ -156,6 +156,8 @@ class _SupportsGetSetItem(Protocol[KT, VT]):
 
 @define
 class KeyAccessor(Generic[KT, VT]):
+    """Data descriptor proxying read/write from/to a specified key of a mapping-like object."""
+
     key: Final[KT]
 
     @overload
@@ -175,3 +177,31 @@ class KeyAccessor(Generic[KT, VT]):
 
     def __set__(self, obj: _SupportsGetSetItem[KT, VT], value: VT, /) -> None:
         obj[self.key] = value
+
+
+@define
+class SequenceView(Generic[KT, VT]):
+    """A sequence-like object providing a view on a mapping."""
+
+    _obj: Final[_SupportsGetSetItem[tuple[KT, int], VT]]
+    _key: Final[KT]
+    length: int
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __getitem__(self, index: int, /) -> VT:
+        if index >= self.length:
+            raise IndexError
+
+        return self._obj[self._key, index]
+
+    def __setitem__(self, index: int, item: VT, /) -> None:
+        if index >= self.length:
+            raise IndexError
+
+        self._obj[self._key, index] = item
+
+    def __iter__(self) -> abc.Iterator[VT]:
+        for n in range(self.length):
+            yield self._obj[self._key, n]

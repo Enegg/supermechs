@@ -1,16 +1,18 @@
 from collections import abc
-from typing import Final
+from typing import Final, Literal, TypeAlias
 
-from attrs import define, field, validators
+from attrs import define, field
 
-from .item import Stat
+from .item.enums import Stat, Type
+
+VariadicType: TypeAlias = Literal[Type.SIDE_WEAPON, Type.TOP_WEAPON, Type.MODULE]
 
 
 @define
 class BuildRules:
-    MAX_WEIGHT: Final[int] = field(default=int(1000), validator=validators.ge(0))
+    MAX_WEIGHT: Final[int] = 1000
     """The maximum weight of a mech before overload."""
-    OVERLOAD: Final[int] = field(default=int(10), validator=validators.ge(0))
+    OVERLOAD: Final[int] = 10
     """The maximum extra weight allowed over the max weight."""
     STAT_PENALTIES_PER_KG: Final[abc.Mapping[Stat, int]] = {Stat.hit_points: 15}
     """The ratios at which mech stats are reduced for each kg of overload."""
@@ -20,6 +22,13 @@ class BuildRules:
         Stat.electric_resistance,
     }
     """A set of stats which can occur at most once among all modules of a mech."""
+    VARIADIC_SLOTS: Final[abc.Mapping[VariadicType, int]] = {
+        Type.SIDE_WEAPON: 4,
+        Type.TOP_WEAPON: 2,
+        Type.MODULE: 8,
+        # Type.KIT: 0,
+    }
+    """Mapping of item types to the maximum number of slots given type has."""
 
     @property
     def OVERLOADED_MAX_WEIGHT(self) -> int:
