@@ -1,6 +1,8 @@
 from attrs import define
 
-from .typeshed import ItemID, PackKey
+from .abc.item import ItemID
+from .abc.item_pack import PackKey
+from .enums.stats import Tier
 
 __all__ = (
     "IDLookupError",
@@ -10,6 +12,7 @@ __all__ = (
     "OutOfRangeError",
     "PackKeyError",
     "SMException",
+    "TierUnreachableError",
 )
 
 
@@ -26,7 +29,7 @@ class OutOfRangeError(SMException, ValueError):
     upper: float
 
     def __str__(self) -> str:
-        return f"Value {self.number} out of range; {self.lower} ≤ X ≤ {self.upper}"
+        return f"Value {self.number} outside range {self.lower}...{self.upper}"
 
 
 @define
@@ -69,5 +72,15 @@ class MaxPowerError(SMException):
 class MaxTierError(SMException):
     """Attempted to transform an item at its maximum tier."""
 
-    def __init__(self, /) -> None:
+    def __init__(self) -> None:
         super().__init__("Maximum item tier already reached")
+
+
+@define
+class TierUnreachableError(SMException):
+    """Attempted to construct an item at a tier it does not reach."""
+
+    tier: Tier
+
+    def __str__(self) -> str:
+        return f"Item does not reach {self.tier.name} tier"
