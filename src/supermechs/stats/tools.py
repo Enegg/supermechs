@@ -1,15 +1,14 @@
 from collections import abc
-from typing import Any, TypeAlias
 
-from .arenashop import ArenaShopMapping, Category, get_data
-from .gamerules import DEFAULT_GAME_RULES, BuildRules
-from .item import Item, MutableStatsMapping, Stat, StatsMapping, TransformStage
-from .item.stats import get_final_stage
-from .mech import Mech
+from ..abc.arenashop import ArenaShopMapping
+from ..abc.stats import MutableStatsMapping, StatsMapping
+from ..enums.arenashop import Category
+from ..enums.stats import Stat
+from ..gamerules import DEFAULT_GAME_RULES, BuildRules
+from ..item import Item
+from ..mech import Mech
+from .stages import StatsDict, TransformStage, get_final_stage
 
-StatsDict: TypeAlias = dict[Stat, Any]
-"""Concrete mapping type of item stats to values."""
-# fmt: off
 STAT_TO_CATEGORY: abc.Mapping[Stat, Category] = {
     Stat.energy_capacity:      Category.energy_capacity,
     Stat.regeneration:         Category.energy_regeneration,
@@ -25,8 +24,7 @@ STAT_TO_CATEGORY: abc.Mapping[Stat, Category] = {
     Stat.electric_resistance:  Category.electric_resistance,
     Stat.hit_points:           Category.total_hp,
     Stat.backfire:             Category.backfire_reduction,
-}
-# fmt: on
+}  # fmt: skip
 MECH_SUMMARY_STATS: abc.Sequence[Stat] = (
     Stat.weight,
     Stat.hit_points,
@@ -44,14 +42,13 @@ MECH_SUMMARY_STATS: abc.Sequence[Stat] = (
 )
 
 
-def get_item_stats(item: Item, /) -> StatsMapping:
+def get_item_stats(item: Item, /) -> StatsDict:
     """The stats of the item at its particular tier and level."""
     return item.stage.at(item.level)
 
 
 def mech_summary(mech: Mech, /) -> StatsDict:
     """A dict of the mech's stats, in order as they appear in workshop."""
-
     # inherits key order
     stats: StatsDict = dict.fromkeys(MECH_SUMMARY_STATS, 0)
 
@@ -67,22 +64,15 @@ def mech_summary(mech: Mech, /) -> StatsDict:
 def apply_overload_penalties(
     stats: MutableStatsMapping, /, ruleset: BuildRules = DEFAULT_GAME_RULES.builds
 ) -> None:
-    if (overload := stats[Stat.weight] - ruleset.MAX_WEIGHT) > 0:
+    """TODO: docstring"""
+    if (overload := stats.get(Stat.weight, 0) - ruleset.MAX_WEIGHT) > 0:
         for stat, penalty in ruleset.STAT_PENALTIES_PER_KG.items():
             stats[stat] -= overload * penalty
 
 
-def _apply_absolute(value: Any, addon: Any) -> Any:
-    return value + addon
-
-
-def _apply_percent(value: Any, percent: Any) -> Any:
-    return round(value * (1 + percent / 100))
-
-
 def buff_stats(
     stats: StatsMapping, /, buff_levels: ArenaShopMapping, *, skip_hp: bool = True
-) -> StatsMapping:
+) -> StatsDict:
     """Returns stats buffed according to buff levels."""
     mutable_stats = dict(stats)
 
@@ -93,16 +83,16 @@ def buff_stats(
         if category is Category.total_hp and skip_hp:
             continue
 
-        data = get_data(category)
+        data = category.data
         level = buff_levels[category]
-        addon = data.progression[level]
-        method = _apply_absolute if data.is_absolute else _apply_percent
-        mutable_stats[stat] = method(value, addon)
+        addon = int(data.progression[level])
+        buffed_value = value + addon if data.is_absolute else round(value * (1 + addon / 100))
+        mutable_stats[stat] = buffed_value
 
     return mutable_stats
 
 
-def max_stats(stage: TransformStage, /) -> StatsMapping:
+def max_stats(stage: TransformStage, /) -> StatsDict:
     """Return the max stats."""
     stage = get_final_stage(stage)
     return stage.at(stage.max_level)

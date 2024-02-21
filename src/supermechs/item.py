@@ -1,17 +1,19 @@
 import uuid
 from bisect import bisect_left
 from collections import abc
-from typing import Final, NamedTuple, TypeAlias
-from typing_extensions import Self
+from typing import Final, NamedTuple
 
 from attrs import Factory, define, field, validators
+from typing_extensions import Self
 
-from ..errors import MaxTierError, NegativeValueError
-from ..typeshed import ItemID, Name, PackKey
-from .enums import Element, Tier, Type
-from .stats import StatsMapping, TransformStage, get_final_stage
+from .abc.item import ItemID, Name, Paint
+from .abc.item_pack import PackKey
+from .enums.item import Element, Type
+from .enums.stats import Tier
+from .errors import MaxTierError, NegativeValueError, OutOfRangeError, TierUnreachableError
+from .stats.stages import TransformStage, get_final_stage
 
-__all__ = ("BattleItem", "InvItem", "Item", "ItemData", "Tags")
+__all__ = ("InvItem", "Item", "ItemData", "Tags")
 
 
 class Tags(NamedTuple):
@@ -64,10 +66,6 @@ class ItemData:
 
         while stage := stage.next:
             yield stage
-
-
-Paint: TypeAlias = str
-"""The name of the paint, or a #-prefixed hex string as a color."""
 
 
 @define(kw_only=True)
@@ -124,7 +122,7 @@ class Item:
 
     @property
     def is_maxed(self) -> bool:
-        """Whether the item is at final stage and level."""
+        """Whether the item is at its final stage and level."""
         return not self.can_transform and self.is_max_level
 
     def __str__(self) -> str:
@@ -139,16 +137,40 @@ class Item:
         self.stage = self.stage.next
 
     @classmethod
-    def from_data(
-        cls, data: ItemData, stage: TransformStage | None = None, /, *, maxed: bool = False
-    ) -> Self:
-        if stage is None:
+    def from_data(cls, data: ItemData, /, tier: Tier | None = None, level: int = 0) -> Self:
+        """Create an Item with ItemData at preset tier and level.
+
+        Parameters
+        ----------
+        data: ItemData to create Item with.
+        tier: if not None, the tier to create the Item at. Defaults to the lowest tier.
+        level: the level to create the Item at. If -1, will set to maximum for given tier.\
+            If `tier` is None, will also set the tier to the maximum reachable.
+        """
+        MAGIC = -1
+
+        if tier is not None:
+            for stage in data.iter_stages():
+                if stage.tier is tier:
+                    break
+
+            else:
+                raise TierUnreachableError(tier)
+
+        elif level == MAGIC:
+            stage = get_final_stage(data.start_stage)
+
+        else:
             stage = data.start_stage
 
-        if maxed:
-            stage = get_final_stage(stage)
+        max_level = stage.max_level
 
-        level = stage.max_level if maxed else 0
+        if level == MAGIC:
+            level = max_level
+
+        elif not 0 <= level <= max_level:
+            raise OutOfRangeError(MAGIC, level, max_level)
+
         return cls(data=data, stage=stage, level=level)
 
 
@@ -184,8 +206,10 @@ class InvItem:
         if power < 0:
             raise NegativeValueError(power)
 
-        self.item.level = bisect_left(self.item.stage.level_progression, self.power) + 1
-        self._power = min(power, self.max_power)
+        progression = self.item.stage.level_progression
+        power = min(power, progression[-1])
+        self._power = power
+        self.item.level = bisect_left(progression, power) + 1
 
     def __str__(self) -> str:
         return f"{self.item} {self.UUID}"
@@ -198,17 +222,3 @@ class InvItem:
 
         self.item.transform()
         self.power = 0
-
-
-# XXX: should the multipliers be applied on BattleItem creation, or should it hold a reference?
-# BattleItem should be constructible without an InvItem; it has nothing to do with inventory
-
-
-@define
-class BattleItem:
-    """Represents the state of an item during a battle."""
-
-    item: Final[Item]
-    stats: Final[StatsMapping]
-    multipliers: abc.Mapping[str, float] = field(factory=dict)
-    # already_used: bool? XXX prolly better to store elsewhere

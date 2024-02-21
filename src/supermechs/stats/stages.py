@@ -1,19 +1,17 @@
 from collections import abc
-from typing import Any, TypeAlias
-from typing_extensions import Self
+from typing import TypeAlias
 
 from attrs import define, field
+from typing_extensions import Self
 
+from ..abc.stats import StatsMapping, StatType
+from ..enums.stats import Stat, Tier
 from ..errors import OutOfRangeError
-from .enums import Stat, Tier
 
-__all__ = ("MutableStatsMapping", "StatsMapping", "TransformStage")
+__all__ = ("StatsDict", "TransformStage", "get_final_stage")
 
-
-StatsMapping: TypeAlias = abc.Mapping[Stat, Any]  # TODO: concrete stat type
-"""Generic mapping of item stats to values."""
-MutableStatsMapping: TypeAlias = abc.MutableMapping[Stat, Any]
-"""Generic mutable mapping of item stats to values."""
+StatsDict: TypeAlias = dict[Stat, StatType]
+"""Concrete mapping type of item stats to values."""
 
 
 def lerp(lower: int, upper: int, weight: float) -> int:
@@ -41,7 +39,7 @@ class TransformStage:
         """The maximum level this stage can reach, starting from 0."""
         return len(self.level_progression)
 
-    def at(self, level: int, /) -> StatsMapping:
+    def at(self, level: int, /) -> StatsDict:
         """Returns the stats at given level."""
 
         max_level = self.max_level
@@ -50,7 +48,7 @@ class TransformStage:
             raise OutOfRangeError(0, level, max_level)
 
         if level == 0:
-            return self.base_stats
+            return dict(self.base_stats)
 
         if level == max_level:
             return {**self.base_stats, **self.max_changing_stats}
@@ -65,7 +63,7 @@ class TransformStage:
 
 
 def get_final_stage(stage: TransformStage, /) -> TransformStage:
-    """Returns the final stage of transformation."""
+    """Traverse to the final stage and return it."""
     while stage.next is not None:
         stage = stage.next
 
