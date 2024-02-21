@@ -1,5 +1,6 @@
 from collections import abc
-from typing import Final, NewType, TypeAlias
+from typing import TypeAlias
+
 from typing_extensions import ParamSpec, TypeVar
 
 T = TypeVar("T", infer_variance=True)
@@ -10,18 +11,7 @@ VT = TypeVar("VT", infer_variance=True)
 """Value-type of a mapping."""
 P = ParamSpec("P")
 
-twotuple: TypeAlias = tuple[T, T]
-"""Tuple of two elements of same type."""
-XOrTupleXY: TypeAlias = T | tuple[T, T2]
-"""Type or tuple of two types."""
 Factory: TypeAlias = abc.Callable[[], T]
 """0-argument callable returning an object of given type."""
 LiteralURL: TypeAlias = str
 """String representing a URL."""
-
-Name: TypeAlias = str
-"""String representing item name."""
-ItemID: Final = NewType("ItemID", int)
-"""Positive integer representing an item's ID."""
-PackKey: Final = NewType("PackKey", str)
-"""String representing item pack key."""
