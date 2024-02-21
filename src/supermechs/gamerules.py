@@ -3,7 +3,8 @@ from typing import Final, Literal, TypeAlias
 
 from attrs import define, field
 
-from .item.enums import Stat, Type
+from .enums.item import Type
+from .enums.stats import Stat
 
 VariadicType: TypeAlias = Literal[Type.SIDE_WEAPON, Type.TOP_WEAPON, Type.MODULE]
 

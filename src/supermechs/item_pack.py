@@ -3,9 +3,11 @@ from typing import Any, Final, overload
 
 from attrs import define, field
 
+from .abc.item import ItemID
+from .abc.item_pack import PackKey
+from .enums.stats import Tier
 from .errors import IDLookupError, PackKeyError
-from .item import Item, ItemData, Tier
-from .typeshed import ItemID, PackKey
+from .item import Item, ItemData
 from .utils import large_mapping_repr
 
 __all__ = ("ItemPack", "PackData")

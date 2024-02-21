@@ -3,8 +3,9 @@ from typing import Literal, TypeAlias
 
 from attrs import define, field
 
+from .enums.item import Element, Type
 from .gamerules import DEFAULT_GAME_RULES, BuildRules, VariadicType
-from .item import Element, Item, Type
+from .item import Item
 from .utils import KeyAccessor, SequenceView
 
 __all__ = ("Mech", "SlotMemberType", "dominant_element")
@@ -15,7 +16,7 @@ SlotAccessor: TypeAlias = KeyAccessor[Type, SlotMemberType]
 SlotSelectorType: TypeAlias = SlotType | Literal["body", "weapons", "specials"]
 
 
-@define(kw_only=True)
+@define
 class Mech:
     """Represents a mech build."""
 
