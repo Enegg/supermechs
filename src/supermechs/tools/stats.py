@@ -7,7 +7,9 @@ from ..enums.stats import Stat
 from ..gamerules import DEFAULT_GAME_RULES, BuildRules
 from ..item import Item
 from ..mech import Mech
-from .stages import StatsDict, TransformStage, get_final_stage
+from ..stats import StatsDict, TransformStage, get_final_stage
+
+__all__ = ("apply_overload_penalties", "buff_stats", "get_item_stats", "max_stats", "mech_summary")
 
 STAT_TO_CATEGORY: abc.Mapping[Stat, Category] = {
     Stat.energy_capacity:      Category.energy_capacity,

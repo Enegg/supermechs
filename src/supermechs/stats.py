@@ -1,12 +1,12 @@
 from collections import abc
-from typing import TypeAlias
+from typing import Final, TypeAlias
 
 from attrs import define, field
 from typing_extensions import Self
 
-from ..abc.stats import StatsMapping, StatType
-from ..enums.stats import Stat, Tier
-from ..errors import OutOfRangeError
+from .abc.stats import StatsMapping, StatType
+from .enums.stats import Stat, Tier
+from .errors import OutOfRangeError
 
 __all__ = ("StatsDict", "TransformStage", "get_final_stage")
 
@@ -23,15 +23,15 @@ def lerp(lower: int, upper: int, weight: float) -> int:
 class TransformStage:
     """Stores item tier-dependent data."""
 
-    tier: Tier = field()
+    tier: Final[Tier] = field()
     """The tier of the transform stage."""
-    base_stats: StatsMapping = field()
+    base_stats: Final[StatsMapping] = field()
     """Stats of the item at level 0."""
-    max_changing_stats: StatsMapping = field()
+    max_changing_stats: Final[StatsMapping] = field()
     """Stats of the item that change as it levels up, at max level."""
-    level_progression: abc.Sequence[int] = field()
+    level_progression: Final[abc.Sequence[int]] = field()
     """Sequence of exp thresholds consecutive levels require to reach."""
-    next: Self | None = field(default=None)
+    next: Final[Self | None] = field(default=None)
     """The next stage of transformation."""
 
     @property

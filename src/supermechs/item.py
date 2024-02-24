@@ -11,7 +11,7 @@ from .abc.item_pack import PackKey
 from .enums.item import Element, Type
 from .enums.stats import Tier
 from .errors import MaxTierError, NegativeValueError, OutOfRangeError, TierUnreachableError
-from .stats.stages import TransformStage, get_final_stage
+from .stats import TransformStage, get_final_stage
 
 __all__ = ("InvItem", "Item", "ItemData", "Tags")
 
