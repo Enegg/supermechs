@@ -17,7 +17,7 @@ typing-extensions = ">= 4.4.1" # override
 attrs = ">= 22.1.0"            # min_len
 
 [tool.poetry.group.dev.dependencies]
-ruff = ">= 0.1.0" # > .291 replaces black (alpha)
+ruff = ">= 0.2.1"
 pre-commit = "*"
 ipykernel = "^6.29.0"
 
