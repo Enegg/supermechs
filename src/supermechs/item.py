@@ -10,7 +10,7 @@ from .abc.item import ItemID, Name, Paint
 from .abc.item_pack import PackKey
 from .enums.item import Element, Type
 from .enums.stats import Tier
-from .errors import MaxTierError, NegativeValueError, OutOfRangeError, TierUnreachableError
+from .errors import MaxTierError, NegativeValueError, TierUnreachableError
 from .stats import TransformStage, get_final_stage
 
 __all__ = ("InvItem", "Item", "ItemData", "Tags")
@@ -137,41 +137,19 @@ class Item:
         self.stage = self.stage.next
 
     @classmethod
-    def from_data(cls, data: ItemData, /, tier: Tier | None = None, level: int = 0) -> Self:
-        """Create an Item with ItemData at preset tier and level.
+    def maxed(cls, data: ItemData, /) -> Self:
+        """Create an Item at maximum tier and level."""
+        stage = get_final_stage(data.start_stage)
+        return cls(data=data, stage=stage, level=stage.max_level)
 
-        Parameters
-        ----------
-        data: ItemData to create Item with.
-        tier: if not None, the tier to create the Item at. Defaults to the lowest tier.
-        level: the level to create the Item at. If -1, will set to maximum for given tier.\
-            If `tier` is None, will also set the tier to the maximum reachable.
-        """
-        MAGIC = -1
+    @classmethod
+    def at_tier(cls, data: ItemData, /, tier: Tier) -> Self:
+        """Create an Item at given tier."""
+        for stage in data.iter_stages():
+            if stage.tier is tier:
+                return cls(data=data, stage=stage)
 
-        if tier is not None:
-            for stage in data.iter_stages():
-                if stage.tier is tier:
-                    break
-
-            else:
-                raise TierUnreachableError(tier)
-
-        elif level == MAGIC:
-            stage = get_final_stage(data.start_stage)
-
-        else:
-            stage = data.start_stage
-
-        max_level = stage.max_level
-
-        if level == MAGIC:
-            level = max_level
-
-        elif not 0 <= level <= max_level:
-            raise OutOfRangeError(MAGIC, level, max_level)
-
-        return cls(data=data, stage=stage, level=level)
+        raise TierUnreachableError(tier)
 
 
 @define(kw_only=True)
