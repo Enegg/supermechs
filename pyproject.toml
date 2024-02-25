@@ -19,22 +19,32 @@ attrs = ">= 22.1.0"            # min_len
 [tool.poetry.group.dev.dependencies]
 ruff = ">= 0.1.0" # > .291 replaces black (alpha)
 pre-commit = "*"
+ipykernel = "^6.29.0"
 
 
 [tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
+
 select = [
     "E",   # general errors
     "F",   # flake
     "RUF", # ruff specific
     "PL",  # pylint
+    "B",   # bugbear
 
     "G",   # avoid formatting in logging
     "Q",   # consistent string quotes
     "FLY", # static joins
     "ISC", # string concatenation
 
-    "SIM", # simplifiable logic
-    "C4",  # simplifiable comprehensions
+    "SIM",  # simplifiable logic
+    "C4",   # simplifiable comprehensions
+    "PERF", # micro optimizations
 
     "ASYNC", # blocking calls in async context
     "TCH",   # type-checking-only imports
@@ -42,14 +52,18 @@ select = [
     "TRY",   # try - except pitfalls
     "EM",    # don't inline exception messages
     "ERA",   # commented out code
-]
-line-length = 100
-target-version = "py310"
 
-[tool.ruff.per-file-ignores]
+    # preview
+    "RUF022", # sort __all__
+]
+ignore = [
+    "PERF203" # try ... except in loops
+]
+
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"] # import *
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 split-on-trailing-comma = false
 extra-standard-library = ["typing_extensions"]
@@ -63,22 +77,24 @@ section-order = [
     "supermechs-ext",
 ]
 
-[tool.ruff.isort.sections]
+[tool.ruff.lint.isort.sections]
 "supermechs" = ["supermechs"]
 "supermechs-ext" = ["supermechs.ext"]
 
-[tool.ruff.flake8-type-checking]
+[tool.ruff.lint.flake8-type-checking]
 exempt-modules = ["typing", "typing_extensions", "supermechs.typeshed"]
 runtime-evaluated-decorators = ["attrs.define", "attrs.frozen"]
 
 
 [tool.pyright]
 include = ["src/supermechs"]
+exclude = ["dev"]
 pythonVersion = "3.10"
 
 typeCheckingMode = "strict"
 
 reportMissingTypeStubs = false
+reportImportCycles = true
 
 reportUnnecessaryTypeIgnoreComment = "information"
 reportUnnecessaryIsInstance = "information"
