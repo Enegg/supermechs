@@ -20,7 +20,6 @@ SlotSelectorType: TypeAlias = SlotType | Literal["body", "weapons", "specials"]
 class Mech:
     """Represents a mech build."""
 
-    name: str = field()
     rules: BuildRules = field(default=DEFAULT_GAME_RULES.builds)
     _setup: abc.MutableMapping[SlotType, Item] = field(factory=dict, init=False)
     # fmt: off
