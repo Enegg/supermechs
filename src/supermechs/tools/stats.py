@@ -9,7 +9,14 @@ from ..item import Item
 from ..mech import Mech
 from ..stats import StatsDict, TransformStage, get_final_stage
 
-__all__ = ("apply_overload_penalties", "buff_stats", "get_item_stats", "max_stats", "mech_summary")
+__all__ = (
+    "apply_overload_penalties",
+    "buff_stats",
+    "get_item_stats",
+    "max_stats",
+    "mech_summary",
+    "mech_weight",
+)
 
 STAT_TO_CATEGORY: abc.Mapping[Stat, Category] = {
     Stat.energy_capacity:      Category.energy_capacity,
@@ -61,6 +68,16 @@ def mech_summary(mech: Mech, /) -> StatsDict:
             stats[stat] += item_stats.get(stat, 0)
 
     return stats
+
+
+def mech_weight(mech: Mech, /) -> int:
+    """Total mech's weight."""
+    mass = 0
+
+    for item in filter(None, mech.iter_items()):
+        mass += get_item_stats(item).get(Stat.weight, 0)
+
+    return mass
 
 
 def apply_overload_penalties(
