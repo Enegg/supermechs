@@ -1,21 +1,27 @@
-import typing as t
+from collections import abc
+from typing import TypeAlias
+
+from typing_extensions import TypedDict
+
+from supermechs.typeshed import LiteralURL
 
 __all__ = (
+    "AnyRawAttachment",
+    "ItemImageParams",
     "RawBox2D",
     "RawPoint2D",
     "RawTorsoAttachments",
-    "AnyRawAttachment",
-    "ItemImageParams",
+    "SpritesSheetMixin",
 )
 
 
-class RawPoint2D(t.TypedDict):
+class RawPoint2D(TypedDict):
     x: int
     y: int
 
 
-RawTorsoAttachments = t.Mapping[str, RawPoint2D]
-AnyRawAttachment = RawPoint2D | RawTorsoAttachments | None
+RawTorsoAttachments: TypeAlias = abc.Mapping[str, RawPoint2D]
+AnyRawAttachment: TypeAlias = RawPoint2D | RawTorsoAttachments | None
 
 
 class RawBox2D(RawPoint2D):
@@ -23,8 +29,12 @@ class RawBox2D(RawPoint2D):
     height: int
 
 
-class ItemImageParams(t.TypedDict, total=False):
+class ItemImageParams(TypedDict, total=False):
     width: int
     height: int
-    image: str
     attachment: RawPoint2D | RawTorsoAttachments
+
+
+class SpritesSheetMixin(TypedDict):
+    spritesSheet: LiteralURL
+    spritesMap: dict[str, RawBox2D]

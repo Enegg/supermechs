@@ -1,22 +1,26 @@
-import typing as t
-from typing_extensions import NotRequired
+from typing import Literal, TypeAlias
 
-from .graphics import ItemImageParams, RawBox2D
+from typing_extensions import NotRequired, TypedDict
+
+from .graphics import ItemImageParams, SpritesSheetMixin
 
 from supermechs.typeshed import LiteralURL
 
-# fmt: off
 __all__ = (
-    "TiersMixin", "RawStatsMapping",
-    "ItemDictVer1", "ItemPackVer1",
-    "ItemDictVer2", "ItemPackVer2",
-    "ItemDictVer3", "ItemPackVer3",
-    "AnyItemDict", "AnyItemPack", "PackMetadata",
+    "AnyItemDict",
+    "AnyItemPack",
+    "ItemDictVer1",
+    "ItemDictVer2",
+    "ItemDictVer3",
+    "ItemPackVer1",
+    "ItemPackVer2",
+    "ItemPackVer3",
+    "PackMetadata",
+    "RawStatsMapping",
 )
-# fmt: on
 
-LiteralTag = t.Literal["sword", "melee", "roller"]
-LiteralType = t.Literal[
+LiteralTag: TypeAlias = Literal["sword", "melee", "roller"]
+LiteralType: TypeAlias = Literal[
     "TORSO",
     "LEGS",
     "DRONE",
@@ -27,13 +31,11 @@ LiteralType = t.Literal[
     "GRAPPLING_HOOK",
     "MODULE",
 ]
-LiteralElement = t.Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
-_nint = int | None
+LiteralElement: TypeAlias = Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
+_nint: TypeAlias = int | None
 
 
-class RawStatsMapping(t.TypedDict, total=False):
-    """Data as received from source."""
-
+class RawStatsMapping(TypedDict, total=False):
     weight: _nint
     health: _nint
     eneCap: _nint
@@ -59,7 +61,6 @@ class RawStatsMapping(t.TypedDict, total=False):
     heaCapDmg: _nint
     heaColDmg: _nint
     expResDmg: _nint
-    # walk, jump
     range: list[_nint]
     push: _nint
     pull: _nint
@@ -74,25 +75,6 @@ class RawStatsMapping(t.TypedDict, total=False):
     rocketsCost: _nint
 
 
-class TiersMixin(t.TypedDict, total=False):
-    common: RawStatsMapping
-    max_common: RawStatsMapping
-    rare: RawStatsMapping
-    max_rare: RawStatsMapping
-    epic: RawStatsMapping
-    max_epic: RawStatsMapping
-    legendary: RawStatsMapping
-    max_legendary: RawStatsMapping
-    mythical: RawStatsMapping
-    max_mythical: RawStatsMapping
-    divine: RawStatsMapping
-
-
-class SpritesSheetMixin(t.TypedDict):
-    spritesSheet: LiteralURL
-    spritesMap: dict[str, RawBox2D]
-
-
 class ItemDictBase(ItemImageParams):
     id: int
     name: str
@@ -102,7 +84,7 @@ class ItemDictBase(ItemImageParams):
     tags: NotRequired[list[LiteralTag]]
 
 
-class PackMetadata(t.TypedDict):
+class PackMetadata(TypedDict):
     key: str
     name: str
     description: str
@@ -120,8 +102,8 @@ class ConfigVer1(PackMetadata):
     base_url: LiteralURL
 
 
-class ItemPackVer1(t.TypedDict):
-    version: NotRequired[t.Literal["1"]]
+class ItemPackVer1(TypedDict):
+    version: NotRequired[Literal["1"]]
     config: ConfigVer1
     items: list[ItemDictVer1]
 
@@ -134,21 +116,31 @@ class ItemDictVer2(ItemDictBase):
 
 
 class ItemPackVer2(PackMetadata, SpritesSheetMixin):
-    version: t.Literal["2"]
+    version: Literal["2"]
     items: list[ItemDictVer2]
 
 
 # ----------------------------------------------- v3 -----------------------------------------------
 
 
-class ItemDictVer3(ItemDictBase, TiersMixin):
-    pass
+class ItemDictVer3(ItemDictBase, total=False):
+    common: RawStatsMapping
+    max_common: RawStatsMapping
+    rare: RawStatsMapping
+    max_rare: RawStatsMapping
+    epic: RawStatsMapping
+    max_epic: RawStatsMapping
+    legendary: RawStatsMapping
+    max_legendary: RawStatsMapping
+    mythical: RawStatsMapping
+    max_mythical: RawStatsMapping
+    divine: RawStatsMapping
 
 
 class ItemPackVer3(PackMetadata, SpritesSheetMixin):
-    version: t.Literal["3"]
+    version: Literal["3"]
     items: list[ItemDictVer3]
 
 
-AnyItemDict = ItemDictVer1 | ItemDictVer2 | ItemDictVer3
-AnyItemPack = ItemPackVer1 | ItemPackVer2 | ItemPackVer3
+AnyItemDict: TypeAlias = ItemDictVer1 | ItemDictVer2 | ItemDictVer3
+AnyItemPack: TypeAlias = ItemPackVer1 | ItemPackVer2 | ItemPackVer3
