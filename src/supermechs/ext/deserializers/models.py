@@ -3,17 +3,12 @@ import typing
 from collections import abc
 from contextlib import contextmanager
 from typing import Any, NoReturn, TypeAlias
-
-from exceptiongroup import ExceptionGroup
 from typing_extensions import TypeVar
 
-from .errors import (
-    DataError,
-    DataKeyError,
-    DataTypeError,
-    DataValueError,
-    DataVersionError,
-)
+from exceptiongroup import ExceptionGroup
+
+from .errors import DataError, DataKeyError, DataTypeError, DataValueError, DataVersionError
+from .stats import InterpolatedStats, StaticStats
 from .typedefs import AnyItemDict, AnyItemPack, RawStatsMapping
 from .utils import assert_key, assert_type, maybe_null, wrap_unsafe
 
@@ -25,7 +20,7 @@ from supermechs.enums.stats import Stat, Tier
 from supermechs.item import ItemData, Tags
 from supermechs.item_pack import ItemPack, PackData
 from supermechs.stats import StatsDict, TransformStage
-from supermechs.utils import has_any_of
+from supermechs.utils import contains_any_of
 
 ExcT = TypeVar("ExcT", bound=Exception, infer_variance=True)
 MaybeGroup: TypeAlias = ExcT | ExceptionGroup[ExcT]
@@ -119,7 +114,7 @@ def to_tags(
     elif start_stage.tier >= Tier.LEGENDARY:
         literal_tags.add("premium")
 
-    if has_any_of(start_stage.base_stats, Stat.advance, Stat.retreat):
+    if contains_any_of(start_stage.stats, Stat.advance, Stat.retreat):
         literal_tags.add("require_jump")
 
     if issues:
@@ -195,12 +190,11 @@ def to_transform_stages(  # noqa: PLR0912
 
     key = "stats"
     if key in unsafe:
-        return TransformStage(
-            tier=final_tier,
-            base_stats=to_stats_mapping(unsafe[key], at=(*at, key), collect_errors=collect_errors),
-            max_changing_stats={},
-            level_progression=[],  # TODO: level_progression source
+        stats = StaticStats(
+            to_stats_mapping(unsafe[key], at=(*at, key), collect_errors=collect_errors)
         )
+        # TODO: level_progression source
+        return TransformStage(tier=final_tier, stats=stats, level_progression=[])
     del key
 
     start_tier = Tier.of_initial(range_str[0])
@@ -259,12 +253,10 @@ def to_transform_stages(  # noqa: PLR0912
     current_stage = None
 
     for tier, base, addon in reversed(computed):
+        stats = InterpolatedStats(base, addon, 0)
+        # TODO: level_progression source
         current_stage = TransformStage(
-            tier=tier,
-            base_stats=base,
-            max_changing_stats=addon,
-            level_progression=[],  # TODO: level_progression source
-            next=current_stage,
+            tier=tier, stats=stats, level_progression=[], next=current_stage
         )
 
     if current_stage is None:

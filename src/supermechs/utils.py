@@ -4,17 +4,18 @@ from typing import Any, Final, Generic, Protocol, overload
 from attrs import define
 from typing_extensions import Self
 
-from .typeshed import KT, VT
+from .typeshed import KT, VT, T
 
 
-def has_any_of(mapping: abc.Mapping[Any, object], /, *keys: abc.Hashable) -> bool:
-    """Returns True if a mapping contains any of the specified keys."""
-    return not mapping.keys().isdisjoint(keys)
+class RestrictedContainer(Protocol[T]):
+    # abc.Container expects __contain__ to take any object
+    def __contains__(self, value: T, /) -> bool:
+        ...
 
 
-def has_all_of(mapping: abc.Mapping[Any, object], /, *keys: abc.Hashable) -> bool:
-    """Returns True if a mapping contains all of the specified keys."""
-    return frozenset(keys).issubset(mapping.keys())
+def contains_any_of(obj: RestrictedContainer[T], /, *values: T) -> bool:
+    """Returns True if a container has any of the specified values."""
+    return any(v in obj for v in values)
 
 
 def _get_display_brackets(cls: type, /) -> tuple[str, str]:
