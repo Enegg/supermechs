@@ -1,12 +1,8 @@
 from collections import abc
 
-from ..errors import DataError
-from ..typedefs.graphics import (
-    AnyRawAttachment,
-    RawPoint2D,
-    RawTorsoAttachments,
-)
-from ..utils import assert_key
+from ..errors import DataError, DataPath
+from ..typedefs.graphics import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
+from ..utils import assert_keys
 
 from supermechs.enums.item import Type
 from supermechs.graphics.joints import JointLayer, JointLayerType, Joints, Point2D
@@ -14,11 +10,8 @@ from supermechs.graphics.joints import JointLayer, JointLayerType, Joints, Point
 __all__ = ("create_synthetic_joints", "to_point2d", "to_torso_joints")
 
 
-def to_point2d(data: RawPoint2D, /) -> Point2D:
-    return Point2D(
-        assert_key(int, data, "x"),
-        assert_key(int, data, "y"),
-    )
+def to_point2d(data: RawPoint2D, /, *, at: DataPath = ()) -> Point2D:
+    return Point2D(*assert_keys(tuple[int, int], data, "x", "y", at=at))
 
 
 _KEY_TO_JOINT: abc.Mapping[str, JointLayerType] = {
@@ -33,17 +26,17 @@ _KEY_TO_JOINT: abc.Mapping[str, JointLayerType] = {
 }
 
 
-def to_torso_joints(data: RawTorsoAttachments, /) -> Joints:
-    return {_KEY_TO_JOINT[key]: to_point2d(mapping) for key, mapping in data.items()}
+def to_torso_joints(data: RawTorsoAttachments, /, *, at: DataPath = ()) -> Joints:
+    return {_KEY_TO_JOINT[key]: to_point2d(mapping, at=(*at, key)) for key, mapping in data.items()}
 
 
-def to_joints(data: AnyRawAttachment, /) -> Joints:
+def to_joints(data: AnyRawAttachment, /, at: DataPath = ()) -> Joints:
+    if data is None:
+        return {}
+
     match data:
-        case {"x": int() as x, "y": int() as y}:
-            return {JointLayer.TORSO: Point2D(x, y)}
-
-        case None:
-            return {}
+        case {"x": int(), "y": int()}:
+            return {JointLayer.TORSO: to_point2d(data, at=at)}
 
         case {
             "leg1": {},
@@ -55,10 +48,10 @@ def to_joints(data: AnyRawAttachment, /) -> Joints:
             "top1": {},
             "top2": {},
         }:
-            return to_torso_joints(data)
+            return to_torso_joints(data, at=at)
 
         case _:
-            raise DataError
+            raise DataError(at=at) from None
 
 
 def create_synthetic_joints(width: int, height: int, type: Type) -> Joints:
