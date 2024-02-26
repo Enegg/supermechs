@@ -9,6 +9,7 @@ venv
 
 TODO.md
 **/dev/
+dev.*
 
 # Visual Studio Code
 .vscode/*
