@@ -1,14 +1,19 @@
+import types
 import typing
 from collections import abc
-from typing import Final, TypeAlias
+from enum import Enum
 
-from attrs import define
+from attrs import define, field
+from exceptiongroup import ExceptionGroup
 
 from supermechs.errors import SMException
 
-Typeish: TypeAlias = type[object] | None | tuple[type[object] | None, ...]
+DataPath: typing.TypeAlias = tuple[object, ...]
+Typeish: typing.TypeAlias = type[object] | None
+DataErrorGroup: typing.TypeAlias = "DataError | ExceptionGroup[DataErrorGroup]"
 
-_TYPE_TO_NAME: Final[abc.Mapping[type, str]] = {
+
+_TYPE_TO_NAME: abc.Mapping[type, str] = {
     int: "an integer",
     float: "a floating point number",
     str: "a string",
@@ -19,20 +24,46 @@ _TYPE_TO_NAME: Final[abc.Mapping[type, str]] = {
 
 
 def jsonify_type(type_: Typeish, /) -> str:
-    if isinstance(type_, tuple):
-        return " | ".join(map(jsonify_type, typing.get_args(type_)))
-
     if type_ is None:
         return "null"
 
+    if issubclass(type_, Enum):
+        return f"one of {', '.join(e.name for e in type_)}"
+
     return _TYPE_TO_NAME.get(type_, type_.__name__)
+
+
+@define
+class Catch:
+    issues: abc.MutableSequence[DataErrorGroup] = field(factory=list)
+
+    def add(self, exc: DataErrorGroup, /) -> None:
+        self.issues.append(exc)
+
+    def checkpoint(self, msg: str = "") -> None:
+        if self.issues:
+            raise ExceptionGroup[DataErrorGroup](msg, self.issues) from None
+
+    def __enter__(self) -> None:
+        pass
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        tb: types.TracebackType | None,
+        /,
+    ) -> bool | None:
+        if isinstance(exc_value, DataError | ExceptionGroup):
+            self.add(exc_value)  # type: ignore[reportUnknownArgumentType]
+            return True
 
 
 @define(kw_only=True)
 class DataError(SMException):
     """Common class for data parsing errors."""
 
-    at: tuple[object, ...] = ()
+    at: DataPath = ()
 
     @property
     def ats(self) -> str:
@@ -53,13 +84,14 @@ class DataValueError(DataError):
 class DataTypeError(DataError):
     """Value of incorrect type."""
 
-    received: Typeish
+    received: Typeish | str
     expected: Typeish
 
     def __str__(self) -> str:
-        return (
-            f"{self.ats}Expected {jsonify_type(self.expected)}, got {jsonify_type(self.received)}"
+        received = (
+            repr(self.received) if isinstance(self.received, str) else jsonify_type(self.received)
         )
+        return f"{self.ats}Expected {jsonify_type(self.expected)}, got {received}"
 
 
 @define
