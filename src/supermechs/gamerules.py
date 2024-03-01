@@ -3,6 +3,7 @@ from typing import Final, Literal, TypeAlias
 
 from attrs import define, field
 
+from .abc.stats import StatType
 from .enums.item import Type
 from .enums.stats import Stat
 
@@ -17,7 +18,7 @@ class BuildRules:
     """The maximum weight of a mech before overload."""
     OVERLOAD: Final[int] = 10
     """The maximum extra weight allowed over the max weight."""
-    STAT_PENALTIES_PER_KG: Final[abc.Mapping[Stat, int]] = {Stat.hit_points: 15}
+    STAT_PENALTIES_PER_KG: Final[abc.Mapping[Stat, StatType]] = {Stat.hit_points: 15}
     """The ratios at which mech stats are reduced for each kg of overload."""
     EXCLUSIVE_STATS: Final[abc.Set[Stat]] = {
         Stat.physical_resistance,
