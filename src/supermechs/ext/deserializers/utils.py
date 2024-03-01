@@ -77,6 +77,7 @@ def maybe_null(value: int | None, /) -> int:
 
 def assert_type(type_: type[T], obj: object, /, *, at: DataPath = ()) -> T:
     """Assert object is of given type."""
+    base_type: type | None
     if (base_type := typing.get_origin(type_)) is None:
         base_type = type_
         value_type: type | typing.Any = typing.Any
@@ -84,11 +85,14 @@ def assert_type(type_: type[T], obj: object, /, *, at: DataPath = ()) -> T:
     else:
         value_type = typing.get_args(type_)[0]
 
+    if isinstance(base_type, typing.NewType):
+        base_type = typing.cast(type, base_type.__supertype__)  # type: ignore[reportUnknownMemberType]
+
     if typing_.is_typeddict(base_type):
         base_type = dict
 
     if issubclass(base_type, PartialEnum):
-        return assert_enum(base_type, obj, at=at)
+        return typing.cast(T, assert_enum(base_type, obj, at=at))
 
     if not isinstance(obj, base_type):
         raise DataTypeError(type(obj), base_type, at=at) from None
