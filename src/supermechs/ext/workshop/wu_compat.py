@@ -241,7 +241,7 @@ def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
     # FIXME: stats no longer contain lists
     stats = {
         _STAT_TO_WU_STAT[key]: value if isinstance(value, int) else list(value)
-        for key, value in buff_stats(max_stats(item.start_stage), MAX_SHOP).items()
+        for key, value in buff_stats(max_stats(item), MAX_SHOP).items()
     }
     return {
         "slotName": slot_name,

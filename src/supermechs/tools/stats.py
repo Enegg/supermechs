@@ -5,9 +5,9 @@ from ..abc.stats import MutableStatsMapping, StatsMapping
 from ..enums.arenashop import Category
 from ..enums.stats import Stat
 from ..gamerules import DEFAULT_GAME_RULES, BuildRules
-from ..item import Item
+from ..item import Item, ItemData
 from ..mech import Mech
-from ..stats import StatsDict, TransformStage, get_final_stage
+from ..stats import StatsDict, get_final_stage
 
 __all__ = (
     "apply_overload_penalties",
@@ -111,7 +111,7 @@ def buff_stats(
     return mutable_stats
 
 
-def max_stats(stage: TransformStage, /) -> StatsDict:
-    """Return the max stats."""
-    stage = get_final_stage(stage)
+def max_stats(item: ItemData, /) -> StatsDict:
+    """Return the max stats of an item."""
+    stage = get_final_stage(item.start_stage)
     return stage.at(stage.max_level)
