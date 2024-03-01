@@ -8,6 +8,8 @@ from supermechs.enums._base import PartialEnum
 from supermechs.typeshed import T
 
 JSON_KT = typing_.TypeVar("JSON_KT", str, int, infer_variance=True)
+E = typing_.TypeVar("E", bound=PartialEnum, infer_variance=True)
+Ts = typing_.TypeVarTuple("Ts")
 
 
 def js_format(string: str, /, **keys: object) -> str:
@@ -111,9 +113,6 @@ def assert_iterable(type_: type[T], obj: abc.Iterable[object], /, *, at: DataPat
     catch.checkpoint()
 
 
-E = typing_.TypeVar("E", bound=PartialEnum)
-
-
 def assert_enum(enum: type[E], obj: object, /, *, at: DataPath = ()) -> E:
     """Assert name is a valid enum member."""
     if isinstance(obj, str):
@@ -145,9 +144,6 @@ def assert_key(
         raise DataKeyError(key, at=at) from None
 
     return assert_type(type_, value, at=(*at, key))
-
-
-Ts = typing_.TypeVarTuple("Ts")
 
 
 def assert_keys(
