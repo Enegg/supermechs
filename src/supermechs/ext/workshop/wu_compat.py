@@ -1,7 +1,5 @@
 from collections import abc
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
-
-from attrs import asdict
 from typing_extensions import LiteralString, TypedDict
 
 from .. import platform
@@ -251,7 +249,7 @@ def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
         "id": item.id,
         "name": item.name,
         "stats": stats,
-        "tags": asdict(item.tags),
+        "tags": item.tags._asdict(),
         "timesUsed": 0,
         "type": _TYPE_TO_WU_TYPE[item.type],
     }
