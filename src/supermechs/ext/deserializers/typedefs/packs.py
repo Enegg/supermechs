@@ -1,6 +1,5 @@
-from typing import Literal, TypeAlias
-
-from typing_extensions import NotRequired, TypedDict
+import typing
+import typing_extensions as typing_
 
 from .graphics import ItemImageParams, SpritesSheetMixin
 
@@ -19,8 +18,8 @@ __all__ = (
     "RawStatsMapping",
 )
 
-LiteralTag: TypeAlias = Literal["sword", "melee", "roller"]
-LiteralType: TypeAlias = Literal[
+LiteralTag: typing.TypeAlias = typing.Literal["sword", "melee", "roller"]
+LiteralType: typing.TypeAlias = typing.Literal[
     "TORSO",
     "LEGS",
     "DRONE",
@@ -31,11 +30,11 @@ LiteralType: TypeAlias = Literal[
     "GRAPPLING_HOOK",
     "MODULE",
 ]
-LiteralElement: TypeAlias = Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
-_nint: TypeAlias = int | None
+LiteralElement: typing.TypeAlias = typing.Literal["PHYSICAL", "EXPLOSIVE", "ELECTRIC", "COMBINED"]
+_nint: typing.TypeAlias = int | None
 
 
-class RawStatsMapping(TypedDict, total=False):
+class RawStatsMapping(typing_.TypedDict, total=False):
     weight: _nint
     health: _nint
     eneCap: _nint
@@ -81,10 +80,10 @@ class ItemDictBase(ItemImageParams):
     type: LiteralType
     element: LiteralElement
     transform_range: str
-    tags: NotRequired[list[LiteralTag]]
+    tags: typing_.NotRequired[list[LiteralTag]]
 
 
-class PackMetadata(TypedDict):
+class PackMetadata(typing_.TypedDict):
     key: str
     name: str
     description: str
@@ -102,8 +101,8 @@ class ConfigVer1(PackMetadata):
     base_url: LiteralURL
 
 
-class ItemPackVer1(TypedDict):
-    version: NotRequired[Literal["1"]]
+class ItemPackVer1(typing_.TypedDict):
+    version: typing_.NotRequired[typing.Literal["1"]]
     config: ConfigVer1
     items: list[ItemDictVer1]
 
@@ -116,7 +115,7 @@ class ItemDictVer2(ItemDictBase):
 
 
 class ItemPackVer2(PackMetadata, SpritesSheetMixin):
-    version: Literal["2"]
+    version: typing.Literal["2"]
     items: list[ItemDictVer2]
 
 
@@ -138,9 +137,9 @@ class ItemDictVer3(ItemDictBase, total=False):
 
 
 class ItemPackVer3(PackMetadata, SpritesSheetMixin):
-    version: Literal["3"]
+    version: typing.Literal["3"]
     items: list[ItemDictVer3]
 
 
-AnyItemDict: TypeAlias = ItemDictVer1 | ItemDictVer2 | ItemDictVer3
-AnyItemPack: TypeAlias = ItemPackVer1 | ItemPackVer2 | ItemPackVer3
+AnyItemDict: typing.TypeAlias = ItemDictVer1 | ItemDictVer2 | ItemDictVer3
+AnyItemPack: typing.TypeAlias = ItemPackVer1 | ItemPackVer2 | ItemPackVer3

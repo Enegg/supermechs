@@ -45,6 +45,14 @@ class TransformStage:
 
         return stats
 
+    def min(self) -> StatsDict:
+        """Returns the base stats for the stage."""
+        return self.at(0)
+
+    def max(self) -> StatsDict:
+        """Returns the max stats for the stage."""
+        return self.at(self.max_level)
+
 
 def get_final_stage(stage: TransformStage, /) -> TransformStage:
     """Traverse to the final stage and return it."""

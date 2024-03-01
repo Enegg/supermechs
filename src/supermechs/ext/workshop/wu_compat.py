@@ -1,14 +1,13 @@
 from collections import abc
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
-
-from attrs import asdict
 from typing_extensions import LiteralString, TypedDict
 
 from .. import platform
-from ..deserializers.errors import DataError, DataValueError, DataVersionError
+from ..deserializers.exceptions import DataError, DataPath, DataValueError, DataVersionError
 from ..deserializers.utils import assert_key
 
 from supermechs.abc.item import ItemID, Name
+from supermechs.abc.item_pack import PackKey
 from supermechs.arenashop import MAX_SHOP
 from supermechs.enums.item import Type
 from supermechs.enums.stats import Stat
@@ -121,7 +120,7 @@ class ExportedMechs(TypedDict):
 _WU_SLOT_NAMES = tuple(_WU_SLOT_TO_SLOT.keys())
 
 
-def import_mech(data: WUMech, pack: "ItemPack", *, at: tuple[Any, ...] = ()) -> tuple[Mech, str]:
+def import_mech(data: WUMech, pack: "ItemPack", *, at: DataPath = ()) -> tuple[Mech, str]:
     """Imports a mech from WU mech."""
 
     key = "setup"
@@ -164,9 +163,9 @@ def import_mechs(
     if version != "1":
         raise DataVersionError(version, "1")
 
-    key = "mechs"
-    all_mechs = assert_key(dict[object, Any], data, key)
-    mech_list = assert_key(list[Any], all_mechs, pack.data.key, at=(key,))
+    at = ("mechs",)
+    all_mechs = assert_key(dict[PackKey, object], data, at[0])
+    mech_list = assert_key(list[Any], all_mechs, pack.data.key, at=at)
     # TODO: file can contain mechs from different pack than default
 
     mechs: list[tuple[Mech, str]] = []
@@ -174,7 +173,7 @@ def import_mechs(
 
     for i, wu_mech in enumerate(mech_list):
         try:
-            mechs.append(import_mech(wu_mech, pack, at=(key, pack.data.key, i)))
+            mechs.append(import_mech(wu_mech, pack, at=(*at, pack.data.key, i)))
 
         except DataError as exc:
             failed.append(exc)
@@ -243,7 +242,7 @@ def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
     # FIXME: stats no longer contain lists
     stats = {
         _STAT_TO_WU_STAT[key]: value if isinstance(value, int) else list(value)
-        for key, value in buff_stats(max_stats(item.start_stage), MAX_SHOP).items()
+        for key, value in buff_stats(max_stats(item), MAX_SHOP).items()
     }
     return {
         "slotName": slot_name,
@@ -251,7 +250,7 @@ def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
         "id": item.id,
         "name": item.name,
         "stats": stats,
-        "tags": asdict(item.tags),
+        "tags": item.tags._asdict(),
         "timesUsed": 0,
         "type": _TYPE_TO_WU_TYPE[item.type],
     }
