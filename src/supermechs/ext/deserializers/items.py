@@ -25,16 +25,16 @@ def to_tags(
     catch = Catch()
     literal_tags = set[str]()
 
-    for element in tags:
-        if not isinstance(element, str):
-            catch.add(DataTypeError(type(element), str, at=at))
+    for i, tag in enumerate(tags):
+        if not isinstance(tag, str):
+            catch.add(DataTypeError(type(tag), str, at=(*at, i)))
 
-        elif element not in _VALID_TAGS:
-            msg = f"{element!r} is not a valid tag"
-            catch.add(DataValueError(msg, at=at))
+        elif tag not in _VALID_TAGS:
+            msg = f"{tag!r} is not a valid tag"
+            catch.add(DataValueError(msg, at=(*at, i)))
 
         else:
-            literal_tags.add(element)
+            literal_tags.add(tag)
 
     catch.checkpoint("Problems while parsing item tags:")
 
@@ -61,15 +61,15 @@ def to_item_data(data: AnyItemDict, pack_key: PackKey, *, at: DataPath = ()) -> 
     """
     catch = Catch()
     with catch:
+        id, name, type_, element = assert_keys(
+            tuple[ItemID, str, Type, Element], data, "id", "name", "type", "element", at=at
+        )
+    with catch:
         start_stage = to_transform_stages(data, at=at)
         tags = to_tags(data.get("tags", ()), start_stage, at=at)
-    with catch:
-        id, name, type_, element = assert_keys(
-            tuple[int, str, Type, Element], data, "id", "name", "type", "element", at=at
-        )
     catch.checkpoint("Problems while parsing item data:")
     item_data = ItemData(
-        id=ItemID(id),
+        id=id,
         pack_key=pack_key,
         name=name,
         type=type_,
