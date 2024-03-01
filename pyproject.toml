@@ -1,69 +1,103 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
 [tool.poetry]
 name = "supermechs"
 version = "0.1.0"
 description = "Package modeling the behavior of the SuperMechs game into python objects."
 authors = ["Eneg"]
 readme = "README.md"
-packages = [
-    {include = "supermechs", from = "src"}
-]
-
+packages = [{ include = "supermechs", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-typing-extensions = "^4.4.1" # override
-attrs = ">= 22.1.0" # min_len
-Pillow = "^9.0.0"
-orjson = "*"
-# git+https://github.com/Enegg/python-socketio
-# aiohttp
-
+typing-extensions = ">= 4.4.1" # override
+attrs = ">= 22.1.0"            # min_len
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.0.264"
-black = "*"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+ruff = ">= 0.2.1"
+pre-commit = "*"
+ipykernel = "^6.29.0"
 
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
 
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F403"]
-"api.py" = ["F403"]
+select = [
+    "E",   # general errors
+    "F",   # flake
+    "RUF", # ruff specific
+    "PL",  # pylint
+    "B",   # bugbear
 
+    "G",   # avoid formatting in logging
+    "Q",   # consistent string quotes
+    "FLY", # static joins
+    "ISC", # string concatenation
 
-[tool.ruff.isort]
+    "SIM",  # simplifiable logic
+    "C4",   # simplifiable comprehensions
+    "PERF", # micro optimizations
+
+    "ASYNC", # blocking calls in async context
+    "TCH",   # type-checking-only imports
+    "PTH",   # use pathlib for path manipulation
+    "TRY",   # try - except pitfalls
+    "EM",    # don't inline exception messages
+    "ERA",   # commented out code
+
+    # preview
+    "RUF022", # sort __all__
+]
+ignore = [
+    "PERF203" # try ... except in loops
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403"] # import *
+
+[tool.ruff.lint.isort]
 combine-as-imports = true
-forced-separate = ["supermechs"]
+split-on-trailing-comma = false
+extra-standard-library = ["typing_extensions"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+    "supermechs",
+    "supermechs-ext",
+]
+
+[tool.ruff.lint.isort.sections]
+"supermechs" = ["supermechs"]
+"supermechs-ext" = ["supermechs.ext"]
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions", "supermechs.typeshed"]
+runtime-evaluated-decorators = ["attrs.define", "attrs.frozen"]
 
 
 [tool.pyright]
-typeCheckingMode = "strict"
 include = ["src/supermechs"]
-
+exclude = ["dev"]
 pythonVersion = "3.10"
 
-reportUnnecessaryTypeIgnoreComment = true
-reportUnnecessaryCast = true
-reportMatchNotExhaustive = "warning"
-reportUnusedImport = "warning"
+typeCheckingMode = "strict"
 
-reportOverlappingOverload = false
-reportPrivateUsage = false
-reportUnnecessaryIsInstance = false
-reportFunctionMemberAccess = false
-reportImportCycles = false
-reportIncompatibleMethodOverride = false
-reportIncompatibleVariableOverride = false
-
-reportUnknownMemberType = false
-reportUnknownArgumentType = false
-reportUnknownVariableType = false
 reportMissingTypeStubs = false
+reportImportCycles = true
+
+reportUnnecessaryTypeIgnoreComment = "information"
+reportUnnecessaryIsInstance = "information"
+
+reportMatchNotExhaustive = "warning"
+reportOverlappingOverload = "information"

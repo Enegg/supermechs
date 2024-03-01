@@ -1,193 +1,116 @@
-import random
-import re
-import statistics
-import typing as t
-from collections import Counter
-from string import ascii_letters
+from collections import abc
+from typing import Any, Final, Generic, Protocol, overload
 
-from typing_extensions import Self, override
+from attrs import define
+from typing_extensions import Self
 
-from .typeshed import T, twotuple
+from .typeshed import KT, VT
 
 
-class _MissingSentinel:
-    def __eq__(self, _: t.Any) -> bool:
-        return False
-
-    def __bool__(self) -> bool:
-        return False
-
-    def __repr__(self) -> str:
-        return "..."
-
-    def __hash__(self) -> int:
-        return hash((type(self),))
-
-    def __copy__(self) -> Self:
-        return self
-
-    def __reduce__(self) -> str:
-        return "MISSING"
-
-    def __deepcopy__(self, _: t.Any) -> Self:
-        return self
+def has_any_of(mapping: abc.Mapping[Any, object], /, *keys: abc.Hashable) -> bool:
+    """Returns True if a mapping contains any of the specified keys."""
+    return not mapping.keys().isdisjoint(keys)
 
 
-MISSING: t.Final[t.Any] = _MissingSentinel()
+def has_all_of(mapping: abc.Mapping[Any, object], /, *keys: abc.Hashable) -> bool:
+    """Returns True if a mapping contains all of the specified keys."""
+    return frozenset(keys).issubset(mapping.keys())
 
 
-def search_for(
-    phrase: str, iterable: t.Iterable[str], *, case_sensitive: bool = False
-) -> t.Iterator[str]:
-    """
-    Helper func capable of finding a specific string(s) in iterable.
-    It is considered a match if every word in phrase appears in the name
-    and in the same order. For example, both `burn scop` & `half scop`
-    would match name `Half Burn Scope`, but not `burn half scop`.
+def _get_display_brackets(cls: type, /) -> tuple[str, str]:
+    if cls is tuple:
+        return "(", ")"
 
-    Parameters
-    ----------
-    phrase:
-        String of whitespace-separated words.
-    iterable:
-        Iterable of strings to match against.
-    case_sensitive:
-        Whether the search should be case sensitive.
-    """
-    parts = (phrase if case_sensitive else phrase.lower()).split()
+    if cls is list:
+        return "[", "]"
 
-    for name in iterable:
-        words = iter((name if case_sensitive else name.lower()).split())
+    if cls is set or cls is dict:
+        return "{", "}"
 
-        if all(any(word.startswith(prefix) for word in words) for prefix in parts):
-            yield name
+    return f"{cls.__name__}<", ">"
 
 
-def js_format(string: str, /, **kwargs: t.Any) -> str:
-    """Format a JavaScript style string using given keys and values."""
-    # XXX: this will do as many passes as there are kwargs, maybe concatenate the pattern?
-    for key, value in kwargs.items():
-        string = re.sub(rf"%{re.escape(key)}%", str(value), string)
+def large_collection_repr(obj: abc.Collection[object], /, threshold: int = 20) -> str:
+    if len(obj) <= threshold:
+        return repr(obj)
 
-    return string
+    import itertools
 
-
-def format_count(it: t.Iterable[t.Any], /) -> t.Iterator[str]:
-    return (
-        f'{item}{f" x{count}" * (count > 1)}' for item, count in Counter(filter(None, it)).items()
-    )
+    items = ", ".join(map(repr, itertools.islice(obj, threshold)))
+    left, right = _get_display_brackets(type(obj))
+    return f"{left}{items}, +{len(obj) - threshold} more{right}"
 
 
-def random_str(length: int, /, charset: str = ascii_letters) -> str:
-    """Generates a random string of given length from ascii letters."""
-    return "".join(random.sample(charset, length))
+def large_mapping_repr(mapping: abc.Mapping[Any, object], /, threshold: int = 20) -> str:
+    if len(mapping) <= threshold:
+        return repr(mapping)
+
+    import itertools
+
+    items = ", ".join(f"{k!r}: {v!r}" for k, v in itertools.islice(mapping.items(), threshold))
+    left, right = _get_display_brackets(type(mapping))
+    return f"{left}{items}, +{len(mapping) - threshold} more{right}"
 
 
-def mean_and_deviation(*numbers: float) -> twotuple[float]:
-    """Returns the arithmetric mean and the standard deviation of a sequence of numbers."""
-    mean = statistics.fmean(numbers)
-    return mean, statistics.pstdev(numbers, mean)
+class _SupportsGetSetItem(Protocol[KT, VT]):
+    # this sort of exists within _typeshed as SupportsItemAccess,
+    # but it also expects class to define __contains__
 
-
-class NanMeta(type):
-    @override
-    def __new__(cls, name: str, bases: tuple[type, ...], namespace: dict[str, t.Any]) -> Self:
-        def func(self: T, __value: int) -> T:
-            return self
-
-        for dunder in ("add", "sub", "mul", "truediv", "floordiv", "mod", "pow"):
-            namespace[f"__{dunder}__"] = func
-            namespace[f"__r{dunder}__"] = func
-
-        return super().__new__(cls, name, bases, namespace)
-
-
-class Nan(int, metaclass=NanMeta):
-    @override
-    def __str__(self) -> str:
-        return "?"
-
-    @override
-    def __repr__(self) -> str:
-        return "NaN"
-
-    @override
-    def __format__(self, _: str, /) -> str:
-        return "?"
-
-    @override
-    def __eq__(self, _: t.Any) -> bool:
-        return False
-
-    @override
-    def __lt__(self, _: t.Any) -> bool:
-        return False
-
-    @override
-    def __round__(self, ndigits: int = 0, /) -> Self:
-        # round() on float("nan") raises ValueError and probably has a good reason to do so,
-        # but for my purposes it is essential round() returns this object too
-        return self
-
-
-NaN: t.Final = Nan()
-
-
-def is_pascal(string: str) -> bool:
-    """Returns True if the string is pascal-cased string, False otherwise.
-
-    A string is pascal-cased if it is a single word that starts with a capitalized letter.
-        >>> is_pascal("fooBar")
-        False
-        >>> is_pascal("FooBar")
-        True
-        >>> is_pascal("Foo Bar")
-        False
-    """
-    return string[:1].isupper() and " " not in string
-
-
-class cached_slot_property(t.Generic[T]):
-    """Descriptor similar to functools.cached_property, but designed for slotted classes.
-    Caches the value to an attribute of the same name as the decorated function, prepended with _.
-    """
-
-    __slots__ = ("func",)
-
-    def __init__(self, func: t.Callable[[t.Any], T]) -> None:
-        self.func = func
-
-    @property
-    def slot(self) -> str:
-        return "_" + self.func.__name__
-
-    def __repr__(self) -> str:
-        return f"<{type(self).__name__} of slot {self.slot!r}>"
-
-    @t.overload
-    def __get__(self, obj: None, obj_type: t.Any) -> Self:
+    def __getitem__(self, key: KT, /) -> VT:
         ...
 
-    @t.overload
-    def __get__(self, obj: t.Any, obj_type: t.Any) -> T:
+    def __setitem__(self, key: KT, value: VT, /) -> None:
         ...
 
-    def __get__(self, obj: t.Any | None, obj_type: t.Any) -> T | Self:
+
+@define
+class KeyAccessor(Generic[KT, VT]):
+    """Data descriptor proxying read/write from/to a specified key of a mapping-like object."""
+
+    key: Final[KT]
+
+    @overload
+    def __get__(self, obj: None, cls: type | None, /) -> Self:
+        ...
+
+    @overload
+    def __get__(self, obj: _SupportsGetSetItem[KT, VT], cls: type | None, /) -> VT:
+        ...
+
+    def __get__(self, obj: _SupportsGetSetItem[KT, VT] | None, cls: type | None, /) -> VT | Self:
+        del cls
         if obj is None:
             return self
 
-        try:
-            return getattr(obj, self.slot)
+        return obj[self.key]
 
-        except AttributeError:
-            value = self.func(obj)
-            setattr(obj, self.slot, value)
-            return value
+    def __set__(self, obj: _SupportsGetSetItem[KT, VT], value: VT, /) -> None:
+        obj[self.key] = value
 
-    def __delete__(self, obj: t.Any) -> None:
-        """Deletes the cached value."""
-        try:
-            delattr(obj, self.slot)
 
-        except AttributeError:
-            pass
+@define
+class SequenceView(Generic[KT, VT]):
+    """A sequence-like object providing a view on a mapping."""
+
+    _obj: Final[_SupportsGetSetItem[tuple[KT, int], VT]]
+    _key: Final[KT]
+    length: int
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __getitem__(self, index: int, /) -> VT:
+        if index >= self.length:
+            raise IndexError
+
+        return self._obj[self._key, index]
+
+    def __setitem__(self, index: int, item: VT, /) -> None:
+        if index >= self.length:
+            raise IndexError
+
+        self._obj[self._key, index] = item
+
+    def __iter__(self) -> abc.Iterator[VT]:
+        for n in range(self.length):
+            yield self._obj[self._key, n]

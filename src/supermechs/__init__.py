@@ -1,5 +1,3 @@
 import logging
 
-LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
-LOGGER.addHandler(logging.NullHandler())
+logging.getLogger(__name__).addHandler(logging.NullHandler())

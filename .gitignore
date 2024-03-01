@@ -3,15 +3,18 @@ __pycache__
 *.py[cod]
 
 # machine specific files
-# .vscode
-*.env
 venv
 .venv
-!example.env
 *.log
 
 TODO.md
-dev/
+**/dev/
+dev.*
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json.default
+!.vscode/extensions.json
 
 # local data files
 tests/data/
