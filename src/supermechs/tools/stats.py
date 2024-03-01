@@ -114,4 +114,4 @@ def buff_stats(
 def max_stats(item: ItemData, /) -> StatsDict:
     """Return the max stats of an item."""
     stage = get_final_stage(item.start_stage)
-    return stage.at(stage.max_level)
+    return stage.max()
