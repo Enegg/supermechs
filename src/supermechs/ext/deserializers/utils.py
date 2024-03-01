@@ -5,7 +5,9 @@ from collections import abc
 from .errors import Catch, DataKeyError, DataPath, DataTypeError
 
 from supermechs.enums._base import PartialEnum
-from supermechs.typeshed import KT, T
+from supermechs.typeshed import T
+
+JSON_KT = typing_.TypeVar("JSON_KT", str, int, infer_variance=True)
 
 
 def js_format(string: str, /, **keys: object) -> str:
@@ -129,9 +131,9 @@ def assert_enum(enum: type[E], obj: object, /, *, at: DataPath = ()) -> E:
 
 def assert_key(
     type_: type[T],
-    obj: abc.Mapping[KT, object],
+    obj: abc.Mapping[JSON_KT, object],
     /,
-    key: KT,
+    key: JSON_KT,
     *,
     at: DataPath = (),
 ) -> T:
@@ -150,9 +152,9 @@ Ts = typing_.TypeVarTuple("Ts")
 
 def assert_keys(
     types: type[tuple[typing_.Unpack[Ts]]],
-    mapping: abc.Mapping[KT, object],
+    mapping: abc.Mapping[JSON_KT, object],
     /,
-    *keys: KT,
+    *keys: JSON_KT,
     at: DataPath = (),
 ) -> tuple[typing_.Unpack[Ts]]:
     """Assert multiple keys exist in a mapping and their values are of correct type."""

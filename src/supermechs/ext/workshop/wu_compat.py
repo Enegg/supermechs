@@ -5,7 +5,7 @@ from attrs import asdict
 from typing_extensions import LiteralString, TypedDict
 
 from .. import platform
-from ..deserializers.errors import DataError, DataValueError, DataVersionError
+from ..deserializers.errors import DataError, DataPath, DataValueError, DataVersionError
 from ..deserializers.utils import assert_key
 
 from supermechs.abc.item import ItemID, Name
@@ -121,7 +121,7 @@ class ExportedMechs(TypedDict):
 _WU_SLOT_NAMES = tuple(_WU_SLOT_TO_SLOT.keys())
 
 
-def import_mech(data: WUMech, pack: "ItemPack", *, at: tuple[Any, ...] = ()) -> tuple[Mech, str]:
+def import_mech(data: WUMech, pack: "ItemPack", *, at: DataPath = ()) -> tuple[Mech, str]:
     """Imports a mech from WU mech."""
 
     key = "setup"
