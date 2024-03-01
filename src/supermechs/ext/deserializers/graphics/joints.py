@@ -1,6 +1,6 @@
 from collections import abc
 
-from ..errors import DataError, DataPath
+from ..exceptions import DataError, DataPath
 from ..typedefs.graphics import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
 from ..utils import assert_keys
 

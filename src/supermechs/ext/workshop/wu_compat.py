@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 from typing_extensions import LiteralString, TypedDict
 
 from .. import platform
-from ..deserializers.errors import DataError, DataPath, DataValueError, DataVersionError
+from ..deserializers.exceptions import DataError, DataPath, DataValueError, DataVersionError
 from ..deserializers.utils import assert_key
 
 from supermechs.abc.item import ItemID, Name

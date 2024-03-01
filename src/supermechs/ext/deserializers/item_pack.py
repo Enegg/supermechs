@@ -1,7 +1,7 @@
 from collections import abc
 from typing import TYPE_CHECKING, Any
 
-from .errors import Catch, DataVersionError
+from .exceptions import Catch, DataVersionError
 from .items import to_item_data
 from .typedefs import AnyItemPack
 from .utils import assert_key, assert_type

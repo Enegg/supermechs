@@ -2,7 +2,7 @@ import types
 import typing
 from collections import abc
 
-from .errors import Catch, DataPath, DataTypeError, DataValueError
+from .exceptions import Catch, DataPath, DataTypeError, DataValueError
 from .typedefs import AnyItemDict, RawStatsMapping
 from .utils import assert_key, maybe_null
 

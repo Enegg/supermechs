@@ -2,15 +2,15 @@ import uuid
 from bisect import bisect_left
 from collections import abc
 from typing import Final, NamedTuple
+from typing_extensions import Self
 
 from attrs import Factory, define, field, validators
-from typing_extensions import Self
 
 from .abc.item import ItemID, Name, Paint
 from .abc.item_pack import PackKey
 from .enums.item import Element, Type
 from .enums.stats import Tier
-from .errors import MaxTierError, NegativeValueError, TierUnreachableError
+from .exceptions import MaxTierError, NegativeValueError, TierUnreachableError
 from .stats import TransformStage, get_final_stage
 
 __all__ = ("InvItem", "Item", "ItemData", "Tags")

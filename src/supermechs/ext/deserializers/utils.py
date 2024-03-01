@@ -2,7 +2,7 @@ import typing
 import typing_extensions as typing_
 from collections import abc
 
-from .errors import Catch, DataKeyError, DataPath, DataTypeError
+from .exceptions import Catch, DataKeyError, DataPath, DataTypeError
 
 from supermechs.enums._base import PartialEnum
 from supermechs.typeshed import T

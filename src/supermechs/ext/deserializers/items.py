@@ -1,6 +1,6 @@
 from collections import abc
 
-from .errors import Catch, DataPath, DataTypeError, DataValueError
+from .exceptions import Catch, DataPath, DataTypeError, DataValueError
 from .stats import to_transform_stages
 from .typedefs import AnyItemDict
 from .utils import assert_keys

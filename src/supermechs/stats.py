@@ -1,12 +1,12 @@
 from collections import abc
 from typing import Final, TypeAlias
+from typing_extensions import Self
 
 from attrs import define, field
-from typing_extensions import Self
 
 from .abc.stats import StatsMapping, StatType
 from .enums.stats import Stat, Tier
-from .errors import OutOfRangeError
+from .exceptions import OutOfRangeError
 
 __all__ = ("StatsDict", "TransformStage", "get_final_stage")
 

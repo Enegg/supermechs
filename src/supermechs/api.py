@@ -4,7 +4,7 @@ from .arenashop import *
 from .enums.arenashop import *
 from .enums.item import *
 from .enums.stats import *
-from .errors import *
+from .exceptions import *
 from .gamerules import *
 from .item import *
 from .item_pack import *

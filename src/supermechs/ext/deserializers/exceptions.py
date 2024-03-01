@@ -6,7 +6,7 @@ from enum import Enum
 from attrs import define, field
 from exceptiongroup import ExceptionGroup
 
-from supermechs.errors import SMException
+from supermechs.exceptions import SMException
 
 DataPath: typing.TypeAlias = abc.Sequence[str | int]  # keys or indices
 Typeish: typing.TypeAlias = type[object] | None
