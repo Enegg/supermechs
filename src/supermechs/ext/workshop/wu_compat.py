@@ -7,6 +7,7 @@ from ..deserializers.errors import DataError, DataPath, DataValueError, DataVers
 from ..deserializers.utils import assert_key
 
 from supermechs.abc.item import ItemID, Name
+from supermechs.abc.item_pack import PackKey
 from supermechs.arenashop import MAX_SHOP
 from supermechs.enums.item import Type
 from supermechs.enums.stats import Stat
@@ -162,9 +163,9 @@ def import_mechs(
     if version != "1":
         raise DataVersionError(version, "1")
 
-    key = "mechs"
-    all_mechs = assert_key(dict[object, Any], data, key)
-    mech_list = assert_key(list[Any], all_mechs, pack.data.key, at=(key,))
+    at = ("mechs",)
+    all_mechs = assert_key(dict[PackKey, object], data, at[0])
+    mech_list = assert_key(list[Any], all_mechs, pack.data.key, at=at)
     # TODO: file can contain mechs from different pack than default
 
     mechs: list[tuple[Mech, str]] = []
@@ -172,7 +173,7 @@ def import_mechs(
 
     for i, wu_mech in enumerate(mech_list):
         try:
-            mechs.append(import_mech(wu_mech, pack, at=(key, pack.data.key, i)))
+            mechs.append(import_mech(wu_mech, pack, at=(*at, pack.data.key, i)))
 
         except DataError as exc:
             failed.append(exc)
