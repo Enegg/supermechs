@@ -15,11 +15,11 @@ DataErrorGroup: typing.TypeAlias = "DataError | ExceptionGroup[DataErrorGroup]"
 
 _TYPE_TO_NAME: abc.Mapping[type, str] = {
     int: "an integer",
-    float: "a floating point number",
-    str: "a string",
-    list: "an array",
+    float: "a number",
+    str: 'a string "…"',
+    list: "an array […]",
     bool: "true/false",
-    dict: "an object",
+    dict: "an object {…}",
 }
 
 
