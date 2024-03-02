@@ -9,7 +9,6 @@ __all__ = (
     "MaxPowerError",
     "MaxTierError",
     "NegativeValueError",
-    "OutOfRangeError",
     "PackKeyError",
     "SMException",
     "TierUnreachableError",
@@ -20,26 +19,6 @@ class SMException(Exception):
     """Base class for library exceptions."""
 
     __slots__ = ()
-
-
-@define
-class OutOfRangeError(SMException, IndexError):
-    """Value outside allowed range.
-
-    Note: both lower and upper bounds are inclusive.
-    """
-
-    lower: float
-    number: float
-    upper: float
-
-    def __str__(self) -> str:
-        return f"Value {self.number} outside range {self.lower}…{self.upper}"
-
-    @classmethod
-    def check(cls, lower: float, number: float, upper: float) -> None:
-        if not lower <= number <= upper:
-            raise cls(lower, number, upper) from None
 
 
 @define

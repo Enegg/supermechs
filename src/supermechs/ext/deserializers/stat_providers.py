@@ -3,9 +3,10 @@ from typing import Final
 
 from attrs import define, field
 
+from .exceptions import OutOfRangeError
+
 from supermechs.abc.stats import StatsMapping, StatType
 from supermechs.enums.stats import Stat
-from supermechs.exceptions import OutOfRangeError
 from supermechs.stats import StatsDict
 
 __all__ = ("InterpolatedStats", "LinearStats", "StaticStats")
