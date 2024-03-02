@@ -13,11 +13,6 @@ StatsDict: TypeAlias = dict[Stat, StatType]
 """Concrete mapping type of item stats to values."""
 
 
-def lerp(lower: int, upper: int, weight: float) -> int:
-    """Linear interpolation."""
-    return lower + round((upper - lower) * weight)
-
-
 @define(kw_only=True)
 class TransformStage:
     """Stores item tier-dependent data."""
