@@ -1,24 +1,27 @@
+from collections import abc
 from typing import Final
 
 from attrs import define, field
 
-from supermechs.abc.stats import StatsMapping
+from supermechs.abc.stats import StatsMapping, StatType
 from supermechs.enums.stats import Stat
 from supermechs.exceptions import OutOfRangeError
 from supermechs.stats import StatsDict
 
 
-def lerp(lower: int, upper: int, weight: float) -> int:
+def lerp(lower: StatType, upper: StatType, weight: float) -> int:
     """Linear interpolation."""
     return lower + round((upper - lower) * weight)
 
 
 @define
 class InterpolatedStats:
+    """Stats interpolated between base (minimum) and difference (maximum)."""
+
     base_stats: Final[StatsMapping] = field()
     """Stats of the item at level 0."""
-    max_changing_stats: Final[StatsMapping] = field()
-    """Stats of the item that change as it levels up, at max level."""
+    difference: Final[StatsMapping] = field()
+    """The difference between max stats and base stats."""
     max_level: Final[int] = field()
 
     def __contains__(self, stat: Stat, /) -> bool:
@@ -27,21 +30,18 @@ class InterpolatedStats:
     def at(self, level: int, /) -> StatsDict:
         """Returns the stats at given level."""
 
-        max_level = self.max_level
-
-        if not 0 <= level <= max_level:
-            raise OutOfRangeError(0, level, max_level)
-
         if level == 0:
             return dict(self.base_stats)
 
-        if level == max_level:
-            return {**self.base_stats, **self.max_changing_stats}
+        if level == self.max_level:
+            return {**self.base_stats, **self.difference}
 
-        weight = level / max_level
+        OutOfRangeError.check(0, level, self.max_level)
+
+        weight = level / self.max_level
         stats = dict(self.base_stats)
 
-        for key, value in self.max_changing_stats.items():
+        for key, value in self.difference.items():
             stats[key] = lerp(stats[key], value, weight)
 
         return stats
@@ -49,6 +49,8 @@ class InterpolatedStats:
 
 @define
 class StaticStats:
+    """Static stats that do not change with level."""
+
     base_stats: Final[StatsMapping] = field()
     """Stats of the item at max level."""
 
@@ -56,5 +58,26 @@ class StaticStats:
         return stat in self.base_stats
 
     def at(self, level: int, /) -> StatsDict:
-        del level
+        if level != 0:
+            raise OutOfRangeError(0, level, 0) from None
         return dict(self.base_stats)
+
+
+@define
+class LinearStats:
+    """Stats provider listing stats at every level."""
+
+    stats: abc.Sequence[StatsMapping] = field()
+
+    def __contains__(self, stat: Stat, /) -> bool:
+        return stat in self.stats[0]
+
+    def at(self, level: int, /) -> StatsDict:
+        try:
+            stats = self.stats[level]
+
+        except IndexError:
+            span = len(self.stats)
+            raise OutOfRangeError(-span, level, span - 1) from None
+
+        return dict(stats)
