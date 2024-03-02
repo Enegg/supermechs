@@ -8,6 +8,8 @@ from supermechs.enums.stats import Stat
 from supermechs.exceptions import OutOfRangeError
 from supermechs.stats import StatsDict
 
+__all__ = ("InterpolatedStats", "LinearStats", "StaticStats")
+
 
 def lerp(lower: StatType, upper: StatType, weight: float) -> int:
     """Linear interpolation."""
