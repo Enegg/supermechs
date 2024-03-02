@@ -4,7 +4,7 @@ supermechs
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff" /></a>
   <a><img src="https://img.shields.io/github/commit-activity/w/Enegg/supermechs.svg?style=flat-square" alt="Commit activity" /></a>
 </p>
-This library provides a foundation for modeling the behavior & mechanics of the SuperMechs game.
+This library provides a foundation for simulating the mechanics of the SuperMechs game.
 
 Installing
 ----------
