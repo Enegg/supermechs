@@ -19,10 +19,15 @@ __all__ = (
 class SMException(Exception):
     """Base class for library exceptions."""
 
+    __slots__ = ()
+
 
 @define
-class OutOfRangeError(SMException, ValueError):
-    """Value outside allowed range."""
+class OutOfRangeError(SMException, IndexError):
+    """Value outside allowed range.
+
+    Note: both lower and upper bounds are inclusive.
+    """
 
     lower: float
     number: float
@@ -83,9 +88,9 @@ class MaxTierError(SMException):
 
 @define
 class TierUnreachableError(SMException):
-    """Attempted to construct an item at a tier it does not reach."""
+    """Tier outside item transformation tiers."""
 
     tier: Tier
 
     def __str__(self) -> str:
-        return f"Item does not reach {self.tier.name} tier"
+        return f"Item has no {self.tier.name} tier"
