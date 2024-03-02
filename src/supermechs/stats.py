@@ -4,19 +4,13 @@ from typing_extensions import Self
 
 from attrs import define, field
 
-from .abc.stats import StatsMapping, StatType
+from .abc.stats import StatsProvider, StatType
 from .enums.stats import Stat, Tier
-from .exceptions import OutOfRangeError
 
 __all__ = ("StatsDict", "TransformStage", "get_final_stage")
 
 StatsDict: TypeAlias = dict[Stat, StatType]
 """Concrete mapping type of item stats to values."""
-
-
-def lerp(lower: int, upper: int, weight: float) -> int:
-    """Linear interpolation."""
-    return lower + round((upper - lower) * weight)
 
 
 @define(kw_only=True)
@@ -25,10 +19,8 @@ class TransformStage:
 
     tier: Final[Tier] = field()
     """The tier of the transform stage."""
-    base_stats: Final[StatsMapping] = field()
-    """Stats of the item at level 0."""
-    max_changing_stats: Final[StatsMapping] = field()
-    """Stats of the item that change as it levels up, at max level."""
+    stats: Final[StatsProvider] = field()
+    """Object relaying stats data."""
     level_progression: Final[abc.Sequence[int]] = field()
     """Sequence of exp thresholds consecutive levels require to reach."""
     next: Final[Self | None] = field(default=None)
@@ -41,23 +33,10 @@ class TransformStage:
 
     def at(self, level: int, /) -> StatsDict:
         """Returns the stats at given level."""
+        stats = self.stats.at(level)
 
-        max_level = self.max_level
-
-        if not 0 <= level <= max_level:
-            raise OutOfRangeError(0, level, max_level)
-
-        if level == 0:
-            return dict(self.base_stats)
-
-        if level == max_level:
-            return {**self.base_stats, **self.max_changing_stats}
-
-        weight = level / max_level
-        stats = dict(self.base_stats)
-
-        for key, value in self.max_changing_stats.items():
-            stats[key] = lerp(stats[key], value, weight)
+        if not isinstance(stats, dict):
+            stats = dict(stats)
 
         return stats
 

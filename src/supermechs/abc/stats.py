@@ -1,5 +1,5 @@
 from collections import abc
-from typing import Any, TypeAlias
+from typing import Any, Protocol, TypeAlias
 
 from ..enums.stats import Stat
 
@@ -10,3 +10,12 @@ StatsMapping: TypeAlias = abc.Mapping[Stat, StatType]
 """Generic mapping of item stats to their values."""
 MutableStatsMapping: TypeAlias = abc.MutableMapping[Stat, StatType]
 """Generic mutable mapping of item stats to their values."""
+
+
+class StatsProvider(Protocol):
+    def __contains__(self, stat: Stat, /) -> bool:
+        ...
+
+    def at(self, level: int, /) -> StatsMapping:
+        """Returns the stats at given level."""
+        ...

@@ -3,10 +3,11 @@ import typing
 from collections import abc
 
 from .exceptions import Catch, DataPath, DataTypeError, DataValueError
+from .stat_providers import InterpolatedStats, StaticStats
 from .typedefs import AnyItemDict, RawStatsMapping
 from .utils import assert_key, maybe_null
 
-from supermechs.abc.stats import StatsMapping
+from supermechs.abc.stats import StatsMapping, StatsProvider
 from supermechs.enums.stats import Stat, Tier
 from supermechs.stats import StatsDict, TransformStage
 
@@ -118,13 +119,12 @@ def to_transform_stages(data: AnyItemDict, /, *, at: DataPath = ()) -> Transform
     key = "stats"
     if key in data:
         with catch:
-            stats = to_stats_mapping(data[key], at=(*at, key))
+            base_stats = to_stats_mapping(data[key], at=(*at, key))
 
         catch.checkpoint()
         return TransformStage(
             tier=final_tier,
-            base_stats=stats,
-            max_changing_stats={},
+            stats=StaticStats(base_stats),
             level_progression=[],  # TODO: level_progression source
         )
     del key
@@ -137,7 +137,7 @@ def to_transform_stages(data: AnyItemDict, /, *, at: DataPath = ()) -> Transform
         raise DataValueError(msg, at=at)
 
     rolling_stats: StatsMapping = {}
-    computed: list[tuple[Tier, StatsMapping, StatsMapping]] = []
+    computed: list[tuple[Tier, StatsProvider]] = []
 
     for tier in map(Tier.of_value, range(start_tier, final_tier + 1)):
         key = tier.name.lower()
@@ -156,16 +156,21 @@ def to_transform_stages(data: AnyItemDict, /, *, at: DataPath = ()) -> Transform
                 upper_stats = to_stats_mapping(max_level_data, at=(*at, max_key))
 
         if not catch.issues:
-            computed.append((tier, rolling_stats.copy(), upper_stats))
+            if upper_stats:
+                stats = InterpolatedStats(rolling_stats.copy(), upper_stats, 0)
+
+            else:
+                stats = StaticStats(rolling_stats.copy())
+
+            computed.append((tier, stats))
 
     catch.checkpoint()
     current_stage = None
 
-    for tier, base, addon in reversed(computed):
+    for tier, stats in reversed(computed):
         current_stage = TransformStage(
             tier=tier,
-            base_stats=base,
-            max_changing_stats=addon,
+            stats=stats,
             level_progression=[],  # TODO: level_progression source
             next=current_stage,
         )

@@ -11,7 +11,7 @@ from supermechs.enums.item import Element, Type
 from supermechs.enums.stats import Stat, Tier
 from supermechs.item import ItemData, Tags
 from supermechs.stats import TransformStage
-from supermechs.utils import has_any_of
+from supermechs.utils import contains_any_of
 
 _VALID_TAGS: abc.Set[str] = Tags.__annotations__.keys()
 
@@ -45,7 +45,7 @@ def to_tags(
     elif start_stage.tier >= Tier.LEGENDARY:
         literal_tags.add("premium")
 
-    if has_any_of(start_stage.base_stats, Stat.advance, Stat.retreat):
+    if contains_any_of(start_stage.stats, Stat.advance, Stat.retreat):
         literal_tags.add("require_jump")
 
     return Tags.from_keywords(literal_tags)
