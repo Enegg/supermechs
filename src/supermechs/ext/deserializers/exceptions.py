@@ -4,9 +4,13 @@ from collections import abc
 from enum import Enum
 
 from attrs import define, field
-from exceptiongroup import ExceptionGroup
+
+from ._compat import DataErrorGroup
 
 from supermechs.exceptions import SMException
+
+if typing.TYPE_CHECKING:
+    from exceptiongroup import ExceptionGroup
 
 DataPath: typing.TypeAlias = abc.Sequence[str | int]  # keys or indices
 Typeish: typing.TypeAlias = type[object] | None
@@ -41,7 +45,7 @@ class Catch:
 
     def checkpoint(self, msg: str = "") -> None:
         if self.issues:
-            raise ExceptionGroup[DataErrorType](msg, self.issues) from None
+            raise DataErrorGroup(msg, self.issues) from None
 
     def __enter__(self) -> None:
         pass
@@ -53,8 +57,8 @@ class Catch:
         tb: types.TracebackType | None,
         /,
     ) -> bool | None:
-        if isinstance(exc_value, DataError | ExceptionGroup):
-            self.add(exc_value)  # type: ignore[reportUnknownArgumentType]
+        if isinstance(exc_value, DataError | DataErrorGroup):
+            self.add(exc_value)
             return True
 
 
