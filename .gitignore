@@ -15,6 +15,3 @@ dev.*
 .vscode/*
 !.vscode/settings.json.default
 !.vscode/extensions.json
-
-# local data files
-tests/data/

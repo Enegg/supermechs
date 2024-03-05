@@ -1,0 +1,40 @@
+{
+    "id": 187,
+    "name": "Overcharged Rocket Battery",
+    "type": "SIDE_WEAP",
+    "element": "EXPLOSIV",
+    "transform_range": "L-D",
+    "legendary": {
+        "weight": 63,
+        "expDmg": [103, "?"],
+        "heaDmg": 56,
+        "expResDmg": 9,
+        "range": [3, 6.0],
+        "push": 1,
+        "retreat": 1,
+        "uses": 3,
+        "backfire": true,
+        "heaCost": "47"
+    },
+    "max_legendary": {
+        "expDmg": [138, 243],
+        "heaDmg": 75
+    },
+    "mythical": {
+        "expDmg": [154, 276],
+        "heaDmg": 81,
+        "expResDmg": 14,
+        "backfire": 180,
+        "heaCost": 75,
+        "is it?": "no"
+    },
+    "max_mythical": [],
+    "divino": {
+        "expDmg": [213, 382],
+        "heaDmg": 112
+    },
+    "attachment": {
+        "x": 57,
+        "y": 49
+    }
+}
