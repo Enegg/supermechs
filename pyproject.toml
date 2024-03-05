@@ -20,6 +20,7 @@ attrs = ">= 22.1.0"            # min_len
 ruff = ">= 0.2.1"
 pre-commit = "*"
 ipykernel = "^6.29.0"
+pytest = "^8.0.2"
 
 
 [tool.ruff]
@@ -101,3 +102,9 @@ reportUnnecessaryIsInstance = "information"
 
 reportMatchNotExhaustive = "warning"
 reportOverlappingOverload = "information"
+
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
