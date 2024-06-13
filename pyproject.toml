@@ -1,25 +1,36 @@
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-
-[tool.poetry]
+[project]
 name = "supermechs"
 version = "0.1.0"
 description = "Package modeling the behavior of the SuperMechs game into python objects."
-authors = ["Eneg"]
+authors = [
+    {name = "Eneg"},
+]
+dependencies = [
+    "typing-extensions >= 4.4.1", # override
+    "attrs >= 22.1.0",            # min_len
+]
+requires-python = ">=3.10,<4.0"
 readme = "README.md"
-packages = [{ include = "supermechs", from = "src" }]
+license = {text = "GPL-3.0-or-later"}
 
-[tool.poetry.dependencies]
-python = "^3.10"
-typing-extensions = ">= 4.4.1" # override
-attrs = ">= 22.1.0"            # min_len
 
-[tool.poetry.group.dev.dependencies]
-ruff = ">= 0.2.1"
-pre-commit = "*"
-ipykernel = "^6.29.0"
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "ruff >= 0.2.1",
+    "pre-commit",
+    "ipykernel < 7.0.0, >= 6.29.0",
+]
+
+[tool.pdm.build]
+includes = ["src/supermechs"]
 
 
 [tool.ruff]
