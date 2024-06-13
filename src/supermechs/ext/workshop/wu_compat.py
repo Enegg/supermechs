@@ -233,7 +233,7 @@ def export_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> Export
 
 def dump_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> bytes:
     """Dumps mechs into bytes representing a .JSON file."""
-    return platform.json_encoder(export_mechs(mechs, pack_key), True)
+    return platform.json_encoder(export_mechs(mechs, pack_key), indent=True)
 
 
 def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
