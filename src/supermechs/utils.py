@@ -1,67 +1,15 @@
 from collections import abc
-from typing import Any, Final, Generic, Protocol, overload
+from typing import Final, Generic, overload
 from typing_extensions import Self
 
 from attrs import define
 
-from .typeshed import KT, VT, T
-
-
-class RestrictedContainer(Protocol[T]):
-    # abc.Container expects __contain__ to take any object
-    def __contains__(self, value: T, /) -> bool:
-        ...
+from .typeshed import KT, VT, RestrictedContainer, SupportsGetSetItem, T
 
 
 def contains_any_of(obj: RestrictedContainer[T], /, *values: T) -> bool:
     """Return True if a container has any of the specified values."""
     return any(v in obj for v in values)
-
-
-def _get_display_brackets(cls: type, /) -> tuple[str, str]:
-    if cls is tuple:
-        return "(", ")"
-
-    if cls is list:
-        return "[", "]"
-
-    if cls is set or cls is dict:
-        return "{", "}"
-
-    return f"{cls.__name__}<", ">"
-
-
-def large_collection_repr(obj: abc.Collection[object], /, threshold: int = 20) -> str:
-    if len(obj) <= threshold:
-        return repr(obj)
-
-    import itertools
-
-    items = ", ".join(map(repr, itertools.islice(obj, threshold)))
-    left, right = _get_display_brackets(type(obj))
-    return f"{left}{items}, +{len(obj) - threshold} more{right}"
-
-
-def large_mapping_repr(mapping: abc.Mapping[Any, object], /, threshold: int = 20) -> str:
-    if len(mapping) <= threshold:
-        return repr(mapping)
-
-    import itertools
-
-    items = ", ".join(f"{k!r}: {v!r}" for k, v in itertools.islice(mapping.items(), threshold))
-    left, right = _get_display_brackets(type(mapping))
-    return f"{left}{items}, +{len(mapping) - threshold} more{right}"
-
-
-class _SupportsGetSetItem(Protocol[KT, VT]):
-    # this sort of exists within _typeshed as SupportsItemAccess,
-    # but it also expects class to define __contains__
-
-    def __getitem__(self, key: KT, /) -> VT:
-        ...
-
-    def __setitem__(self, key: KT, value: VT, /) -> None:
-        ...
 
 
 @define
@@ -71,21 +19,19 @@ class KeyAccessor(Generic[KT, VT]):
     key: Final[KT]
 
     @overload
-    def __get__(self, obj: None, cls: type | None, /) -> Self:
-        ...
+    def __get__(self, obj: None, cls: type | None, /) -> Self: ...
 
     @overload
-    def __get__(self, obj: _SupportsGetSetItem[KT, VT], cls: type | None, /) -> VT:
-        ...
+    def __get__(self, obj: SupportsGetSetItem[KT, VT], cls: type | None, /) -> VT: ...
 
-    def __get__(self, obj: _SupportsGetSetItem[KT, VT] | None, cls: type | None, /) -> VT | Self:
+    def __get__(self, obj: SupportsGetSetItem[KT, VT] | None, cls: type | None, /) -> VT | Self:
         del cls
         if obj is None:
             return self
 
         return obj[self.key]
 
-    def __set__(self, obj: _SupportsGetSetItem[KT, VT], value: VT, /) -> None:
+    def __set__(self, obj: SupportsGetSetItem[KT, VT], value: VT, /) -> None:
         obj[self.key] = value
 
 
@@ -93,7 +39,7 @@ class KeyAccessor(Generic[KT, VT]):
 class SequenceView(Generic[KT, VT]):
     """A sequence-like object providing a view on a mapping."""
 
-    _obj: Final[_SupportsGetSetItem[tuple[KT, int], VT]]
+    _obj: Final[SupportsGetSetItem[tuple[KT, int], VT]]
     _key: Final[KT]
     length: int
 

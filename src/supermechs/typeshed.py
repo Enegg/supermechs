@@ -1,5 +1,5 @@
 from collections import abc
-from typing import TypeAlias
+from typing import Protocol, TypeAlias
 from typing_extensions import ParamSpec, TypeVar
 
 T = TypeVar("T", infer_variance=True)
@@ -14,3 +14,17 @@ Factory: TypeAlias = abc.Callable[[], T]
 """0-argument callable returning an object of given type."""
 LiteralURL: TypeAlias = str
 """String representing a URL."""
+
+
+class RestrictedContainer(Protocol[T]):
+    # abc.Container expects __contain__ to take any object
+    def __contains__(self, value: T, /) -> bool: ...
+
+
+class SupportsGetSetItem(Protocol[KT, VT]):
+    # this sort of exists within _typeshed as SupportsItemAccess,
+    # but it also expects class to define __contains__
+
+    def __getitem__(self, key: KT, /) -> VT: ...
+
+    def __setitem__(self, key: KT, value: VT, /) -> None: ...
