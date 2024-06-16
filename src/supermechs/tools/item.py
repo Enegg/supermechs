@@ -1,6 +1,6 @@
 from collections import abc
 
-from supermechs.enums.stats import Tier
+from supermechs.abc.stats import Tier
 from supermechs.item import ItemData
 
 __all__ = ("transform_range",)

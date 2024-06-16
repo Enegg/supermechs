@@ -5,11 +5,11 @@ from typing_extensions import Self
 
 from ._base import PartialEnum
 
-__all__ = ("Stat", "Tier")
+__all__ = ("StatEnum", "TierEnum")
 
 
 @unique
-class Stat(int, PartialEnum):
+class StatEnum(str, PartialEnum):
     """Enumeration of item stats."""
 
     # fmt: off
@@ -64,7 +64,7 @@ class Stat(int, PartialEnum):
 
 
 @unique
-class Tier(int, PartialEnum):
+class TierEnum(int, PartialEnum):
     """Enumeration of item tiers."""
 
     # fmt: off
@@ -85,4 +85,4 @@ class Tier(int, PartialEnum):
         return cls._initials2members[letter.upper()]
 
 
-Tier._initials2members = {tier.name[0]: tier for tier in Tier}  # pyright: ignore[reportPrivateUsage]
+TierEnum._initials2members = {tier.name[0]: tier for tier in TierEnum}  # pyright: ignore[reportPrivateUsage]

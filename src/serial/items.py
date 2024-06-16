@@ -7,8 +7,8 @@ from .utils import assert_keys
 
 from supermechs.abc.item import ItemID
 from supermechs.abc.item_pack import PackKey
-from supermechs.enums.item import Element, Type
-from supermechs.enums.stats import Stat, Tier
+from supermechs.enums.item import ElementEnum, TypeEnum
+from supermechs.enums.stats import StatEnum, TierEnum
 from supermechs.item import ItemData, Tags
 from supermechs.stats import TransformStage
 from supermechs.utils import contains_any_of
@@ -39,13 +39,13 @@ def to_tags(
     catch.checkpoint("Problems while parsing item tags:")
 
     if "legacy" in literal_tags:
-        if start_stage.tier is Tier.MYTHICAL:
+        if start_stage.tier == TierEnum.MYTHICAL:
             literal_tags.add("premium")
 
-    elif start_stage.tier >= Tier.LEGENDARY:
+    elif start_stage.tier >= TierEnum.LEGENDARY:
         literal_tags.add("premium")
 
-    if contains_any_of(start_stage.stats, Stat.advance, Stat.retreat):
+    if contains_any_of(start_stage.stats, StatEnum.advance, StatEnum.retreat):
         literal_tags.add("require_jump")
 
     return Tags.from_keywords(literal_tags)
@@ -62,7 +62,7 @@ def to_item_data(data: AnyItemDict, pack_key: PackKey, *, at: DataPath = ()) -> 
     catch = Catch()
     with catch:
         id, name, type_, element = assert_keys(
-            tuple[ItemID, str, Type, Element], data, "id", "name", "type", "element", at=at
+            tuple[ItemID, str, TypeEnum, ElementEnum], data, "id", "name", "type", "element", at=at
         )
     with catch:
         start_stage = to_transform_stages(data, at=at)

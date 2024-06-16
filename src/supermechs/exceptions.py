@@ -1,15 +1,13 @@
 from attrs import define
 
 from .abc.item import ItemID
-from .abc.item_pack import PackKey
-from .enums.stats import Tier
+from .abc.stats import Tier
 
 __all__ = (
     "IDLookupError",
     "MaxPowerError",
     "MaxTierError",
     "NegativeValueError",
-    "PackKeyError",
     "SMException",
     "TierUnreachableError",
 )
@@ -25,7 +23,7 @@ class SMException(Exception):
 class NegativeValueError(SMException, ValueError):
     """Number cannot be negative."""
 
-    number: float
+    number: float | int
 
     def __str__(self) -> str:
         return f"Number cannot be negative, got {self.number}"
@@ -39,16 +37,6 @@ class IDLookupError(SMException, KeyError):
 
     def __str__(self) -> str:
         return f"Unknown item ID: {self.id}"
-
-
-@define(auto_exc=True)
-class PackKeyError(SMException, KeyError):
-    """Unknown pack key."""
-
-    key: PackKey
-
-    def __str__(self) -> str:
-        return f"Unknown pack key: {self.key}"
 
 
 class MaxPowerError(SMException):
@@ -76,4 +64,4 @@ class TierUnreachableError(SMException):
     tier: Tier
 
     def __str__(self) -> str:
-        return f"Item has no {self.tier.name} tier"
+        return f"Item has no {self.tier} tier"

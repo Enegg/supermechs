@@ -2,11 +2,11 @@ from enum import auto, unique
 
 from ._base import PartialEnum
 
-__all__ = ("Element", "Type")
+__all__ = ("ElementEnum", "TypeEnum")
 
 
 @unique
-class Element(PartialEnum):
+class ElementEnum(str, PartialEnum):
     """Enumeration of item elements."""
 
     # fmt: off
@@ -14,11 +14,11 @@ class Element(PartialEnum):
     EXPLOSIVE = auto()
     ELECTRIC  = auto()
     COMBINED  = auto()
-    UNKNOWN   = auto()
     # fmt: on
+    pass
 
 
-class Type(PartialEnum):
+class TypeEnum(str, PartialEnum):
     """Enumeration of item types."""
 
     # fmt: off
@@ -33,7 +33,6 @@ class Type(PartialEnum):
     SHIELD      = auto()
     PERK        = auto()
     MODULE      = auto()
+    KIT         = auto()
     CHARGE_ENGINE = CHARGE
-    GRAPPLING_HOOK = HOOK
-    TELEPORT = TELEPORTER
     # fmt: on

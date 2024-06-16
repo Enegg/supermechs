@@ -4,7 +4,8 @@ from serial.exceptions import DataError, DataPath
 from serial.typedefs.graphics import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
 from serial.utils import assert_keys
 
-from supermechs.enums.item import Type
+from supermechs.abc.item import Type
+from supermechs.enums.item import TypeEnum
 from supermechs.graphics.joints import JointLayer, JointLayerType, Joints, Point2D
 
 __all__ = ("create_synthetic_joints", "to_point2d", "to_torso_joints")
@@ -61,7 +62,7 @@ def create_synthetic_joints(width: int, height: int, type: Type) -> Joints:
 
     https://github.com/ctrlraul/supermechs-workshop/blob/6fe2e0a29bd4776f50f893d2ab0722020279e2d3/src/items/ItemsManager.ts#L286-L325
     """
-    if type is Type.TORSO:
+    if type == TypeEnum.TORSO:
         return {
             JointLayer.RIGHT_LEG:              Point2D(width * 0.40, height * 0.9),
             JointLayer.LEFT_LEG:               Point2D(width * 0.80, height * 0.9),
@@ -75,17 +76,17 @@ def create_synthetic_joints(width: int, height: int, type: Type) -> Joints:
             JointLayer.CHARGE:                 Point2D(width * 0.10, height * 0.5),
         }  # fmt: skip
 
-    if type is Type.LEGS:
+    if type == TypeEnum.LEGS:
         return {
             JointLayer.TORSO:     Point2D(width * 0.5, height * 0.1),
             # not all legs can jump but whatever
             JointLayer.JUMP_JETS: Point2D(width * 0.5, height),
         }  # fmt: skip
 
-    if type is Type.SIDE_WEAPON:
+    if type == TypeEnum.SIDE_WEAPON:
         return {JointLayer.TORSO: Point2D(width * 0.3, height * 0.5)}
 
-    if type is Type.TOP_WEAPON:
+    if type == TypeEnum.TOP_WEAPON:
         return {JointLayer.TORSO: Point2D(width * 0.3, height * 0.8)}
 
     return {}

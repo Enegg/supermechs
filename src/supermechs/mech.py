@@ -23,14 +23,14 @@ class Mech:
     rules: BuildRules = field(default=DEFAULT_GAME_RULES.builds)
     _setup: abc.MutableMapping[SlotType, Item] = field(factory=dict, init=False)
     # fmt: off
-    torso      = SlotAccessor(Type.TORSO)
-    legs       = SlotAccessor(Type.LEGS)
-    drone      = SlotAccessor(Type.DRONE)
-    teleporter = SlotAccessor(Type.TELEPORTER)
-    charge     = SlotAccessor(Type.CHARGE)
-    hook       = SlotAccessor(Type.HOOK)
-    shield     = SlotAccessor(Type.SHIELD)
-    perk       = SlotAccessor(Type.PERK)
+    torso      = SlotAccessor(TypeEnum.TORSO)
+    legs       = SlotAccessor(TypeEnum.LEGS)
+    drone      = SlotAccessor(TypeEnum.DRONE)
+    teleporter = SlotAccessor(TypeEnum.TELEPORTER)
+    charge     = SlotAccessor(TypeEnum.CHARGE)
+    hook       = SlotAccessor(TypeEnum.HOOK)
+    shield     = SlotAccessor(TypeEnum.SHIELD)
+    perk       = SlotAccessor(TypeEnum.PERK)
     # fmt: on
 
     def side_weapons(self):  # noqa: ANN201

@@ -8,49 +8,49 @@ from .typedefs import AnyItemDict, RawStatsMapping
 from .utils import assert_key, maybe_null
 
 from supermechs.abc.stats import StatsMapping, StatsProvider
-from supermechs.enums.stats import Stat, Tier
+from supermechs.enums.stats import StatEnum, TierEnum
 from supermechs.stats import StatsDict, TransformStage
 
 _WU_STAT_TO_STAT = {
-    "weight":      Stat.weight,
-    "health":      Stat.hit_points,
-    "eneCap":      Stat.energy_capacity,
-    "eneReg":      Stat.regeneration,
-    "heaCap":      Stat.heat_capacity,
-    "heaCol":      Stat.cooling,
-    "bulletsCap":  Stat.bullets_capacity,
-    "rocketsCap":  Stat.rockets_capacity,
-    "phyRes":      Stat.physical_resistance,
-    "expRes":      Stat.explosive_resistance,
-    "eleRes":      Stat.electric_resistance,
-    "phyResDmg":   Stat.physical_resistance_damage,
-    "eneDmg":      Stat.energy_damage,
-    "eneCapDmg":   Stat.energy_capacity_damage,
-    "eneRegDmg":   Stat.regeneration_damage,
-    "eleResDmg":   Stat.electric_resistance_damage,
-    "heaDmg":      Stat.heat_damage,
-    "heaCapDmg":   Stat.heat_capacity_damage,
-    "heaColDmg":   Stat.cooling_damage,
-    "expResDmg":   Stat.explosive_resistance_damage,
-    "walk":        Stat.walk,
-    "jump":        Stat.jump,
-    "push":        Stat.push,
-    "pull":        Stat.pull,
-    "recoil":      Stat.recoil,
-    "advance":     Stat.advance,
-    "retreat":     Stat.retreat,
-    "uses":        Stat.uses,
-    "backfire":    Stat.backfire,
-    "heaCost":     Stat.heat_generation,
-    "eneCost":     Stat.energy_cost,
-    "bulletsCost": Stat.bullets_cost,
-    "rocketsCost": Stat.rockets_cost,
+    "weight":      StatEnum.weight,
+    "health":      StatEnum.hit_points,
+    "eneCap":      StatEnum.energy_capacity,
+    "eneReg":      StatEnum.regeneration,
+    "heaCap":      StatEnum.heat_capacity,
+    "heaCol":      StatEnum.cooling,
+    "bulletsCap":  StatEnum.bullets_capacity,
+    "rocketsCap":  StatEnum.rockets_capacity,
+    "phyRes":      StatEnum.physical_resistance,
+    "expRes":      StatEnum.explosive_resistance,
+    "eleRes":      StatEnum.electric_resistance,
+    "phyResDmg":   StatEnum.physical_resistance_damage,
+    "eneDmg":      StatEnum.energy_damage,
+    "eneCapDmg":   StatEnum.energy_capacity_damage,
+    "eneRegDmg":   StatEnum.regeneration_damage,
+    "eleResDmg":   StatEnum.electric_resistance_damage,
+    "heaDmg":      StatEnum.heat_damage,
+    "heaCapDmg":   StatEnum.heat_capacity_damage,
+    "heaColDmg":   StatEnum.cooling_damage,
+    "expResDmg":   StatEnum.explosive_resistance_damage,
+    "walk":        StatEnum.walk,
+    "jump":        StatEnum.jump,
+    "push":        StatEnum.push,
+    "pull":        StatEnum.pull,
+    "recoil":      StatEnum.recoil,
+    "advance":     StatEnum.advance,
+    "retreat":     StatEnum.retreat,
+    "uses":        StatEnum.uses,
+    "backfire":    StatEnum.backfire,
+    "heaCost":     StatEnum.heat_generation,
+    "eneCost":     StatEnum.energy_cost,
+    "bulletsCost": StatEnum.bullets_cost,
+    "rocketsCost": StatEnum.rockets_cost,
 }  # fmt: skip
 _WU_STAT_LIST_TO_STATS = {
-    "phyDmg": (Stat.physical_damage, Stat.physical_damage_addon),
-    "eleDmg": (Stat.electric_damage, Stat.electric_damage_addon),
-    "expDmg": (Stat.explosive_damage, Stat.explosive_damage_addon),
-    "range":  (Stat.range, Stat.range_addon),
+    "phyDmg": (StatEnum.physical_damage, StatEnum.physical_damage_addon),
+    "eleDmg": (StatEnum.electric_damage, StatEnum.electric_damage_addon),
+    "expDmg": (StatEnum.explosive_damage, StatEnum.explosive_damage_addon),
+    "range":  (StatEnum.range, StatEnum.range_addon),
 }  # fmt: skip
 _STAT_KEYS_AND_TYPES: abc.Mapping[str, type] = typing.get_type_hints(RawStatsMapping)
 
@@ -113,7 +113,7 @@ def to_transform_stages(data: AnyItemDict, /, *, at: DataPath = ()) -> Transform
 
     with catch:
         range_str = assert_key(str, data, "transform_range", at=at)
-        final_tier = Tier.of_initial(range_str[-1])
+        final_tier = TierEnum.of_initial(range_str[-1])
 
     key = "stats"
     if key in data:
@@ -129,16 +129,16 @@ def to_transform_stages(data: AnyItemDict, /, *, at: DataPath = ()) -> Transform
     del key
 
     catch.checkpoint()
-    start_tier = Tier.of_initial(range_str[0])
+    start_tier = TierEnum.of_initial(range_str[0])
 
     if start_tier > final_tier:
         msg = "Starting tier higher than final tier"
         raise DataValueError(msg, at=at)
 
     rolling_stats: StatsMapping = {}
-    computed: list[tuple[Tier, StatsProvider]] = []
+    computed: list[tuple[TierEnum, StatsProvider]] = []
 
-    for tier in map(Tier.of_value, range(start_tier, final_tier + 1)):
+    for tier in map(TierEnum.of_value, range(start_tier, final_tier + 1)):
         key = tier.name.lower()
         max_key = "max_" + key
 

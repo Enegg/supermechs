@@ -5,16 +5,15 @@ from attrs import define, field
 
 from .exceptions import OutOfRangeError
 
-from supermechs.abc.stats import StatsMapping, StatType
-from supermechs.enums.stats import Stat
+from supermechs.abc.stats import Stat, StatsMapping, StatValue
 from supermechs.stats import StatsDict
 
 __all__ = ("InterpolatedStats", "LinearStats", "StaticStats")
 
 
-def lerp(lower: StatType, upper: StatType, weight: float) -> int:
+def lerp(lower: StatValue, upper: StatValue, weight: float) -> StatValue:
     """Linear interpolation."""
-    return lower + round((upper - lower) * weight)
+    return lower + (upper - lower) * weight
 
 
 @define

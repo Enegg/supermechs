@@ -1,4 +1,5 @@
-from supermechs.enums.item import Element, Type
+from supermechs.abc.item import Element
+from supermechs.enums.item import TypeEnum
 from supermechs.mech import Mech
 
 __all__ = ("dominant_element",)
@@ -13,7 +14,9 @@ def dominant_element(mech: Mech, /, threshold: int = 2) -> Element | None:
     from collections import Counter
 
     elements = Counter(
-        item.element for item in mech.iter_items("body", "weapons", Type.HOOK) if item is not None
+        item.element
+        for item in mech.iter_items("body", "weapons", TypeEnum.HOOK)
+        if item is not None
     ).most_common(2)
     # return None when there are no elements
     # or the difference between the two most common is indecisive

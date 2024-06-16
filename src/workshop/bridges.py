@@ -9,8 +9,8 @@ from serial.utils import assert_key
 from supermechs.abc.item import ItemID, Name
 from supermechs.abc.item_pack import PackKey
 from supermechs.arenashop import MAX_SHOP
-from supermechs.enums.item import Type
-from supermechs.enums.stats import Stat
+from supermechs.enums.item import TypeEnum
+from supermechs.enums.stats import StatEnum
 from supermechs.item import Item, ItemData
 from supermechs.mech import Mech, SlotMemberType, SlotType
 from supermechs.tools.stats import buff_stats, max_stats
@@ -20,70 +20,70 @@ if TYPE_CHECKING:
 
 __all__ = ("dump_mechs", "load_mechs")
 
-_STAT_TO_WU_STAT: abc.Mapping[Stat, LiteralString] = {
-    Stat.weight:                      "weight",
-    Stat.hit_points:                  "health",
-    Stat.energy_capacity:             "eneCap",
-    Stat.regeneration:                "eneReg",
-    Stat.heat_capacity:               "heaCap",
-    Stat.cooling:                     "heaCol",
-    Stat.bullets_capacity:            "bulletsCap",
-    Stat.rockets_capacity:            "rocketsCap",
-    Stat.physical_resistance:         "phyRes",
-    Stat.explosive_resistance:        "expRes",
-    Stat.electric_resistance:         "eleRes",
-    Stat.physical_damage:             "phyDmg",
-    Stat.physical_resistance_damage:  "phyResDmg",
-    Stat.electric_damage:             "eleDmg",
-    Stat.energy_damage:               "eneDmg",
-    Stat.energy_capacity_damage:      "eneCapDmg",
-    Stat.regeneration_damage:         "eneRegDmg",
-    Stat.electric_resistance_damage:  "eleResDmg",
-    Stat.explosive_damage:            "expDmg",
-    Stat.heat_damage:                 "heaDmg",
-    Stat.heat_capacity_damage:        "heaCapDmg",
-    Stat.cooling_damage:              "heaColDmg",
-    Stat.explosive_resistance_damage: "expResDmg",
-    Stat.walk:                        "walk",
-    Stat.jump:                        "jump",
-    Stat.range:                       "range",
-    Stat.push:                        "push",
-    Stat.pull:                        "pull",
-    Stat.recoil:                      "recoil",
-    Stat.advance:                     "advance",
-    Stat.retreat:                     "retreat",
-    Stat.uses:                        "uses",
-    Stat.backfire:                    "backfire",
-    Stat.heat_generation:             "heaCost",
-    Stat.energy_cost:                 "eneCost",
-    Stat.bullets_cost:                "bulletsCost",
-    Stat.rockets_cost:                "rocketsCost",
+_STAT_TO_WU_STAT: abc.Mapping[StatEnum, LiteralString] = {
+    StatEnum.weight:                      "weight",
+    StatEnum.hit_points:                  "health",
+    StatEnum.energy_capacity:             "eneCap",
+    StatEnum.regeneration:                "eneReg",
+    StatEnum.heat_capacity:               "heaCap",
+    StatEnum.cooling:                     "heaCol",
+    StatEnum.bullets_capacity:            "bulletsCap",
+    StatEnum.rockets_capacity:            "rocketsCap",
+    StatEnum.physical_resistance:         "phyRes",
+    StatEnum.explosive_resistance:        "expRes",
+    StatEnum.electric_resistance:         "eleRes",
+    StatEnum.physical_damage:             "phyDmg",
+    StatEnum.physical_resistance_damage:  "phyResDmg",
+    StatEnum.electric_damage:             "eleDmg",
+    StatEnum.energy_damage:               "eneDmg",
+    StatEnum.energy_capacity_damage:      "eneCapDmg",
+    StatEnum.regeneration_damage:         "eneRegDmg",
+    StatEnum.electric_resistance_damage:  "eleResDmg",
+    StatEnum.explosive_damage:            "expDmg",
+    StatEnum.heat_damage:                 "heaDmg",
+    StatEnum.heat_capacity_damage:        "heaCapDmg",
+    StatEnum.cooling_damage:              "heaColDmg",
+    StatEnum.explosive_resistance_damage: "expResDmg",
+    StatEnum.walk:                        "walk",
+    StatEnum.jump:                        "jump",
+    StatEnum.range:                       "range",
+    StatEnum.push:                        "push",
+    StatEnum.pull:                        "pull",
+    StatEnum.recoil:                      "recoil",
+    StatEnum.advance:                     "advance",
+    StatEnum.retreat:                     "retreat",
+    StatEnum.uses:                        "uses",
+    StatEnum.backfire:                    "backfire",
+    StatEnum.heat_generation:             "heaCost",
+    StatEnum.energy_cost:                 "eneCost",
+    StatEnum.bullets_cost:                "bulletsCost",
+    StatEnum.rockets_cost:                "rocketsCost",
 }  # fmt: skip
 _WU_SLOT_TO_SLOT: abc.Mapping[LiteralString, SlotType] = {
-    "torso":         Type.TORSO,
-    "legs":          Type.LEGS,
-    "sideWeapon1":   (Type.SIDE_WEAPON, 0),
-    "sideWeapon2":   (Type.SIDE_WEAPON, 1),
-    "sideWeapon3":   (Type.SIDE_WEAPON, 2),
-    "sideWeapon4":   (Type.SIDE_WEAPON, 3),
-    "topWeapon1":    (Type.TOP_WEAPON, 0),
-    "topWeapon2":    (Type.TOP_WEAPON, 1),
-    "drone":         Type.DRONE,
-    "chargeEngine":  Type.CHARGE,
-    "teleporter":    Type.TELEPORTER,
-    "grapplingHook": Type.HOOK,
-    "module1":       (Type.MODULE, 0),
-    "module2":       (Type.MODULE, 1),
-    "module3":       (Type.MODULE, 2),
-    "module4":       (Type.MODULE, 3),
-    "module5":       (Type.MODULE, 4),
-    "module6":       (Type.MODULE, 5),
-    "module7":       (Type.MODULE, 6),
-    "module8":       (Type.MODULE, 7),
+    "torso":         TypeEnum.TORSO,
+    "legs":          TypeEnum.LEGS,
+    "sideWeapon1":   (TypeEnum.SIDE_WEAPON, 0),
+    "sideWeapon2":   (TypeEnum.SIDE_WEAPON, 1),
+    "sideWeapon3":   (TypeEnum.SIDE_WEAPON, 2),
+    "sideWeapon4":   (TypeEnum.SIDE_WEAPON, 3),
+    "topWeapon1":    (TypeEnum.TOP_WEAPON, 0),
+    "topWeapon2":    (TypeEnum.TOP_WEAPON, 1),
+    "drone":         TypeEnum.DRONE,
+    "chargeEngine":  TypeEnum.CHARGE,
+    "teleporter":    TypeEnum.TELEPORTER,
+    "grapplingHook": TypeEnum.HOOK,
+    "module1":       (TypeEnum.MODULE, 0),
+    "module2":       (TypeEnum.MODULE, 1),
+    "module3":       (TypeEnum.MODULE, 2),
+    "module4":       (TypeEnum.MODULE, 3),
+    "module5":       (TypeEnum.MODULE, 4),
+    "module6":       (TypeEnum.MODULE, 5),
+    "module7":       (TypeEnum.MODULE, 6),
+    "module8":       (TypeEnum.MODULE, 7),
 }  # fmt: skip
-_TYPE_TO_WU_TYPE: abc.Mapping[Type, str] = {type: type.name for type in Type}
-_TYPE_TO_WU_TYPE[Type.CHARGE] = "CHARGE_ENGINE"
-_TYPE_TO_WU_TYPE[Type.HOOK] = "GRAPPLING_HOOK"
+_TYPE_TO_WU_TYPE: abc.Mapping[TypeEnum, str] = {type: type.name for type in TypeEnum}
+_TYPE_TO_WU_TYPE[TypeEnum.CHARGE] = "CHARGE_ENGINE"
+_TYPE_TO_WU_TYPE[TypeEnum.HOOK] = "GRAPPLING_HOOK"
 
 # ------------------------------------------ typed dicts -------------------------------------------
 SetupID: TypeAlias = ItemID | Literal[0]
@@ -191,13 +191,13 @@ def _mech_items_in_wu_order(mech: Mech, /) -> abc.Iterator[SlotMemberType]:
     """Yield mech items in the order expected by WU."""
     yield mech.torso
     yield mech.legs
-    yield from mech.iter_items(Type.SIDE_WEAPON)
-    yield from mech.iter_items(Type.TOP_WEAPON)
+    yield from mech.iter_items(TypeEnum.SIDE_WEAPON)
+    yield from mech.iter_items(TypeEnum.TOP_WEAPON)
     yield mech.drone
     yield mech.charge
     yield mech.teleporter
     yield mech.hook
-    yield from mech.iter_items(Type.MODULE)
+    yield from mech.iter_items(TypeEnum.MODULE)
 
 
 def _mech_item_ids_in_wu_order(mech: Mech, /) -> abc.Iterator[SetupID]:

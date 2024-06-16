@@ -4,12 +4,11 @@ from typing_extensions import Self
 
 from attrs import define, field
 
-from .abc.stats import StatsProvider, StatType
-from .enums.stats import Stat, Tier
+from .abc.stats import Stat, StatsProvider, StatValue, Tier
 
 __all__ = ("StatsDict", "TransformStage", "get_final_stage")
 
-StatsDict: TypeAlias = dict[Stat, StatType]
+StatsDict: TypeAlias = dict[Stat, StatValue]
 """Concrete mapping type of item stats to values."""
 
 

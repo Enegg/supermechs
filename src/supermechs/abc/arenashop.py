@@ -1,12 +1,11 @@
 from collections import abc
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TypeAlias
 
-if TYPE_CHECKING:
-    from supermechs.enums.arenashop import Category
+__all__ = ("ArenaShopMapping", "Category", "MutableArenaShopMapping")
 
-__all__ = ("ArenaShopMapping", "MutableArenaShopMapping")
-
-ArenaShopMapping: TypeAlias = abc.Mapping["Category", int]
+Category: TypeAlias = str
+"""Arena shop category."""
+ArenaShopMapping: TypeAlias = abc.Mapping[Category, int]
 """Generic mapping of arena shop categories to their levels."""
-MutableArenaShopMapping: TypeAlias = abc.MutableMapping["Category", int]
+MutableArenaShopMapping: TypeAlias = abc.MutableMapping[Category, int]
 """Generic mutable mapping of arena shop categories to their levels."""
