@@ -1,13 +1,13 @@
 from collections import abc
 
 from supermechs.abc.arenashop import ArenaShopMapping, Category
-from supermechs.abc.stats import MutableStatsMapping, Stat, StatsMapping
+from supermechs.abc.stats import MutableStatsMapping, Stat, StatsMapping, StatValue
 from supermechs.enums.arenashop import CategoryEnum
 from supermechs.enums.stats import StatEnum
 from supermechs.gamerules import BuildRules
 from supermechs.item import Item, ItemData
 from supermechs.mech import Mech
-from supermechs.stats import StatsDict, get_final_stage
+from supermechs.stats import StatsDict
 from supermechs.tools.arenashop import get_category_data
 
 __all__ = (
@@ -52,9 +52,9 @@ MECH_SUMMARY_STATS: abc.Sequence[Stat] = (
 )
 
 
-def get_item_stats(item: Item, /) -> StatsDict:
-    """Get the stats of the item at its particular tier and level."""
-    return item.stage.at(item.level)
+def get_item_stats(item: Item, /) -> StatsMapping:
+    """The stats of the item at its particular tier and level."""
+    return item.stage.stats_at(item.level)
 
 
 def mech_summary(mech: Mech, /) -> StatsDict:
@@ -62,7 +62,7 @@ def mech_summary(mech: Mech, /) -> StatsDict:
     # inherits key order
     stats: StatsDict = dict.fromkeys(MECH_SUMMARY_STATS, 0)
 
-    for item in filter(None, mech.iter_items()):
+    for item in mech.iter_items():
         item_stats = get_item_stats(item)
 
         for stat in MECH_SUMMARY_STATS:
@@ -71,18 +71,18 @@ def mech_summary(mech: Mech, /) -> StatsDict:
     return stats
 
 
-def mech_weight(mech: Mech, /) -> int:
+def mech_weight(mech: Mech, /) -> StatValue:
     """Total mech's weight."""
     mass = 0
 
-    for item in filter(None, mech.iter_items()):
+    for item in mech.iter_items():
         mass += get_item_stats(item).get(StatEnum.weight, 0)
 
     return mass
 
 
 def apply_overload_penalties(
-    stats: MutableStatsMapping, /, ruleset: BuildRules = DEFAULT_GAME_RULES.builds
+    stats: MutableStatsMapping, /, ruleset: BuildRules = BuildRules.default
 ) -> None:
     """TODO: docstring"""
     if (overload := stats.get(StatEnum.weight, 0) - ruleset.MAX_WEIGHT) > 0:
@@ -112,7 +112,6 @@ def buff_stats(
     return mutable_stats
 
 
-def max_stats(item: ItemData, /) -> StatsDict:
+def max_stats(item: ItemData, /) -> StatsMapping:
     """Return the max stats of an item."""
-    stage = get_final_stage(item.start_stage)
-    return stage.max()
+    return item.stages[-1].max_stats()

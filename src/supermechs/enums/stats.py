@@ -64,7 +64,7 @@ class StatEnum(str, PartialEnum):
 
 
 @unique
-class TierEnum(int, PartialEnum):
+class TierEnum(str, PartialEnum):
     """Enumeration of item tiers."""
 
     # fmt: off

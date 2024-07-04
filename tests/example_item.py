@@ -1,89 +1,89 @@
 from serial.stat_providers import InterpolatedStats, StaticStats
 
 from supermechs.abc.item import ItemID
-from supermechs.abc.item_pack import PackKey
-from supermechs.enums.item import Element, Type
-from supermechs.enums.stats import Stat, Tier
-from supermechs.item import ItemData, Tags
+from supermechs.enums.item import ElementEnum, TagEnum, TypeEnum
+from supermechs.enums.stats import StatEnum, TierEnum
+from supermechs.item import ItemData
 from supermechs.stats import TransformStage
 
 item = ItemData(
-    id=ItemID(187),
-    pack_key=PackKey("@Eneg"),
+    id=ItemID("187@Eneg"),
     name="Overcharged Rocket Battery",
-    type=Type.SIDE_WEAPON,
-    element=Element.EXPLOSIVE,
-    tags=Tags(premium=True, require_jump=True),
-    start_stage=TransformStage(
-        tier=Tier.LEGENDARY,
-        stats=InterpolatedStats(
-            {
-                Stat.weight: 63,
-                Stat.explosive_damage: 103,
-                Stat.explosive_damage_addon: 181,
-                Stat.heat_damage: 56,
-                Stat.explosive_resistance_damage: 9,
-                Stat.range: 3,
-                Stat.range_addon: 6,
-                Stat.push: 1,
-                Stat.retreat: 1,
-                Stat.uses: 3,
-                Stat.backfire: 123,
-                Stat.heat_generation: 47,
-            },
-            {
-                Stat.explosive_damage: 138,
-                Stat.explosive_damage_addon: 243,
-                Stat.heat_damage: 75,
-            },
-            39,
-        ),
-        level_progression=[],
-        next=TransformStage(
-            tier=Tier.MYTHICAL,
+    type=TypeEnum.SIDE_WEAPON,
+    element=ElementEnum.EXPLOSIVE,
+    tags={TagEnum.premium, TagEnum.require_jump},
+    stages=[
+        TransformStage(
+            tier=TierEnum.LEGENDARY,
             stats=InterpolatedStats(
                 {
-                    Stat.weight: 63,
-                    Stat.explosive_damage: 154,
-                    Stat.explosive_damage_addon: 276,
-                    Stat.heat_damage: 81,
-                    Stat.explosive_resistance_damage: 14,
-                    Stat.range: 3,
-                    Stat.range_addon: 6,
-                    Stat.push: 1,
-                    Stat.retreat: 1,
-                    Stat.uses: 3,
-                    Stat.backfire: 180,
-                    Stat.heat_generation: 75,
+                    StatEnum.weight: 63,
+                    StatEnum.explosive_damage: 103,
+                    StatEnum.explosive_damage_addon: 181,
+                    StatEnum.heat_damage: 56,
+                    StatEnum.explosive_resistance_damage: 9,
+                    StatEnum.range: 3,
+                    StatEnum.range_addon: 6,
+                    StatEnum.push: 1,
+                    StatEnum.retreat: 1,
+                    StatEnum.uses: 3,
+                    StatEnum.backfire: 123,
+                    StatEnum.heat_generation: 47,
                 },
                 {
-                    Stat.explosive_damage: 202,
-                    Stat.explosive_damage_addon: 362,
-                    Stat.heat_damage: 106,
+                    StatEnum.explosive_damage: 138,
+                    StatEnum.explosive_damage_addon: 243,
+                    StatEnum.heat_damage: 75,
+                },
+                39,
+            ),
+            level_progression=[],
+        ),
+        TransformStage(
+            tier=TierEnum.MYTHICAL,
+            stats=InterpolatedStats(
+                {
+                    StatEnum.weight: 63,
+                    StatEnum.explosive_damage: 154,
+                    StatEnum.explosive_damage_addon: 276,
+                    StatEnum.heat_damage: 81,
+                    StatEnum.explosive_resistance_damage: 14,
+                    StatEnum.range: 3,
+                    StatEnum.range_addon: 6,
+                    StatEnum.push: 1,
+                    StatEnum.retreat: 1,
+                    StatEnum.uses: 3,
+                    StatEnum.backfire: 180,
+                    StatEnum.heat_generation: 75,
+                },
+                {
+                    StatEnum.explosive_damage: 202,
+                    StatEnum.explosive_damage_addon: 362,
+                    StatEnum.heat_damage: 106,
                 },
                 49,
             ),
             level_progression=[],
-            next=TransformStage(
-                tier=Tier.DIVINE,
-                stats=StaticStats(
-                    {
-                        Stat.weight: 63,
-                        Stat.explosive_damage: 213,
-                        Stat.explosive_damage_addon: 382,
-                        Stat.heat_damage: 112,
-                        Stat.explosive_resistance_damage: 14,
-                        Stat.range: 3,
-                        Stat.range_addon: 6,
-                        Stat.push: 1,
-                        Stat.retreat: 1,
-                        Stat.uses: 3,
-                        Stat.backfire: 180,
-                        Stat.heat_generation: 75,
-                    }
-                ),
-                level_progression=[],
-            ),
         ),
-    ),
+        TransformStage(
+            tier=TierEnum.DIVINE,
+            stats=StaticStats(
+                {
+                    StatEnum.weight: 63,
+                    StatEnum.explosive_damage: 213,
+                    StatEnum.explosive_damage_addon: 382,
+                    StatEnum.heat_damage: 112,
+                    StatEnum.explosive_resistance_damage: 14,
+                    StatEnum.range: 3,
+                    StatEnum.range_addon: 6,
+                    StatEnum.push: 1,
+                    StatEnum.retreat: 1,
+                    StatEnum.uses: 3,
+                    StatEnum.backfire: 180,
+                    StatEnum.heat_generation: 75,
+                }
+            ),
+            level_progression=[],
+        ),
+    ],
 )

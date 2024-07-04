@@ -1,6 +1,6 @@
 from collections import abc
-from typing import Protocol, TypeAlias
-from typing_extensions import ParamSpec, TypeVar
+from typing import ClassVar, Protocol, TypeAlias
+from typing_extensions import ParamSpec, Self, TypeVar
 
 T = TypeVar("T", infer_variance=True)
 T2 = TypeVar("T2", infer_variance=True)
@@ -28,3 +28,7 @@ class SupportsGetSetItem(Protocol[KT, VT]):
     def __getitem__(self, key: KT, /) -> VT: ...
 
     def __setitem__(self, key: KT, value: VT, /) -> None: ...
+
+
+class HasDefault(Protocol):
+    default: ClassVar[Self]

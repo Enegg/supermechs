@@ -1,5 +1,4 @@
 import uuid
-from bisect import bisect_left
 from collections import abc
 from typing import Final
 from typing_extensions import Self
@@ -7,9 +6,8 @@ from typing_extensions import Self
 from attrs import Factory, define, field
 
 from .abc.item import Element, ItemID, Paint, Tag, Type
-from .abc.stats import Tier
+from .abc.stats import Tier, TransformStage
 from .exceptions import MaxTierError, NegativeValueError, TierUnreachableError
-from .stats import TransformStage, get_final_stage
 
 __all__ = ("InvItem", "Item", "ItemData")
 
@@ -28,16 +26,8 @@ class ItemData:
     """Element of the item."""
     tags: Final[abc.Set[Tag]] = field()
     """A set of tags which alter item's behavior/appearance."""
-    start_stage: Final[TransformStage] = field()
+    stages: Final[abc.Sequence[TransformStage]] = field()
     """The first transformation stage of this item."""
-
-    def iter_stages(self) -> abc.Iterator[TransformStage]:
-        """Iterate over the transform stages of this item."""
-        stage = self.start_stage
-        yield stage
-
-        while stage := stage.next:
-            yield stage
 
 
 @define(kw_only=True)
@@ -45,7 +35,7 @@ class Item:
     """Represents unique properties of an item."""
 
     data: Final[ItemData] = field()
-    stage: TransformStage = field()
+    stage_index: int = field(default=0)
     level: int = field(default=0)
     paint: Paint | None = field(default=None)
 
@@ -70,6 +60,10 @@ class Item:
         return self.data.tags
 
     @property
+    def stage(self) -> TransformStage:
+        return self.data.stages[self.stage_index]
+
+    @property
     def tier(self) -> Tier:
         return self.stage.tier
 
@@ -81,40 +75,49 @@ class Item:
     @property
     def can_transform(self) -> bool:
         """Whether the item can be transformed, i.e. is not at final stage."""
-        return self.stage.next is not None
+        return not self.is_max_tier and self.is_max_level
+
+    @property
+    def is_max_tier(self) -> bool:
+        """Whether the item reached its final stage."""
+        return self.stage_index >= len(self.data.stages) - 1
 
     @property
     def is_max_level(self) -> bool:
         """Whether the item reached max level for its tier."""
-        return self.level == self.stage.max_level
+        return self.level >= self.stage.max_level
 
     @property
     def is_maxed(self) -> bool:
         """Whether the item is at its final stage and level."""
-        return not self.can_transform and self.is_max_level
+        return self.is_max_tier and self.is_max_level
 
     def __str__(self) -> str:
         return f"[{self.stage.tier[0]}] {self.data.name} lvl {self.display_level}"
 
     def transform(self) -> None:
         """Swap the stage of this item one tier higher."""
-        if self.stage.next is None:
+        if self.is_max_tier:
             raise MaxTierError
 
-        self.stage = self.stage.next
+        if not self.is_max_level:
+            msg = "Cannot transform before reaching max level"
+            raise ValueError(msg)
+
+        self.stage_index += 1
 
     @classmethod
     def maxed(cls, data: ItemData, /) -> Self:
         """Create an Item at maximum tier and level."""
-        stage = get_final_stage(data.start_stage)
-        return cls(data=data, stage=stage, level=stage.max_level)
+        index = len(data.stages) - 1
+        return cls(data=data, stage_index=index, level=data.stages[index].max_level)
 
     @classmethod
     def at_tier(cls, data: ItemData, /, tier: Tier) -> Self:
         """Create an Item at given tier."""
-        for stage in data.iter_stages():
+        for i, stage in enumerate(data.stages):
             if stage.tier == tier:
-                return cls(data=data, stage=stage)
+                return cls(data=data, stage_index=i)
 
         raise TierUnreachableError(tier)
 
@@ -135,7 +138,7 @@ class InvItem:
     @property
     def max_power(self) -> int:
         """The total power necessary to max the item at current tier."""
-        return self.item.stage.level_progression[-1]
+        return self.item.stage.max_power()
 
     @property
     def can_transform(self) -> bool:
@@ -151,10 +154,9 @@ class InvItem:
         if power < 0:
             raise NegativeValueError(power)
 
-        progression = self.item.stage.level_progression
-        power = min(power, progression[-1])
+        power = self.item.stage.clamp_power(power)
         self._power = power
-        self.item.level = bisect_left(progression, power) + 1
+        self.item.level = self.item.stage.level_at(power)
 
     def __str__(self) -> str:
         return f"{self.item} {self.UUID}"

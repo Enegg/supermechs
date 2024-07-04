@@ -1,10 +1,10 @@
 from collections import abc
 from typing import Final, Generic, overload
-from typing_extensions import Self
+from typing_extensions import Self, TypeVar
 
 from attrs import define
 
-from .typeshed import KT, VT, RestrictedContainer, SupportsGetSetItem, T
+from .typeshed import KT, VT, HasDefault, RestrictedContainer, SupportsGetSetItem, T
 
 
 def contains_any_of(obj: RestrictedContainer[T], /, *values: T) -> bool:
@@ -39,25 +39,27 @@ class KeyAccessor(Generic[KT, VT]):
 class SequenceView(Generic[KT, VT]):
     """A sequence-like object providing a view on a mapping."""
 
-    _obj: Final[SupportsGetSetItem[tuple[KT, int], VT]]
-    _key: Final[KT]
-    length: int
+    _obj: Final[SupportsGetSetItem[KT, VT]]
+    _keys: abc.Sequence[KT]
 
     def __len__(self) -> int:
-        return self.length
+        return len(self._keys)
 
     def __getitem__(self, index: int, /) -> VT:
-        if index >= self.length:
-            raise IndexError
-
-        return self._obj[self._key, index]
+        key = self._keys[index]
+        return self._obj[key]
 
     def __setitem__(self, index: int, item: VT, /) -> None:
-        if index >= self.length:
-            raise IndexError
-
-        self._obj[self._key, index] = item
+        key = self._keys[index]
+        self._obj[key] = item
 
     def __iter__(self) -> abc.Iterator[VT]:
-        for n in range(self.length):
-            yield self._obj[self._key, n]
+        return (self._obj[key] for key in self._keys)
+
+
+HasDefaultT = TypeVar("HasDefaultT", bound=HasDefault, infer_variance=True)
+
+
+def init_default(cls: type[HasDefaultT], /) -> type[HasDefaultT]:
+    cls.default = cls()
+    return cls

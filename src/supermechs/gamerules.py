@@ -1,16 +1,21 @@
 from collections import abc
-from typing import Final
+from typing import ClassVar, Final
+from typing_extensions import Self
 
 from attrs import define, field
 
 from .abc.stats import Stat, StatValue
 from .enums.stats import StatEnum
+from .utils import init_default
 
-__all__ = ("DEFAULT_GAME_RULES", "ArenaRules", "BuildRules", "GameRules")
+__all__ = ("ArenaRules", "BuildRules", "GameRules")
 
 
+@init_default
 @define
 class BuildRules:
+    default: ClassVar[Self]
+
     MAX_WEIGHT: Final[int] = 1000
     """The maximum weight of a mech before overload."""
     OVERLOAD: Final[int] = 10
@@ -38,10 +43,10 @@ class ArenaRules:
     """Sequence of start positions to choose from."""
 
 
+@init_default
 @define
 class GameRules:
-    builds: Final[BuildRules] = field(factory=BuildRules)
+    default: ClassVar[Self]
+
+    builds: Final[BuildRules] = field(default=BuildRules.default)
     arena: Final[ArenaRules] = field(factory=ArenaRules)
-
-
-DEFAULT_GAME_RULES: Final[GameRules] = GameRules()
