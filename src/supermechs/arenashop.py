@@ -21,7 +21,7 @@ def is_shop_empty(shop: ArenaShopMapping, /) -> bool:
 
 
 def max_shop(shop: MutableArenaShopMapping, /) -> None:
-    """Sets categories of provided arena shop to their maximum level."""
+    """Set categories of provided arena shop to their maximum level."""
     for category in Category:
         shop[category] = category.data.max_level
 

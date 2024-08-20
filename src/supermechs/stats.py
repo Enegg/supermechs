@@ -32,7 +32,7 @@ class TransformStage:
         return len(self.level_progression)
 
     def at(self, level: int, /) -> StatsDict:
-        """Returns the stats at given level."""
+        """Return the stats at given level."""
         stats = self.stats.at(level)
 
         if not isinstance(stats, dict):
@@ -41,11 +41,11 @@ class TransformStage:
         return stats
 
     def min(self) -> StatsDict:
-        """Returns the base stats for the stage."""
+        """Return the base stats for the stage."""
         return self.at(0)
 
     def max(self) -> StatsDict:
-        """Returns the max stats for the stage."""
+        """Return the max stats for the stage."""
         return self.at(self.max_level)
 
 

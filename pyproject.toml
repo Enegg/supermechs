@@ -6,8 +6,9 @@ authors = [
     {name = "Eneg"},
 ]
 dependencies = [
-    "typing-extensions >= 4.4.1", # override
     "attrs >= 22.1.0",            # min_len
+    "exceptiongroup >= 1.2.2; python_version < '3.11'",
+    "typing-extensions >= 4.4.1", # override
 ]
 requires-python = ">=3.10,<4.0"
 readme = "README.md"
@@ -24,7 +25,7 @@ distribution = true
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "ruff >= 0.2.1",
+    "ruff >= 0.6.1",
     "pre-commit",
     "ipykernel < 7.0.0, >= 6.29.0",
 ]
@@ -42,34 +43,24 @@ preview = true
 explicit-preview-rules = true
 
 select = [
-    "E",   # general errors
-    "F",   # flake
-    "RUF", # ruff specific
-    "PL",  # pylint
-    "B",   # bugbear
-
-    "G",   # avoid formatting in logging
-    "Q",   # consistent string quotes
-    "FLY", # static joins
-    "ISC", # string concatenation
-
-    "SIM",  # simplifiable logic
-    "C4",   # simplifiable comprehensions
-    "PERF", # micro optimizations
-
-    "ASYNC", # blocking calls in async context
-    "TCH",   # type-checking-only imports
-    "PTH",   # use pathlib for path manipulation
-    "TRY",   # try - except pitfalls
-    "EM",    # don't inline exception messages
-    "ERA",   # commented out code
+    "ALL",
 
     # preview
     "RUF022", # sort __all__
 ]
 ignore = [
-    "PERF203" # try ... except in loops
+    "ARG",       # unused parameters
+    "COM812",    # don't require commas
+    "D1",        # missing docstrings
+    "FIX", "TD", # todos
+    "N818",      # naming exceptions as *Error
+    "PERF203",   # try ... except in loops
+    "PIE796",    # non-unique enums (that's a job for @unique)
+    "SLF001",    # private member access; handled by pyright
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"] # import *
@@ -95,6 +86,9 @@ section-order = [
 [tool.ruff.lint.flake8-type-checking]
 exempt-modules = ["typing", "typing_extensions", "supermechs.typeshed"]
 runtime-evaluated-decorators = ["attrs.define", "attrs.frozen"]
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["id", "format", "input", "type"]
 
 
 [tool.pyright]

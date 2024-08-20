@@ -44,7 +44,7 @@ class Tags(NamedTuple):
 class ItemData:
     """Dataclass storing item data independent of its tier and level."""
 
-    id: Final[ItemID] = field(validator=validators.ge(1))
+    id: Final[ItemID] = field(validator=validators.ge(ItemID(1)))
     """The ID of the item, unique within its pack."""
     pack_key: Final[PackKey] = field()
     """The key of the pack this item comes from."""
@@ -60,7 +60,7 @@ class ItemData:
     """The first transformation stage of this item."""
 
     def iter_stages(self) -> abc.Iterator[TransformStage]:
-        """Iterator over the transform stages of this item."""
+        """Iterate over the transform stages of this item."""
         stage = self.start_stage
         yield stage
 
@@ -130,7 +130,6 @@ class Item:
 
     def transform(self) -> None:
         """Swap the stage of this item one tier higher."""
-
         if self.stage.next is None:
             raise MaxTierError
 
@@ -172,7 +171,7 @@ class InvItem:
 
     @property
     def can_transform(self) -> bool:
-        """Returns True if item has enough power and isn't at max tier."""
+        """True if item has enough power and isn't at max tier."""
         return self.is_max_power and self.item.can_transform
 
     @property
@@ -193,7 +192,7 @@ class InvItem:
         return f"{self.item} {self.UUID}"
 
     def transform(self) -> None:
-        """Transforms the item to higher tier, if it has enough power"""
+        """Transform the item to higher tier, if it has enough power."""
         if not self.is_max_power:
             msg = "Cannot transform a non-maxed item"
             raise ValueError(msg)

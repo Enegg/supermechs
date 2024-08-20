@@ -121,8 +121,7 @@ _WU_SLOT_NAMES = tuple(_WU_SLOT_TO_SLOT.keys())
 
 
 def import_mech(data: WUMech, pack: "ItemPack", *, at: DataPath = ()) -> tuple[Mech, str]:
-    """Imports a mech from WU mech."""
-
+    """Import a mech from WU mech."""
     key = "setup"
     setup = assert_key(list[int], data, key, at=at)
     name = assert_key(str, data, "name", at=at)
@@ -156,8 +155,7 @@ def import_mech(data: WUMech, pack: "ItemPack", *, at: DataPath = ()) -> tuple[M
 def import_mechs(
     data: ExportedMechs, pack: "ItemPack"
 ) -> tuple[list[tuple[Mech, str]], list[DataError]]:
-    """Imports mechs from parsed .JSON file."""
-
+    """Import mechs from parsed .JSON file."""
     version = assert_key(str, data, "version")
 
     if version != "1":
@@ -182,7 +180,7 @@ def import_mechs(
 
 
 def load_mechs(data: bytes, pack: "ItemPack") -> tuple[list[tuple[Mech, str]], list[DataError]]:
-    """Loads mechs from bytes object, representing a .JSON file."""
+    """Load mechs from bytes object, representing a .JSON file."""
     return import_mechs(platform.json_decoder(data), pack)
 
 
@@ -190,7 +188,7 @@ def load_mechs(data: bytes, pack: "ItemPack") -> tuple[list[tuple[Mech, str]], l
 
 
 def _mech_items_in_wu_order(mech: Mech, /) -> abc.Iterator[SlotMemberType]:
-    """Yields mech items in the order expected by WU."""
+    """Yield mech items in the order expected by WU."""
     yield mech.torso
     yield mech.legs
     yield from mech.iter_items(Type.SIDE_WEAPON)
@@ -203,13 +201,12 @@ def _mech_items_in_wu_order(mech: Mech, /) -> abc.Iterator[SlotMemberType]:
 
 
 def _mech_item_ids_in_wu_order(mech: Mech, /) -> abc.Iterator[SetupID]:
-    """Yields mech item IDs in WU compatible order."""
+    """Yield mech item IDs in WU compatible order."""
     return (0 if item is None else item.data.id for item in _mech_items_in_wu_order(mech))
 
 
 def is_exportable(mech: Mech, /) -> bool:
     """Whether mech's items come from at most one pack."""
-
     items = filter(None, mech.iter_items())
     try:
         first_key = next(items).data.pack_key
@@ -221,18 +218,18 @@ def is_exportable(mech: Mech, /) -> bool:
 
 
 def export_mech(mech: Mech, /, name: str) -> WUMech:
-    """Exports a mech to WU mech."""
+    """Export a mech to WU mech."""
     return {"name": name, "setup": list(_mech_item_ids_in_wu_order(mech))}
 
 
 def export_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> ExportedMechs:
-    """Exports mechs to WU compatible format."""
+    """Export mechs to WU compatible format."""
     wu_mechs = [export_mech(mech, name) for name, mech in mechs]
     return {"version": 1, "mechs": {pack_key: wu_mechs}}
 
 
 def dump_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> bytes:
-    """Dumps mechs into bytes representing a .JSON file."""
+    """Dump mechs into bytes representing a .JSON file."""
     return platform.json_encoder(export_mechs(mechs, pack_key), indent=True)
 
 
@@ -264,6 +261,6 @@ def get_player(mech: Mech, mech_name: str, player_name: str) -> WUPlayer:
     import hashlib
 
     data = platform.json_encoder(battle_items_no_modules)
-    hash = hashlib.sha256(data).hexdigest()
+    hash_ = hashlib.sha256(data).hexdigest()
 
-    return {"name": str(player_name), "itemsHash": hash, "mech": export_mech(mech, mech_name)}
+    return {"name": str(player_name), "itemsHash": hash_, "mech": export_mech(mech, mech_name)}

@@ -75,8 +75,7 @@ def _iter_stat_keys_and_types() -> abc.Iterator[tuple[str, type]]:
 
 
 def to_stats_mapping(data: RawStatsMapping, /, *, at: DataPath = ()) -> StatsMapping:
-    """Grabs only expected keys and checks value types. Transforms None values into NaNs."""
-
+    """Grab only expected keys and check value types. Transform None values into NaNs."""
     catch = Catch()
     final_stats: StatsMapping = {}
     # TODO: extrapolation of missing data

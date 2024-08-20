@@ -68,7 +68,7 @@ def to_item_data(data: AnyItemDict, pack_key: PackKey, *, at: DataPath = ()) -> 
         start_stage = to_transform_stages(data, at=at)
         tags = to_tags(data.get("tags", ()), start_stage, at=at)
     catch.checkpoint("Problems while parsing item data:")
-    item_data = ItemData(
+    return ItemData(
         id=id,
         pack_key=pack_key,
         name=name,
@@ -77,4 +77,3 @@ def to_item_data(data: AnyItemDict, pack_key: PackKey, *, at: DataPath = ()) -> 
         tags=tags,
         start_stage=start_stage,
     )
-    return item_data

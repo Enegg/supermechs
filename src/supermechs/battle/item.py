@@ -3,8 +3,8 @@ from typing import Final
 
 from attrs import define, field
 
-from ..abc.stats import StatsMapping
-from ..item import Item
+from supermechs.abc.stats import StatsMapping
+from supermechs.item import Item
 
 __all__ = ("BattleItem",)
 

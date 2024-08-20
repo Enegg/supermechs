@@ -30,7 +30,7 @@ def to_item_pack(data: AnyItemPack, /) -> ItemPack:
 
 
 def extract_metadata(pack: AnyItemPack, /) -> PackData:
-    """Extracts key, name and description from item pack data."""
+    """Extract key, name and description from item pack data."""
     key = "version"
     version = assert_type(str, pack.get(key, "1"), at=(key,))
 

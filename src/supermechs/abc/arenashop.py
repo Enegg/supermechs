@@ -2,7 +2,7 @@ from collections import abc
 from typing import TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
-    from ..enums.arenashop import Category
+    from supermechs.enums.arenashop import Category
 
 __all__ = ("ArenaShopMapping", "MutableArenaShopMapping")
 

@@ -33,16 +33,16 @@ class Mech:
     perk       = SlotAccessor(Type.PERK)
     # fmt: on
 
-    def side_weapons(self):
-        """A sequence-like object providing a view on mech's side weapons."""
+    def side_weapons(self):  # noqa: ANN201
+        """Sequence-like object providing a view on mech's side weapons."""
         return SequenceView(self, Type.SIDE_WEAPON, self.rules.VARIADIC_SLOTS[Type.SIDE_WEAPON])
 
-    def top_weapons(self):
-        """A sequence-like object providing a view on mech's top weapons."""
+    def top_weapons(self):  # noqa: ANN201
+        """Sequence-like object providing a view on mech's top weapons."""
         return SequenceView(self, Type.TOP_WEAPON, self.rules.VARIADIC_SLOTS[Type.TOP_WEAPON])
 
-    def modules(self):
-        """A sequence-like object providing a view on mech's modules."""
+    def modules(self):  # noqa: ANN201
+        """Sequence-like object providing a view on mech's modules."""
         return SequenceView(self, Type.MODULE, self.rules.VARIADIC_SLOTS[Type.MODULE])
 
     def __setitem__(self, slot: SlotType, item: SlotMemberType, /) -> None:
@@ -93,16 +93,18 @@ class Mech:
         return "\n".join(string_parts)
 
     def iter_items(self, *slots: "SlotSelectorType") -> abc.Iterator[SlotMemberType]:
-        """Iterator over selected mech's items.
+        """Iterate over selected mech's items.
 
         Parameters
         ----------
-        slots: the order and `Type`s of items to yield.\
-         Literal string shorthands for related types:\
-         "body" - `TORSO` & `LEGS`;\
-         "weapons" - `SIDE_WEAPON`s, `TOP_WEAPON`s & `DRONE`;\
-         "specials" - `TELEPORTER`, `CHARGE`, `HOOK` & `SHIELD`.\
-         If no slots are provided, yields every item.
+        slots:
+            The order and `Type`s of items to yield. If no slots are provided, yields every item.
+
+            Literal string shorthands for related types:
+
+            - "body" - `TORSO` & `LEGS`;
+            - "weapons" - `SIDE_WEAPON`s, `TOP_WEAPON`s & `DRONE`;
+            - "specials" - `TELEPORTER`, `CHARGE`, `HOOK` & `SHIELD`.
         """
         if slots:
             slots_ = _selectors_to_slots(slots, self.rules)

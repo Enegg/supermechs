@@ -1,7 +1,7 @@
 from collections import abc
 from typing import Any, Protocol, TypeAlias
 
-from ..enums.stats import Stat
+from supermechs.enums.stats import Stat
 
 __all__ = ("MutableStatsMapping", "StatsMapping")
 
@@ -17,5 +17,5 @@ class StatsProvider(Protocol):
         ...
 
     def at(self, level: int, /) -> StatsMapping:
-        """Returns the stats at given level."""
+        """Return the stats at given level."""
         ...

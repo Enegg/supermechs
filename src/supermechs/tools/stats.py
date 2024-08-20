@@ -1,13 +1,13 @@
 from collections import abc
 
-from ..abc.arenashop import ArenaShopMapping
-from ..abc.stats import MutableStatsMapping, StatsMapping
-from ..enums.arenashop import Category
-from ..enums.stats import Stat
-from ..gamerules import DEFAULT_GAME_RULES, BuildRules
-from ..item import Item, ItemData
-from ..mech import Mech
-from ..stats import StatsDict, get_final_stage
+from supermechs.abc.arenashop import ArenaShopMapping
+from supermechs.abc.stats import MutableStatsMapping, StatsMapping
+from supermechs.enums.arenashop import Category
+from supermechs.enums.stats import Stat
+from supermechs.gamerules import DEFAULT_GAME_RULES, BuildRules
+from supermechs.item import Item, ItemData
+from supermechs.mech import Mech
+from supermechs.stats import StatsDict, get_final_stage
 
 __all__ = (
     "apply_overload_penalties",
@@ -52,12 +52,12 @@ MECH_SUMMARY_STATS: abc.Sequence[Stat] = (
 
 
 def get_item_stats(item: Item, /) -> StatsDict:
-    """The stats of the item at its particular tier and level."""
+    """Get the stats of the item at its particular tier and level."""
     return item.stage.at(item.level)
 
 
 def mech_summary(mech: Mech, /) -> StatsDict:
-    """A dict of the mech's stats, in order as they appear in workshop."""
+    """Construct a dict of the mech's stats, in order as they appear in workshop."""
     # inherits key order
     stats: StatsDict = dict.fromkeys(MECH_SUMMARY_STATS, 0)
 
@@ -92,7 +92,7 @@ def apply_overload_penalties(
 def buff_stats(
     stats: StatsMapping, /, buff_levels: ArenaShopMapping, *, skip_hp: bool = True
 ) -> StatsDict:
-    """Returns stats buffed according to buff levels."""
+    """Return stats buffed according to buff levels."""
     mutable_stats = dict(stats)
 
     for stat, value in mutable_stats.items():

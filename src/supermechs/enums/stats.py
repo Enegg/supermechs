@@ -1,7 +1,6 @@
 from collections import abc
 from enum import auto, unique
 from typing import ClassVar
-
 from typing_extensions import Self
 
 from ._base import PartialEnum
@@ -62,7 +61,6 @@ class Stat(int, PartialEnum):
     bullets_cost                = auto()
     rockets_cost                = auto()
     # fmt: on
-    pass
 
 
 @unique

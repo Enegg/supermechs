@@ -1,4 +1,4 @@
-from ..enums.item import Type
+from supermechs.enums.item import Type
 
 __all__ = ("is_attachable", "is_displayable")
 

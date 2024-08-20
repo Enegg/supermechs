@@ -3,11 +3,12 @@ from collections import abc
 
 from attrs import define, field
 
-from ..item import Item
-from ..mech import Mech
-from ..typeshed import T
-from ..utils import KeyAccessor
 from .joints import JointLayer, JointLayerType, Joints
+
+from supermechs.item import Item
+from supermechs.mech import Mech
+from supermechs.typeshed import T
+from supermechs.utils import KeyAccessor
 
 __all__ = ("MechGFX", "get_mech_gfx")
 
@@ -47,7 +48,7 @@ class MechGFX(typing.Generic[T]):
         self._setup.pop(slot, None)
 
 
-def get_mech_gfx(mech: Mech, get_sprite: abc.Callable[[Item], T]) -> MechGFX[T]:
+def get_mech_gfx(mech: Mech, get_sprite: abc.Callable[[Item], T]) -> MechGFX[T]:  # noqa: C901
     gfx = MechGFX[T]()
 
     if mech.torso is not None:

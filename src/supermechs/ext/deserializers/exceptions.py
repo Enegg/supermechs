@@ -10,7 +10,10 @@ from ._compat import DataErrorGroup
 from supermechs.exceptions import SMException
 
 if typing.TYPE_CHECKING:
-    from exceptiongroup import ExceptionGroup
+    import sys
+
+    if sys.version_info < (3, 11):
+        from exceptiongroup import ExceptionGroup
 
 DataPath: typing.TypeAlias = abc.Sequence[str | int]  # keys or indices
 Typeish: typing.TypeAlias = type[object] | None

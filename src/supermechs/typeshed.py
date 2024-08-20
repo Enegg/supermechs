@@ -1,6 +1,5 @@
 from collections import abc
 from typing import TypeAlias
-
 from typing_extensions import ParamSpec, TypeVar
 
 T = TypeVar("T", infer_variance=True)

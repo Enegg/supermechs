@@ -1,3 +1,4 @@
+# ruff: noqa: FBT003
 from collections import abc
 from enum import auto, unique
 from typing import NamedTuple

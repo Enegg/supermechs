@@ -2,7 +2,7 @@ from collections import abc
 from enum import auto, unique
 from typing import Literal, NamedTuple, TypeAlias
 
-from ..enums._base import PartialEnum
+from supermechs.enums._base import PartialEnum
 
 __all__ = ("JointLayer", "Joints", "Point2D", "align_joints")
 

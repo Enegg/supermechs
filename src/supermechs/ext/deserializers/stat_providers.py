@@ -31,8 +31,7 @@ class InterpolatedStats:
         return stat in self.base_stats
 
     def at(self, level: int, /) -> StatsDict:
-        """Returns the stats at given level."""
-
+        """Return the stats at given level."""
         if level == 0:
             return dict(self.base_stats)
 
@@ -61,6 +60,7 @@ class StaticStats:
         return stat in self.base_stats
 
     def at(self, level: int, /) -> StatsDict:
+        """Return the stats at given level."""
         if level != 0:
             raise OutOfRangeError(0, level, 0) from None
         return dict(self.base_stats)
@@ -76,6 +76,7 @@ class LinearStats:
         return stat in self.stats[0]
 
     def at(self, level: int, /) -> StatsDict:
+        """Return the stats at given level."""
         try:
             stats = self.stats[level]
 

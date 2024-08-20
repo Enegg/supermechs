@@ -1,8 +1,8 @@
 from collections import abc
 from typing import Any, Final, Generic, Protocol, overload
+from typing_extensions import Self
 
 from attrs import define
-from typing_extensions import Self
 
 from .typeshed import KT, VT, T
 
@@ -14,7 +14,7 @@ class RestrictedContainer(Protocol[T]):
 
 
 def contains_any_of(obj: RestrictedContainer[T], /, *values: T) -> bool:
-    """Returns True if a container has any of the specified values."""
+    """Return True if a container has any of the specified values."""
     return any(v in obj for v in values)
 
 

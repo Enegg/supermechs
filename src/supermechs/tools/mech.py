@@ -1,5 +1,5 @@
-from ..enums.item import Element, Type
-from ..mech import Mech
+from supermechs.enums.item import Element, Type
+from supermechs.mech import Mech
 
 __all__ = ("dominant_element",)
 

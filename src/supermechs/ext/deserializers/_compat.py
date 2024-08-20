@@ -1,7 +1,9 @@
 # pyright: reportImportCycles=false
+import sys
 import typing
 
-from exceptiongroup import ExceptionGroup
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
 
 if typing.TYPE_CHECKING:
     from .exceptions import DataErrorType
