@@ -1,11 +1,11 @@
+from serial.stat_providers import InterpolatedStats, StaticStats
+
 from supermechs.abc.item import ItemID
 from supermechs.abc.item_pack import PackKey
 from supermechs.enums.item import Element, Type
 from supermechs.enums.stats import Stat, Tier
 from supermechs.item import ItemData, Tags
 from supermechs.stats import TransformStage
-
-from supermechs.ext.deserializers.stat_providers import InterpolatedStats, StaticStats
 
 item = ItemData(
     id=ItemID(187),

@@ -1,15 +1,16 @@
 import typing
-import typing_extensions as typing_
 from collections import abc
+from typing import TYPE_CHECKING, Any, Final, NewType, SupportsIndex, is_typeddict
+from typing_extensions import Self, TypeVar, TypeVarTuple, Unpack
 
 from .exceptions import Catch, DataKeyError, DataPath, DataTypeError
 
 from supermechs.enums._base import PartialEnum
 from supermechs.typeshed import T
 
-JSON_KT = typing_.TypeVar("JSON_KT", str, int, infer_variance=True)
-E = typing_.TypeVar("E", bound=PartialEnum, infer_variance=True)
-Ts = typing_.TypeVarTuple("Ts")
+JSON_KT = TypeVar("JSON_KT", str, int, infer_variance=True)
+E = TypeVar("E", bound=PartialEnum, infer_variance=True)
+Ts = TypeVarTuple("Ts")
 
 
 def js_format(string: str, /, **keys: object) -> str:
@@ -24,7 +25,7 @@ def js_format(string: str, /, **keys: object) -> str:
 
 
 class _NullMeta(type):
-    def __new__(cls, name: str, bases: tuple[type, ...], namespace: dict[str, typing.Any]):
+    def __new__(cls, name: str, bases: tuple[type, ...], namespace: dict[str, Any]):  # noqa: ANN204
         def func(self: T, _: int) -> T:
             return self
 
@@ -47,7 +48,7 @@ class _NullMeta(type):
 # we lie to type checker that the class is an int for ease of typing,
 # but we don't want it to pass isinstance(obj, int) at runtime
 # so that types like float don't take precedence with arithmetic operations
-class Null(int if typing.TYPE_CHECKING else object, metaclass=_NullMeta):
+class Null(int if TYPE_CHECKING else object, metaclass=_NullMeta):
     __slots__ = ()
 
     def __str__(self) -> str:
@@ -62,13 +63,13 @@ class Null(int if typing.TYPE_CHECKING else object, metaclass=_NullMeta):
     def __eq__(self, _: object) -> bool:
         return False
 
-    def __round__(self, _: typing.SupportsIndex, /) -> typing_.Self:
+    def __round__(self, _: SupportsIndex, /) -> Self:
         # round() on float("nan") raises ValueError and probably has a good reason to do so,
         # but for my purposes it is essential round() returns this object too
         return self
 
 
-NULL: typing.Final = Null()
+NULL: Final = Null()
 
 
 def maybe_null(value: int | None, /) -> int:
@@ -80,15 +81,15 @@ def assert_type(type_: type[T], obj: object, /, *, at: DataPath = ()) -> T:
     base_type: type | None
     if (base_type := typing.get_origin(type_)) is None:
         base_type = type_
-        value_type: type | typing.Any = typing.Any
+        value_type: type | Any = Any
 
     else:
         value_type = typing.get_args(type_)[0]
 
-    if isinstance(base_type, typing.NewType):
+    if isinstance(base_type, NewType):
         base_type = typing.cast(type, base_type.__supertype__)  # type: ignore[reportUnknownMemberType]
 
-    if typing_.is_typeddict(base_type):
+    if is_typeddict(base_type):
         base_type = dict
 
     if issubclass(base_type, PartialEnum):
@@ -105,7 +106,7 @@ def assert_type(type_: type[T], obj: object, /, *, at: DataPath = ()) -> T:
 
 def assert_iterable(type_: type[T], obj: abc.Iterable[object], /, *, at: DataPath = ()) -> None:
     """Assert members of an iterable are of given type."""
-    if type_ is typing.Any:
+    if type_ is Any:
         return
 
     catch = Catch()
@@ -151,12 +152,12 @@ def assert_key(
 
 
 def assert_keys(
-    types: type[tuple[typing_.Unpack[Ts]]],
+    types: type[tuple[Unpack[Ts]]],
     mapping: abc.Mapping[JSON_KT, object],
     /,
     *keys: JSON_KT,
     at: DataPath = (),
-) -> tuple[typing_.Unpack[Ts]]:
+) -> tuple[Unpack[Ts]]:
     """Assert multiple keys exist in a mapping and their values are of correct type."""
     results: list[object] = []
     catch = Catch()

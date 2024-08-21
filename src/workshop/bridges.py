@@ -2,9 +2,9 @@ from collections import abc
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 from typing_extensions import LiteralString, TypedDict
 
-from .. import platform
-from ..deserializers.exceptions import DataError, DataPath, DataValueError, DataVersionError
-from ..deserializers.utils import assert_key
+import fileformats
+from serial.exceptions import DataError, DataPath, DataValueError, DataVersionError
+from serial.utils import assert_key
 
 from supermechs.abc.item import ItemID, Name
 from supermechs.abc.item_pack import PackKey
@@ -181,7 +181,7 @@ def import_mechs(
 
 def load_mechs(data: bytes, pack: "ItemPack") -> tuple[list[tuple[Mech, str]], list[DataError]]:
     """Load mechs from bytes object, representing a .JSON file."""
-    return import_mechs(platform.json_decoder(data), pack)
+    return import_mechs(fileformats.json_decoder(data), pack)
 
 
 # --------------------------------------------- lib2WU ---------------------------------------------
@@ -230,7 +230,7 @@ def export_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> Export
 
 def dump_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> bytes:
     """Dump mechs into bytes representing a .JSON file."""
-    return platform.json_encoder(export_mechs(mechs, pack_key), indent=True)
+    return fileformats.json_encoder(export_mechs(mechs, pack_key), indent=True)
 
 
 def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
@@ -260,7 +260,7 @@ def get_player(mech: Mech, mech_name: str, player_name: str) -> WUPlayer:
     ]
     import hashlib
 
-    data = platform.json_encoder(battle_items_no_modules)
+    data = fileformats.json_encoder(battle_items_no_modules)
     hash_ = hashlib.sha256(data).hexdigest()
 
     return {"name": str(player_name), "itemsHash": hash_, "mech": export_mech(mech, mech_name)}

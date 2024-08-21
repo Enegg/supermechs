@@ -30,7 +30,7 @@ def _dedent_arrays(data: bytes, /) -> bytes:
 
 
 try:
-    import orjson  # pyright: ignore[reportMissingImports]
+    import orjson
 
 except ImportError:
     import json

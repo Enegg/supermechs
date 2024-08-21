@@ -1,8 +1,8 @@
 from collections import abc
 
-from ..exceptions import DataError, DataPath
-from ..typedefs.graphics import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
-from ..utils import assert_keys
+from serial.exceptions import DataError, DataPath
+from serial.typedefs.graphics import AnyRawAttachment, RawPoint2D, RawTorsoAttachments
+from serial.utils import assert_keys
 
 from supermechs.enums.item import Type
 from supermechs.graphics.joints import JointLayer, JointLayerType, Joints, Point2D

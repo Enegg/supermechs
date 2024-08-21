@@ -62,37 +62,20 @@ ignore = [
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F403"] # import *
-
 [tool.ruff.lint.isort]
 combine-as-imports = true
 split-on-trailing-comma = false
 extra-standard-library = ["typing_extensions"]
-section-order = [
-    "future",
-    "standard-library",
-    "third-party",
-    "first-party",
-    "local-folder",
-    "supermechs",
-    "supermechs-ext",
-]
-
-[tool.ruff.lint.isort.sections]
-"supermechs" = ["supermechs"]
-"supermechs-ext" = ["supermechs.ext"]
+forced-separate = ["supermechs"]
 
 [tool.ruff.lint.flake8-type-checking]
 exempt-modules = ["typing", "typing_extensions", "supermechs.typeshed"]
-runtime-evaluated-decorators = ["attrs.define", "attrs.frozen"]
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = ["id", "format", "input", "type"]
 
 
 [tool.pyright]
-include = ["src/supermechs"]
 exclude = ["dev"]
 pythonVersion = "3.10"
 
