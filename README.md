@@ -4,7 +4,7 @@ supermechs
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff" /></a>
   <a><img src="https://img.shields.io/github/commit-activity/w/Enegg/supermechs.svg?style=flat-square" alt="Commit activity" /></a>
 </p>
-This library provides a foundation for simulating the mechanics of the SuperMechs game.
+Foundation for simulating the mechanics of the SuperMechs game.
 
 Installing
 ----------
@@ -27,7 +27,7 @@ Quick example
 -------------
 ```py
 import requests  # pip install requests
-from supermechs.ext.deserializers import to_item_pack
+from serial import to_item_pack
 
 with requests.get("https://raw.githubusercontent.com/Enegg/Item-packs/master/items.json") as resp:
     resp.raise_for_status()
