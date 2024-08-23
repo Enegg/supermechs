@@ -2,24 +2,23 @@ import re
 from collections import abc
 from typing import Any, Protocol, TypeAlias
 
-__all__ = ("json_decoder", "json_encoder", "set_json_codecs")
+__all__ = ("dumps", "loads", "set_codecs")
 
-DecoderType: TypeAlias = abc.Callable[[str | bytes], Any]
-
-
-class EncoderType(Protocol):
-    def __call__(self, obj: object, /, *, indent: bool = False) -> bytes:
-        ...
+Loads: TypeAlias = abc.Callable[[str | bytes], Any]
 
 
-json_decoder: DecoderType
-json_encoder: EncoderType
+class Dumps(Protocol):
+    def __call__(self, obj: object, /, *, indent: bool = False) -> bytes: ...
 
 
-def set_json_codecs(encoder: EncoderType, decoder: DecoderType) -> None:
-    """Override the json (de)coder used by plugins."""
-    global json_encoder, json_decoder
-    json_encoder, json_decoder = encoder, decoder
+loads: Loads
+dumps: Dumps
+
+
+def set_codecs(encoder: Dumps, decoder: Loads) -> None:
+    """Override dumps/loads used by plugins."""
+    global dumps, loads
+    dumps, loads = encoder, decoder
 
 
 _INDENTED_ARRAY = re.compile(rb",\n\s+(\d+)")
@@ -42,7 +41,7 @@ except ImportError:
         data = json.dumps(obj, indent=2).encode()
         return _dedent_arrays(data)
 
-    set_json_codecs(_json_dumps, json.loads)
+    set_codecs(_json_dumps, json.loads)
 
 else:
 
@@ -53,4 +52,4 @@ else:
         data = orjson.dumps(obj, option=orjson.OPT_INDENT_2)
         return _dedent_arrays(data)
 
-    set_json_codecs(_orjson_dumps, orjson.loads)
+    set_codecs(_orjson_dumps, orjson.loads)

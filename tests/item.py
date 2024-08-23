@@ -5,7 +5,7 @@ from pathlib import Path
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup
 
-import fileformats
+import smjson
 from serial import to_item_data
 
 from .example_item import item
@@ -14,7 +14,7 @@ from supermechs.abc.item_pack import PackKey
 
 path = Path() / "tests" / "data" / "item_v3.json"
 path2 = Path() / "tests" / "data" / "invalid_item_v3.json"
-data = fileformats.json_decoder(path2.read_bytes())
+data = smjson.loads(path2.read_bytes())
 
 
 def _unwrap(

@@ -2,7 +2,7 @@ from collections import abc
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 from typing_extensions import LiteralString, TypedDict
 
-import fileformats
+import smjson
 from serial.exceptions import DataError, DataPath, DataValueError, DataVersionError
 from serial.utils import assert_key
 
@@ -181,7 +181,7 @@ def import_mechs(
 
 def load_mechs(data: bytes, pack: "ItemPack") -> tuple[list[tuple[Mech, str]], list[DataError]]:
     """Load mechs from bytes object, representing a .JSON file."""
-    return import_mechs(fileformats.json_decoder(data), pack)
+    return import_mechs(smjson.loads(data), pack)
 
 
 # --------------------------------------------- lib2WU ---------------------------------------------
@@ -230,7 +230,7 @@ def export_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> Export
 
 def dump_mechs(mechs: abc.Iterable[tuple[str, Mech]], pack_key: str) -> bytes:
     """Dump mechs into bytes representing a .JSON file."""
-    return fileformats.json_encoder(export_mechs(mechs, pack_key), indent=True)
+    return smjson.dumps(export_mechs(mechs, pack_key), indent=True)
 
 
 def get_battle_item(item: ItemData, slot_name: LiteralString) -> WUBattleItem:
@@ -260,7 +260,7 @@ def get_player(mech: Mech, mech_name: str, player_name: str) -> WUPlayer:
     ]
     import hashlib
 
-    data = fileformats.json_encoder(battle_items_no_modules)
+    data = smjson.dumps(battle_items_no_modules)
     hash_ = hashlib.sha256(data).hexdigest()
 
     return {"name": str(player_name), "itemsHash": hash_, "mech": export_mech(mech, mech_name)}
