@@ -21,7 +21,7 @@ class SMException(Exception):
     __slots__ = ()
 
 
-@define
+@define(auto_exc=True)
 class NegativeValueError(SMException, ValueError):
     """Number cannot be negative."""
 
@@ -31,7 +31,7 @@ class NegativeValueError(SMException, ValueError):
         return f"Number cannot be negative, got {self.number}"
 
 
-@define
+@define(auto_exc=True)
 class IDLookupError(SMException, KeyError):
     """Unknown item ID."""
 
@@ -41,7 +41,7 @@ class IDLookupError(SMException, KeyError):
         return f"Unknown item ID: {self.id}"
 
 
-@define
+@define(auto_exc=True)
 class PackKeyError(SMException, KeyError):
     """Unknown pack key."""
 
@@ -54,6 +54,8 @@ class PackKeyError(SMException, KeyError):
 class MaxPowerError(SMException):
     """Item at maximum power."""
 
+    __slots__ = ()
+
     def __init__(self, arg: object = __doc__, *args: object) -> None:
         super().__init__(arg, *args)
 
@@ -61,11 +63,13 @@ class MaxPowerError(SMException):
 class MaxTierError(SMException):
     """Attempted to transform an item at its maximum tier."""
 
+    __slots__ = ()
+
     def __init__(self) -> None:
         super().__init__("Maximum item tier already reached")
 
 
-@define
+@define(auto_exc=True)
 class TierUnreachableError(SMException):
     """Tier outside item transformation tiers."""
 
