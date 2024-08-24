@@ -1,7 +1,7 @@
 [project]
 name = "supermechs"
 version = "0.1.0"
-description = "Package modeling the behavior of the SuperMechs game into python objects."
+description = "Library modeling the mechanics of the SuperMechs game."
 authors = [
     {name = "Eneg"},
 ]
