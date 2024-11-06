@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-__all__ = ("ItemElementName", "ItemTagName", "ItemTypeName", "StageTierName")
+__all__ = ("ItemElementName", "ItemTagName", "ItemTypeName", "StageTierName", "StatName")
 
 
 class ItemTypeName(str, Enum):
