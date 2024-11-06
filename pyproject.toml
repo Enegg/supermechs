@@ -57,6 +57,7 @@ ignore = [
     "PERF203",   # try ... except in loops
     "PIE796",    # non-unique enums (that's a job for @unique)
     "SLF001",    # private member access; handled by pyright
+    "PLC0414",   # import foo as foo
 ]
 
 [tool.ruff.lint.pydocstyle]

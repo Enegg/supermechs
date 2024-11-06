@@ -1,117 +1,62 @@
-from collections import abc
+import attrs
 
-from supermechs.abc.arenashop import ArenaShopMapping
-from supermechs.abc.stats import MutableStatsMapping, StatsMapping
-from supermechs.enums.arenashop import Category
-from supermechs.enums.stats import Stat
-from supermechs.gamerules import DEFAULT_GAME_RULES, BuildRules
-from supermechs.item import Item, ItemData
-from supermechs.mech import Mech
-from supermechs.stats import StatsDict, get_final_stage
+from supermechs import abc
+from supermechs.gamerules import BuildRules
+from supermechs.mech import MechSummary
 
 __all__ = (
-    "apply_overload_penalties",
-    "buff_stats",
-    "get_item_stats",
+    "apply_overload_penalty",
     "max_stats",
     "mech_summary",
     "mech_weight",
 )
 
-STAT_TO_CATEGORY: abc.Mapping[Stat, Category] = {
-    Stat.energy_capacity:      Category.energy_capacity,
-    Stat.regeneration:         Category.energy_regeneration,
-    Stat.energy_damage:        Category.energy_damage,
-    Stat.heat_capacity:        Category.heat_capacity,
-    Stat.cooling:              Category.heat_cooling,
-    Stat.heat_damage:          Category.heat_damage,
-    Stat.physical_damage:      Category.physical_damage,
-    Stat.explosive_damage:     Category.explosive_damage,
-    Stat.electric_damage:      Category.electric_damage,
-    Stat.physical_resistance:  Category.physical_resistance,
-    Stat.explosive_resistance: Category.explosive_resistance,
-    Stat.electric_resistance:  Category.electric_resistance,
-    Stat.hit_points:           Category.total_hp,
-    Stat.backfire:             Category.backfire_reduction,
-}  # fmt: skip
-MECH_SUMMARY_STATS: abc.Sequence[Stat] = (
-    Stat.weight,
-    Stat.hit_points,
-    Stat.energy_capacity,
-    Stat.regeneration,
-    Stat.heat_capacity,
-    Stat.cooling,
-    Stat.physical_resistance,
-    Stat.explosive_resistance,
-    Stat.electric_resistance,
-    Stat.bullets_capacity,
-    Stat.rockets_capacity,
-    Stat.walk,
-    Stat.jump,
-)
 
-
-def get_item_stats(item: Item, /) -> StatsDict:
-    """Get the stats of the item at its particular tier and level."""
-    return item.stage.at(item.level)
-
-
-def mech_summary(mech: Mech, /) -> StatsDict:
+def mech_summary(mech: abc.Mech[abc.HasStats], /) -> abc.MechSummary:
     """Construct a dict of the mech's stats, in order as they appear in workshop."""
-    # inherits key order
-    stats: StatsDict = dict.fromkeys(MECH_SUMMARY_STATS, 0)
+    summary = MechSummary()
 
-    for item in filter(None, mech.iter_items()):
-        item_stats = get_item_stats(item)
+    for item in mech.iter_items():
+        stats = item.stats
+        # fmt: off
+        summary.weight               += stats.weight
+        summary.hit_points           += stats.hit_points
+        summary.energy_capacity      += stats.energy_capacity
+        summary.regeneration         += stats.regeneration
+        summary.heat_capacity        += stats.heat_capacity
+        summary.cooling              += stats.cooling
+        summary.physical_resistance  += stats.physical_resistance
+        summary.explosive_resistance += stats.explosive_resistance
+        summary.electric_resistance  += stats.electric_resistance
+        summary.bullets_capacity     += stats.bullets_capacity
+        summary.rockets_capacity     += stats.rockets_capacity
+        # fmt: on
 
-        for stat in MECH_SUMMARY_STATS:
-            stats[stat] += item_stats.get(stat, 0)
+    if (legs := mech.legs) is not None:
+        summary.walk += legs.stats.walk
+        summary.jump += legs.stats.jump
 
-    return stats
+    return summary
 
 
-def mech_weight(mech: Mech, /) -> int:
+def mech_weight(mech: abc.Mech[abc.HasStats], /) -> float:
     """Total mech's weight."""
-    mass = 0
-
-    for item in filter(None, mech.iter_items()):
-        mass += get_item_stats(item).get(Stat.weight, 0)
-
-    return mass
+    return sum((item.stats.weight for item in mech.iter_items()), start=0.0)
 
 
-def apply_overload_penalties(
-    stats: MutableStatsMapping, /, ruleset: BuildRules = DEFAULT_GAME_RULES.builds
-) -> None:
-    """TODO: docstring"""
-    if (overload := stats.get(Stat.weight, 0) - ruleset.MAX_WEIGHT) > 0:
-        for stat, penalty in ruleset.STAT_PENALTIES_PER_KG.items():
-            stats[stat] -= overload * penalty
+def apply_overload_penalty(
+    stats: abc.MechSummary, /, ruleset: BuildRules = BuildRules.default
+) -> abc.MechSummary:
+    """TODO: docstring."""
+    overload = stats.weight - ruleset.safe_weight
+
+    if overload <= 0:
+        return stats
+
+    penalty = overload * ruleset.hp_overload_penalty
+    return attrs.evolve(stats, hit_points=stats.hit_points - penalty)
 
 
-def buff_stats(
-    stats: StatsMapping, /, buff_levels: ArenaShopMapping, *, skip_hp: bool = True
-) -> StatsDict:
-    """Return stats buffed according to buff levels."""
-    mutable_stats = dict(stats)
-
-    for stat, value in mutable_stats.items():
-        if (category := STAT_TO_CATEGORY.get(stat)) is None:
-            continue
-
-        if category is Category.total_hp and skip_hp:
-            continue
-
-        data = category.data
-        level = buff_levels[category]
-        addon = int(data.progression[level])
-        buffed_value = value + addon if data.is_absolute else round(value * (1 + addon / 100))
-        mutable_stats[stat] = buffed_value
-
-    return mutable_stats
-
-
-def max_stats(item: ItemData, /) -> StatsDict:
+def max_stats(item: abc.HasStages, /) -> abc.ItemStats:
     """Return the max stats of an item."""
-    stage = get_final_stage(item.start_stage)
-    return stage.max()
+    return item.stages[-1].levels[-1].stats

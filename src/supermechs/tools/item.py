@@ -1,11 +1,10 @@
 from collections import abc
 
-from supermechs.enums.stats import Tier
-from supermechs.item import ItemData
+from supermechs.abc import HasStages, StageTier
 
 __all__ = ("transform_range",)
 
 
-def transform_range(item: ItemData, /) -> abc.Sequence[Tier]:
+def transform_range(item: HasStages, /) -> abc.Sequence[StageTier]:
     """Construct a transform range from item data."""
-    return tuple(stage.tier for stage in item.iter_stages())
+    return tuple(stage.tier for stage in item.stages)

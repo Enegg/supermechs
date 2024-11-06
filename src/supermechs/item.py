@@ -1,201 +1,146 @@
-import uuid
-from bisect import bisect_left
 from collections import abc
-from typing import Final, NamedTuple
-from typing_extensions import Self
+from typing import Final
+from typing_extensions import Self, override
 
-from attrs import Factory, define, field, validators
+import attrs
+import attrs.validators as v
 
-from .abc.item import ItemID, Name, Paint
-from .abc.item_pack import PackKey
-from .enums.item import Element, Type
-from .enums.stats import Tier
-from .exceptions import MaxTierError, NegativeValueError, TierUnreachableError
-from .stats import TransformStage, get_final_stage
+import supermechs.abc as sabc
+from supermechs.utils import default
 
-__all__ = ("InvItem", "Item", "ItemData", "Tags")
+__all__ = ("ItemData", "ItemStats", "StageLevel", "TransformStage")
 
-
-class Tags(NamedTuple):
-    """Lightweight class for storing a set of boolean tags about an item."""
-
-    premium: bool = False
-    """Whether the item is considered "premium"."""
-    sword: bool = False
-    """Whether the item "swings" in its animation."""
-    melee: bool = False
-    """Whether the item is a melee weapon."""
-    roller: bool = False
-    """Specific to legs, whether they roll or walk."""
-    legacy: bool = False
-    """Whether the item is considered legacy."""
-    require_jump: bool = False
-    """Whether the item requires the ability to jump to be equipped."""
-    custom: bool = False
-    """Whether the item is not from the default item pack."""
-
-    @classmethod
-    def from_keywords(cls, it: abc.Iterable[str], /) -> Self:
-        """Create Tags object from an iterable of string attributes."""
-        return cls(**dict.fromkeys(it, True))
+_ZERO = 0.0
 
 
-@define(kw_only=True)
+@attrs.define(kw_only=True)
+class ItemStats:
+    @default
+    @staticmethod
+    def zeros() -> sabc.ItemStats:
+        return ItemStats()
+
+    weight: float = _ZERO
+    hit_points: float = _ZERO
+    energy_capacity: float = _ZERO
+    regeneration: float = _ZERO
+    heat_capacity: float = _ZERO
+    cooling: float = _ZERO
+    physical_resistance: float = _ZERO
+    explosive_resistance: float = _ZERO
+    electric_resistance: float = _ZERO
+    bullets_capacity: float = _ZERO
+    rockets_capacity: float = _ZERO
+    walk: float = _ZERO
+    jump: float = _ZERO
+    physical_damage: float = _ZERO
+    physical_damage_addon: float = _ZERO
+    physical_resistance_damage: float = _ZERO
+    electric_damage: float = _ZERO
+    electric_damage_addon: float = _ZERO
+    energy_damage: float = _ZERO
+    energy_capacity_damage: float = _ZERO
+    regeneration_damage: float = _ZERO
+    electric_resistance_damage: float = _ZERO
+    explosive_damage: float = _ZERO
+    explosive_damage_addon: float = _ZERO
+    heat_damage: float = _ZERO
+    heat_capacity_damage: float = _ZERO
+    cooling_damage: float = _ZERO
+    explosive_resistance_damage: float = _ZERO
+    range: float = _ZERO
+    range_addon: float = _ZERO
+    push: float = _ZERO
+    pull: float = _ZERO
+    recoil: float = _ZERO
+    advance: float = _ZERO
+    retreat: float = _ZERO
+    uses: float = _ZERO
+    backfire: float = _ZERO
+    heat_generation: float = _ZERO
+    energy_cost: float = _ZERO
+    bullets_cost: float = _ZERO
+    rockets_cost: float = _ZERO
+
+
+@attrs.define(kw_only=True)
+class StageLevel:
+    power: int
+    stats: ItemStats
+
+
+@attrs.define(kw_only=True)
+class TransformStage:
+    tier: sabc.StageTier
+    levels: abc.Sequence[sabc.StageLevel] = attrs.field(validator=v.min_len(1))
+
+
+@attrs.define(kw_only=True)
 class ItemData:
-    """Dataclass storing item data independent of its tier and level."""
-
-    id: Final[ItemID] = field(validator=validators.ge(ItemID(1)))
-    """The ID of the item, unique within its pack."""
-    pack_key: Final[PackKey] = field()
-    """The key of the pack this item comes from."""
-    name: Final[Name] = field(validator=validators.min_len(1))
-    """The display name of the item."""
-    type: Final[Type] = field(validator=validators.in_(Type), repr=str)
-    """Member of Type enum denoting the function of the item."""
-    element: Final[Element] = field(validator=validators.in_(Element), repr=str)
-    """Member of Element enum denoting the element of the item."""
-    tags: Final[Tags] = field()
-    """A set of boolean tags which alter item's behavior/appearance."""
-    start_stage: Final[TransformStage] = field()
-    """The first transformation stage of this item."""
-
-    def iter_stages(self) -> abc.Iterator[TransformStage]:
-        """Iterate over the transform stages of this item."""
-        stage = self.start_stage
-        yield stage
-
-        while stage := stage.next:
-            yield stage
+    id: sabc.ItemID
+    name: str
+    type: sabc.ItemType
+    element: sabc.ItemElement
+    stages: abc.Sequence[sabc.TransformStage] = attrs.field(validator=v.min_len(1))
+    tags: abc.Set[sabc.ItemTag] = frozenset()
 
 
-@define(kw_only=True)
+@attrs.define(kw_only=True)
 class Item:
-    """Represents unique properties of an item."""
-
-    data: Final[ItemData] = field()
-    stage: TransformStage = field()
-    level: int = field(default=0)
-    paint: Paint | None = field(default=None)
+    data: Final[ItemData]
+    _stage: int = 0
+    level: int = 0
+    paint: sabc.ItemPaint | None = None
 
     @property
-    def id(self) -> ItemID:
+    def id(self) -> sabc.ItemID:
         return self.data.id
 
     @property
-    def pack_key(self) -> PackKey:
-        return self.data.pack_key
-
-    @property
-    def name(self) -> Name:
+    def name(self) -> str:
         return self.data.name
 
     @property
-    def type(self) -> Type:
+    def type(self) -> sabc.ItemType:
         return self.data.type
 
     @property
-    def element(self) -> Element:
+    def element(self) -> sabc.ItemElement:
         return self.data.element
 
     @property
-    def tags(self) -> Tags:
+    def tags(self) -> abc.Set[sabc.ItemTag]:
         return self.data.tags
 
     @property
-    def tier(self) -> Tier:
+    def stage(self) -> sabc.TransformStage:
+        return self.data.stages[self._stage]
+
+    @property
+    def tier(self) -> sabc.StageTier:
         return self.stage.tier
 
     @property
-    def display_level(self) -> str:
-        """The level text displayed for this item."""
-        return "max" if self.is_maxed else str(self.level + 1)
+    def stats(self) -> sabc.ItemStats:
+        return self.stage.levels[self.level].stats
 
-    @property
-    def can_transform(self) -> bool:
-        """Whether the item can be transformed, i.e. is not at final stage."""
-        return self.stage.next is not None
-
-    @property
-    def is_max_level(self) -> bool:
-        """Whether the item reached max level for its tier."""
-        return self.level == self.stage.max_level
-
-    @property
-    def is_maxed(self) -> bool:
-        """Whether the item is at its final stage and level."""
-        return not self.can_transform and self.is_max_level
-
+    @override
     def __str__(self) -> str:
-        return f"[{self.stage.tier.name[0]}] {self.data.name} lvl {self.display_level}"
-
-    def transform(self) -> None:
-        """Swap the stage of this item one tier higher."""
-        if self.stage.next is None:
-            raise MaxTierError
-
-        self.stage = self.stage.next
+        return f"{self.data} at {self.tier} lvl {self.level}"
 
     @classmethod
     def maxed(cls, data: ItemData, /) -> Self:
-        """Create an Item at maximum tier and level."""
-        stage = get_final_stage(data.start_stage)
-        return cls(data=data, stage=stage, level=stage.max_level)
+        self = cls(data=data)
+        self._stage = len(data.stages) - 1
+        return self
 
     @classmethod
-    def at_tier(cls, data: ItemData, /, tier: Tier) -> Self:
-        """Create an Item at given tier."""
-        for stage in data.iter_stages():
-            if stage.tier is tier:
-                return cls(data=data, stage=stage)
+    def at_tier(cls, data: ItemData, tier: sabc.StageTier) -> Self:
+        for i, stage in enumerate(data.stages):
+            if stage.tier == tier:
+                self = cls(data=data)
+                self._stage = i
+                return self
 
-        raise TierUnreachableError(tier)
-
-
-@define(kw_only=True)
-class InvItem:
-    """Represents an inventory bound item."""
-
-    item: Final[Item] = field()
-    UUID: Final[uuid.UUID] = Factory(uuid.uuid4)
-    _power: int = field(default=0, init=False)
-
-    @property
-    def is_max_power(self) -> bool:
-        """Whether the item has reached the maximum power for its tier."""
-        return self._power == self.max_power
-
-    @property
-    def max_power(self) -> int:
-        """The total power necessary to max the item at current tier."""
-        return self.item.stage.level_progression[-1]
-
-    @property
-    def can_transform(self) -> bool:
-        """True if item has enough power and isn't at max tier."""
-        return self.is_max_power and self.item.can_transform
-
-    @property
-    def power(self) -> int:
-        return self._power
-
-    @power.setter
-    def power(self, power: int, /) -> None:
-        if power < 0:
-            raise NegativeValueError(power)
-
-        progression = self.item.stage.level_progression
-        power = min(power, progression[-1])
-        self._power = power
-        self.item.level = bisect_left(progression, power) + 1
-
-    def __str__(self) -> str:
-        return f"{self.item} {self.UUID}"
-
-    def transform(self) -> None:
-        """Transform the item to higher tier, if it has enough power."""
-        if not self.is_max_power:
-            msg = "Cannot transform a non-maxed item"
-            raise ValueError(msg)
-
-        self.item.transform()
-        self.power = 0
+        msg = f"Item {data} does not reach tier {tier}"
+        raise ValueError(msg) from None

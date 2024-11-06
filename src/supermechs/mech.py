@@ -1,144 +1,108 @@
 from collections import abc
-from typing import Literal, TypeAlias
+from typing import TYPE_CHECKING
+from typing_extensions import TypeVar, override
 
-from attrs import define, field
+import attrs
 
-from .enums.item import Type
-from .gamerules import DEFAULT_GAME_RULES, BuildRules, VariadicType
-from .item import Item
-from .utils import KeyAccessor, SequenceView
+import supermechs.abc as sabc
+from supermechs.enums import SlotName
+from supermechs.utils import default
 
-__all__ = ("Mech", "SlotMemberType")
+__all__ = ("Mech", "MechSummary", "MutableMech")
 
-SlotMemberType: TypeAlias = Item | None
-SlotType: TypeAlias = Type | tuple[VariadicType, int]
-SlotAccessor: TypeAlias = KeyAccessor[Type, SlotMemberType]
-SlotSelectorType: TypeAlias = SlotType | Literal["body", "weapons", "specials"]
+ItemT = TypeVar("ItemT", infer_variance=True)
+_ZERO = 0.0
 
 
-@define
-class Mech:
-    """Represents a mech build."""
+@attrs.define(frozen=TYPE_CHECKING)
+class Mech(sabc.Mech[ItemT]):
+    setup: abc.Mapping[sabc.MechSlot, ItemT] = attrs.field(factory=dict)
 
-    rules: BuildRules = field(default=DEFAULT_GAME_RULES.builds)
-    _setup: abc.MutableMapping[SlotType, Item] = field(factory=dict, init=False)
-    # fmt: off
-    torso      = SlotAccessor(Type.TORSO)
-    legs       = SlotAccessor(Type.LEGS)
-    drone      = SlotAccessor(Type.DRONE)
-    teleporter = SlotAccessor(Type.TELEPORTER)
-    charge     = SlotAccessor(Type.CHARGE)
-    hook       = SlotAccessor(Type.HOOK)
-    shield     = SlotAccessor(Type.SHIELD)
-    perk       = SlotAccessor(Type.PERK)
-    # fmt: on
+    @property
+    @override
+    def torso(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.torso))
 
-    def side_weapons(self):  # noqa: ANN201
-        """Sequence-like object providing a view on mech's side weapons."""
-        return SequenceView(self, Type.SIDE_WEAPON, self.rules.VARIADIC_SLOTS[Type.SIDE_WEAPON])
+    @property
+    @override
+    def legs(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.legs))
 
-    def top_weapons(self):  # noqa: ANN201
-        """Sequence-like object providing a view on mech's top weapons."""
-        return SequenceView(self, Type.TOP_WEAPON, self.rules.VARIADIC_SLOTS[Type.TOP_WEAPON])
+    @property
+    @override
+    def drone(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.drone))
 
-    def modules(self):  # noqa: ANN201
-        """Sequence-like object providing a view on mech's modules."""
-        return SequenceView(self, Type.MODULE, self.rules.VARIADIC_SLOTS[Type.MODULE])
+    @property
+    @override
+    def charge(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.charge))
 
-    def __setitem__(self, slot: SlotType, item: SlotMemberType, /) -> None:
-        if not isinstance(item, SlotMemberType):
-            msg = f"Expected {SlotMemberType}, got {type(item).__name__}"
-            raise TypeError(msg)
+    @property
+    @override
+    def teleport(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.teleport))
 
-        if isinstance(slot, tuple):
-            variadic_type, index = slot
-            n_slots = self.rules.VARIADIC_SLOTS[variadic_type]
-            if index >= n_slots:
-                msg = f"Slot index greater than allowed ({index} >= {n_slots}) for {variadic_type}"
-                raise IndexError(msg)
+    @property
+    @override
+    def hook(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.hook))
 
+    @property
+    @override
+    def shield(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.shield))
+
+    @property
+    @override
+    def perk(self) -> ItemT | None:
+        return self.setup.get(sabc.MechSlot(SlotName.perk))
+
+    @override
+    def __getitem__(self, name: sabc.MechSlot, /) -> ItemT | None:
+        return self.setup.get(name)
+
+    @override
+    def iter_items(self) -> abc.Iterator[ItemT]:
+        yield from self.setup.values()
+
+
+@attrs.define(frozen=TYPE_CHECKING)
+class MutableMech(Mech[ItemT]):
+    if TYPE_CHECKING:
+        setup: abc.MutableMapping[sabc.MechSlot, ItemT] = attrs.field(factory=dict)
+
+    def __setitem__(self, name: sabc.MechSlot, item: ItemT | None, /) -> None:
         if item is None:
-            del self[slot]
+            del self[name]
 
         else:
-            self._setup[slot] = item
+            self.setup[name] = item
 
-    def __getitem__(self, slot: SlotType, /) -> SlotMemberType:
-        return self._setup.get(slot)
+    def __delitem__(self, name: sabc.MechSlot, /) -> None:
+        self.setup.pop(name, None)
 
-    def __delitem__(self, slot: SlotType, /) -> None:
-        self._setup.pop(slot, None)
-
-    def __str__(self) -> str:
-        string_parts = [
-            f"{slot.name.capitalize()}: {item}"
-            for item, slot in zip(self.iter_items("body"), (Type.TORSO, Type.LEGS), strict=True)
-        ]
-
-        if weapon_string := ", ".join(map(str, self.iter_items("weapons"))):
-            string_parts.append("Weapons: " + weapon_string)
-
-        string_parts.extend(
-            f"{item.type.name.capitalize()}: {item}"
-            for item in self.iter_items("specials")
-            if item is not None
-        )
-
-        if modules := ", ".join(map(str, self.iter_items(Type.MODULE))):
-            string_parts.append("Modules: " + modules)
-
-        if perk := self.perk:
-            string_parts.append(f"Perk: {perk}")
-
-        return "\n".join(string_parts)
-
-    def iter_items(self, *slots: "SlotSelectorType") -> abc.Iterator[SlotMemberType]:
-        """Iterate over selected mech's items.
-
-        Parameters
-        ----------
-        slots:
-            The order and `Type`s of items to yield. If no slots are provided, yields every item.
-
-            Literal string shorthands for related types:
-
-            - "body" - `TORSO` & `LEGS`;
-            - "weapons" - `SIDE_WEAPON`s, `TOP_WEAPON`s & `DRONE`;
-            - "specials" - `TELEPORTER`, `CHARGE`, `HOOK` & `SHIELD`.
-        """
-        if slots:
-            slots_ = _selectors_to_slots(slots, self.rules)
-            yield from map(self._setup.get, slots_)
-            return
-
-        variadic = (Type.SIDE_WEAPON, Type.TOP_WEAPON, Type.MODULE)
-
-        for type in Type:
-            if type in variadic:
-                yield from SequenceView(self, type, self.rules.VARIADIC_SLOTS[type])
-
-            else:
-                yield self._setup.get(type)
+    def to_mech(self) -> Mech[ItemT]:
+        return Mech(dict(self.setup))
 
 
-def _selectors_to_slots(
-    args: abc.Iterable[SlotSelectorType], /, rules: BuildRules
-) -> abc.Iterator[SlotType]:
-    for arg in args:
-        if isinstance(arg, Type | tuple):
-            yield arg
+@attrs.define
+class MechSummary:
+    @default
+    @staticmethod
+    def zeros() -> sabc.MechSummary:
+        return MechSummary()
 
-        elif arg == "body":
-            yield from (Type.TORSO, Type.LEGS)
-
-        elif arg == "specials":
-            yield from (Type.TELEPORTER, Type.CHARGE, Type.HOOK, Type.SHIELD)
-
-        elif arg == "weapons":
-            for subtype in (Type.SIDE_WEAPON, Type.TOP_WEAPON):
-                yield from ((subtype, n) for n in range(rules.VARIADIC_SLOTS[subtype]))
-            yield Type.DRONE
-
-        else:
-            msg = f"Invalid selector: {arg}"
-            raise TypeError(msg)
+    weight: float = _ZERO
+    hit_points: float = _ZERO
+    energy_capacity: float = _ZERO
+    regeneration: float = _ZERO
+    heat_capacity: float = _ZERO
+    cooling: float = _ZERO
+    physical_resistance: float = _ZERO
+    explosive_resistance: float = _ZERO
+    electric_resistance: float = _ZERO
+    bullets_capacity: float = _ZERO
+    rockets_capacity: float = _ZERO
+    walk: float = _ZERO
+    jump: float = _ZERO

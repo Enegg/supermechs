@@ -21,18 +21,3 @@ There's currently no PyPI release available.
 Versioning
 ----------
 The library is in its alpha stage. The API is immature and may substantially change as development progresses.
-
-
-Quick example
--------------
-```py
-import requests  # pip install requests
-from serial import to_item_pack
-
-with requests.get("https://raw.githubusercontent.com/Enegg/Item-packs/master/items.json") as resp:
-    resp.raise_for_status()
-    pack = to_item_pack(resp.json())
-
-print(pack.data)
-# do stuff with pack
-```
