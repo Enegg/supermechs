@@ -120,7 +120,7 @@ class StageLevel(Protocol):
     def stats(self) -> ItemStats: ...
 
 
-class TransformStage:
+class TransformStage(Protocol):
     @property
     def tier(self) -> StageTier: ...
     @property

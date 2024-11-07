@@ -13,7 +13,7 @@ __all__ = (
 
 
 def mech_summary(mech: abc.Mech[abc.HasStats], /) -> abc.MechSummary:
-    """Construct a dict of the mech's stats, in order as they appear in workshop."""
+    """Construct a summary of the mech's stats."""
     summary = MechSummary()
 
     for item in mech.iter_items():
